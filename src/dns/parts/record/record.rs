@@ -26,7 +26,7 @@ impl DNSRecord {
 
 impl DNSRecord {
     pub fn from_reader(reader: &mut SliceReader, map: &mut HashMap<u16, Rc<Domain>>) -> Self {
-        let name = Domain::from_reader_for_record(reader, map);
+        let name = Domain::from_reader_and_check_map(reader, map);
         let rtype = reader.read_u16();
         let class = reader.read_u16();
         let ttl = reader.read_u32();

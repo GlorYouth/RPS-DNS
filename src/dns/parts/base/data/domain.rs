@@ -34,7 +34,7 @@ impl From<&String> for Domain {
 
 impl From<&mut SliceReader<'_>> for Domain {
     fn from(reader: &mut SliceReader) -> Self {
-        if let Some(offset) = reader.as_ref().iter().position(|b| *b == 0x0) {
+        if let Some(offset) = reader.iter_from_current_pos().position(|b| *b == 0x0) {
             return Domain(Vec::from(reader.read_slice(offset + 1)));
         }
         panic!()
@@ -64,12 +64,16 @@ impl From<&str> for Domain {
     }
 }
 
-impl Domain {
 
-    pub fn from_reader_for_question(
+
+impl Domain {
+    pub fn from_reader_and_check_map(
         reader: &mut SliceReader,
         map: &mut HashMap<u16, Rc<Domain>>,
     ) -> Rc<Domain> {
+        if reader.peek_u8() & 0b1100_0000 == 0b1100_0000 {
+            return map[&reader.read_u16()].clone();
+        }
         if let Some(offset) = reader.iter_from_current_pos().position(|b| *b == 0x0) {
             let pos = reader.pos() as u16;
             let domain = Rc::new(Domain(Vec::from(reader.read_slice(offset + 1))));
@@ -77,16 +81,6 @@ impl Domain {
             return domain;
         }
         panic!()
-    }
-
-    pub fn from_reader_for_record(
-        reader: &mut SliceReader,
-        map: &mut HashMap<u16, Rc<Domain>>,
-    ) -> Rc<Domain> {
-        if reader.peek_u8() & 0b1100_0000 == 0b1100_0000 {
-            return map[&reader.read_u16()].clone();
-        }
-        Self::from_reader_for_question(reader, map)
     }
 }
 
@@ -182,6 +176,7 @@ mod tests {
             .unwrap(),
             "小米.中国"
         );
+        
         assert_eq!(
             Domain::new(
                 [3, 119, 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0].to_vec()
@@ -259,7 +254,7 @@ mod tests {
             0x00,
         ][..]);
         assert_eq!(
-            &Domain::from_reader_for_question(reader, &mut map).0,
+            &Domain::from_reader_and_check_map(reader, &mut map).0,
             &[3, 119, 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0]
         );
         assert_eq!(
@@ -267,11 +262,11 @@ mod tests {
             &[3, 119, 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0]
         );
         assert_eq!(
-            &Domain::from_reader_for_record(reader, &mut map).0,
+            &Domain::from_reader_and_check_map(reader, &mut map).0,
             &[3, 119, 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0]
         );
         assert_eq!(
-            &Domain::from_reader_for_record(reader, &mut map).0,
+            &Domain::from_reader_and_check_map(reader, &mut map).0,
             &[
                 0x0b, 0x78, 0x6e, 0x2d, 0x2d, 0x79, 0x65, 0x74, 0x73, 0x37, 0x36, 0x65, 0x0a, 0x78,
                 0x6e, 0x2d, 0x2d, 0x66, 0x69, 0x71, 0x73, 0x38, 0x73, 0x00
