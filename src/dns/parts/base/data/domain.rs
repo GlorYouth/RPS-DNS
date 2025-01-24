@@ -156,14 +156,14 @@ mod tests {
     #[test]
     fn test_domain_from_str() {
         assert_eq!(
-            Domain::from(&"小米.中国".to_string()).0,
+            Domain::from("小米.中国").0,
             [
                 0x0b, 0x78, 0x6e, 0x2d, 0x2d, 0x79, 0x65, 0x74, 0x73, 0x37, 0x36, 0x65, 0x0a, 0x78,
                 0x6e, 0x2d, 0x2d, 0x66, 0x69, 0x71, 0x73, 0x38, 0x73, 0x00
             ]
         );
         assert_eq!(
-            Domain::from(&"www.google.com".to_string()).0,
+            Domain::from("www.google.com").0,
             [3, 119, 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0]
         )
     }

@@ -34,7 +34,7 @@ impl Append<DNSRecord> for RawData {
         self.0.extend_from_slice(&record.CLASS.to_be_bytes());
         self.0.extend_from_slice(&record.TTL.to_be_bytes());
         self.0.extend_from_slice(&record.RDLENGTH.to_be_bytes());
-        self.0.append(&mut record.RDATA.clone());
+        self.0.append(&mut record.RDATA.0.clone());
     }
 }
 
@@ -88,6 +88,18 @@ mod test {
     
     #[test]
     fn test_raw_data_append_dns_record() {
-        todo!()
+        let mut data = RawData::with_capacity(DNSRecord::ESTIMATED_SIZE);
+        data.append(&DNSRecord {
+            NAME: Rc::new(Domain::from("www.google.com")),
+            TYPE: DNSType::A.to_u16(),
+            CLASS: 1,
+            TTL: 2,
+            RDLENGTH: 0,
+            RDATA: RecordData{
+                0: vec![],
+            },
+        });
+        
+        assert_eq!(data.0, [3, 119, 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0, 0, 1, 0, 1, 0, 0, 0, 2, 0, 0])
     }
 }

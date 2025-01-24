@@ -43,7 +43,7 @@ mod tests {
     use crate::*;
 
     #[test]
-    fn test_dns_from_reader() {
+    fn test_from_reader() {
         let reader = &mut SliceReader::from(&[
             0x00, 0x03, 0x81, 0x80, 0x00, 0x01, 0x00, 0x0b, 0x00, 0x00, 0x00, 0x00,
         ][..]);
