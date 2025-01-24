@@ -9,14 +9,62 @@ const SIZE_OF_XN: usize = "xn--".len();
 #[derive(PartialEq, Debug)]
 pub struct Domain(pub Vec<u8>);
 
-impl Domain {
-    
-    pub fn from_reader(reader: &mut SliceReader) -> Domain {
+impl From<&String> for Domain {
+    fn from(str: &String) -> Self {
+        let mut encoded: Vec<u8> = Vec::with_capacity(Self::ESTIMATE_DOMAIN_SIZE);
+
+        // 遍历域名部分
+        for part in str.split('.') {
+            // 检查是否含有非 ASCII 字符，如果是，进行 Punycode 编码
+            if part.chars().any(|c| !c.is_ascii()) {
+                let temp = punycode::encode(part).unwrap();
+                encoded.push((temp.len() + SIZE_OF_XN) as u8); // 添加部分长度
+                encoded.extend_from_slice("xn--".as_ref());
+                encoded.extend_from_slice(temp.as_ref()); // 添加Punycode编码后的字节
+            } else {
+                encoded.push(part.len() as u8); // 添加部分长度
+                encoded.extend_from_slice(part.as_ref()); // 直接添加 ASCII 字符字节
+            }
+        }
+
+        encoded.push(0);
+        Self(encoded)
+    }
+}
+
+impl From<&mut SliceReader<'_>> for Domain {
+    fn from(reader: &mut SliceReader) -> Self {
         if let Some(offset) = reader.as_ref().iter().position(|b| *b == 0x0) {
             return Domain(Vec::from(reader.read_slice(offset + 1)));
         }
         panic!()
     }
+}
+
+impl From<&str> for Domain {
+    fn from(str: &str) -> Self {
+        let mut encoded: Vec<u8> = Vec::with_capacity(Self::ESTIMATE_DOMAIN_SIZE);
+
+        // 遍历域名部分
+        for part in str.split('.') {
+            // 检查是否含有非 ASCII 字符，如果是，进行 Punycode 编码
+            if part.chars().any(|c| !c.is_ascii()) {
+                let temp = punycode::encode(part).unwrap();
+                encoded.push((temp.len() + SIZE_OF_XN) as u8); // 添加部分长度
+                encoded.extend_from_slice("xn--".as_ref());
+                encoded.extend_from_slice(temp.as_ref()); // 添加Punycode编码后的字节
+            } else {
+                encoded.push(part.len() as u8); // 添加部分长度
+                encoded.extend_from_slice(part.as_ref()); // 直接添加 ASCII 字符字节
+            }
+        }
+
+        encoded.push(0);
+        Self(encoded)
+    }
+}
+
+impl Domain {
 
     pub fn from_reader_for_question(
         reader: &mut SliceReader,
@@ -56,30 +104,9 @@ impl Domain {
     pub fn new(vec: Vec<u8>) -> Domain {
         Domain(vec)
     }
-
+    
     pub fn clone(&self) -> Domain {
         Domain(self.0.clone())
-    }
-
-    pub fn from_str(str: &String) -> Domain {
-        let mut encoded: Vec<u8> = Vec::with_capacity(Self::ESTIMATE_DOMAIN_SIZE);
-
-        // 遍历域名部分
-        for part in str.split('.') {
-            // 检查是否含有非 ASCII 字符，如果是，进行 Punycode 编码
-            if part.chars().any(|c| !c.is_ascii()) {
-                let temp = punycode::encode(part).unwrap();
-                encoded.push((temp.len() + SIZE_OF_XN) as u8); // 添加部分长度
-                encoded.extend_from_slice("xn--".as_ref());
-                encoded.extend_from_slice(temp.as_ref()); // 添加Punycode编码后的字节
-            } else {
-                encoded.push(part.len() as u8); // 添加部分长度
-                encoded.extend_from_slice(part.as_ref()); // 直接添加 ASCII 字符字节
-            }
-        }
-
-        encoded.push(0);
-        Self(encoded)
     }
 
     pub fn to_string(&self) -> Result<String, Utf8Error> {
@@ -120,6 +147,8 @@ impl Domain {
     }
 }
 
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -127,14 +156,14 @@ mod tests {
     #[test]
     fn test_domain_from_str() {
         assert_eq!(
-            Domain::from_str(&"小米.中国".to_string()).0,
+            Domain::from(&"小米.中国".to_string()).0,
             [
                 0x0b, 0x78, 0x6e, 0x2d, 0x2d, 0x79, 0x65, 0x74, 0x73, 0x37, 0x36, 0x65, 0x0a, 0x78,
                 0x6e, 0x2d, 0x2d, 0x66, 0x69, 0x71, 0x73, 0x38, 0x73, 0x00
             ]
         );
         assert_eq!(
-            Domain::from_str(&"www.google.com".to_string()).0,
+            Domain::from(&"www.google.com".to_string()).0,
             [3, 119, 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0]
         )
     }
@@ -165,7 +194,7 @@ mod tests {
     #[test]
     fn test_domain_from_reader() {
         assert_eq!(
-            &Domain::from_reader(&mut SliceReader::from(&[
+            &Domain::from(&mut SliceReader::from(&[
                 3, 119, 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0
             ][..]))
             .to_string()
@@ -174,7 +203,7 @@ mod tests {
         );
 
         assert_eq!(
-            &Domain::from_reader(&mut SliceReader::from(&[
+            &Domain::from(&mut SliceReader::from(&[
                 3, 119, 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0
             ][..]))
             .0,

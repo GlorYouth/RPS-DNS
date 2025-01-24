@@ -6,7 +6,7 @@ pub fn from_reader(reader: &mut SliceReader, rtype: u16) -> RecordData {
     match rtype {
         1 => addr_read::from_ipv4(reader),
         5 => {
-            let result = Domain::from_reader(reader);
+            let result = Domain::from(reader);
             result.0
         }
         28 => addr_read::from_ipv6(reader),

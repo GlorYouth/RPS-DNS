@@ -28,7 +28,7 @@ impl DNSRequest {
                 ARCOUNT: 0,
             },
             question: QuestionBody::Single(DNSQuestion {
-                QNAME: Rc::from(Domain::from_str(host)),
+                QNAME: Rc::from(Domain::from(host)),
                 QTYPE: qtype.to_u16(),
                 QCLASS: 1,
             }),
@@ -50,7 +50,7 @@ impl DNSRequest {
                 hosts
                     .iter()
                     .map(|v| DNSQuestion {
-                        QNAME: Rc::from(Domain::from_str(&v.0)),
+                        QNAME: Rc::from(Domain::from(&v.0)),
                         QTYPE: v.1.to_u16(),
                         QCLASS: 1,
                     })
@@ -66,12 +66,12 @@ impl DNSRequest {
 
     pub fn into_raw_data(self) -> RawData {
         let mut data = RawData::with_capacity(self.estimate_size());
-        data.append_dns_header(&self.header);
+        data.append(&self.header);
         match self.question {
-            QuestionBody::Single(question) => data.append_dns_question(&question),
+            QuestionBody::Single(question) => data.append(&question),
             QuestionBody::Multi(questions) => {
                 for question in questions {
-                    data.append_dns_question(&question);
+                    data.append(&question);
                 }
             }
         };
@@ -80,12 +80,12 @@ impl DNSRequest {
 
     pub fn get_raw_data(&self) -> RawData {
         let mut data = RawData::with_capacity(self.estimate_size());
-        data.append_dns_header(&self.header);
+        data.append(&self.header);
         match &self.question {
-            QuestionBody::Single(question) => data.append_dns_question(question),
+            QuestionBody::Single(question) => data.append(question),
             QuestionBody::Multi(questions) => {
                 for question in questions {
-                    data.append_dns_question(question)
+                    data.append(question)
                 }
             }
         };

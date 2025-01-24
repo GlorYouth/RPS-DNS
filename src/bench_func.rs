@@ -23,7 +23,7 @@ pub fn bench_decode() {
 #[allow(dead_code)]
 fn bench_encode_domain() {
     for _ in 0..20 {
-        Domain::from_str(&"小米.中国".to_string());
+        let _ = Domain::from("小米.中国");
     }
 }
 #[allow(dead_code)]

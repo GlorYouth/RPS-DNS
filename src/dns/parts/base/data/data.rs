@@ -3,12 +3,12 @@ use crate::dns::parts::*;
 
 pub struct RawData(Vec<u8>);
 
-impl RawData {
-    pub fn with_capacity(capacity: usize) -> RawData {
-        RawData(Vec::with_capacity(capacity))
-    }
+pub trait Append<T> {
+    fn append(&mut self, data: &T);
+}
 
-    pub fn append_dns_header(&mut self, header: &DNSHeader) {
+impl Append<DNSHeader> for RawData {
+    fn append(&mut self, header: &DNSHeader) {
         self.0.extend_from_slice(&header.ID.to_be_bytes());
         self.0.extend_from_slice(&header.FLAGS.to_vec());
 
@@ -17,26 +17,30 @@ impl RawData {
         self.0.extend_from_slice(&header.NSCOUNT.to_be_bytes());
         self.0.extend_from_slice(&header.ARCOUNT.to_be_bytes());
     }
+}
 
-    pub fn append_dns_question(&mut self, question: &DNSQuestion) {
+impl Append<DNSQuestion> for RawData {
+    fn append(&mut self, question: &DNSQuestion) {
         self.0.append(&mut question.QNAME.0.clone());
         self.0.extend_from_slice(&question.QTYPE.to_be_bytes());
         self.0.extend_from_slice(&question.QCLASS.to_be_bytes());
     }
+}
 
-    pub fn append_dns_question_for_answer(&mut self, question: &DNSQuestion) {
-        self.0.append(&mut question.QNAME.0.clone());
-        self.0.extend_from_slice(&question.QTYPE.to_be_bytes());
-        self.0.extend_from_slice(&question.QCLASS.to_be_bytes());
-    }
-
-    pub fn append_dns_record(&mut self, record: &DNSRecord) {
+impl Append<DNSRecord> for RawData {
+    fn append(&mut self, record: &DNSRecord) {
         self.0.append(&mut record.NAME.0.to_vec());
         self.0.extend_from_slice(&record.TYPE.to_be_bytes());
         self.0.extend_from_slice(&record.CLASS.to_be_bytes());
         self.0.extend_from_slice(&record.TTL.to_be_bytes());
         self.0.extend_from_slice(&record.RDLENGTH.to_be_bytes());
         self.0.append(&mut record.RDATA.clone());
+    }
+}
+
+impl RawData {
+    pub fn with_capacity(capacity: usize) -> RawData {
+        RawData(Vec::with_capacity(capacity))
     }
 }
 
@@ -48,7 +52,7 @@ mod test {
     #[test]
     fn test_raw_data_append_dns_header() {
         let mut data = RawData::with_capacity(DNSHeader::SIZE);
-        data.append_dns_header(&DNSHeader {
+        data.append(&DNSHeader {
             ID: 0x8ac8_u16,
             FLAGS: ArrayU8::from_bytes(&[0x1, 0x0]),
             QDCOUNT: 1,
@@ -63,11 +67,11 @@ mod test {
     fn test_raw_data_append_dns_question() {
         let mut data = RawData::with_capacity(DNSQuestion::ESTIMATE_SIZE);
         let question = DNSQuestion {
-            QNAME: Rc::from(Domain::from_str(&"www.google.com".to_string())),
+            QNAME: Rc::from(Domain::from("www.google.com")),
             QTYPE: DNSType::A.to_u16(),
             QCLASS: 1,
         };
-        data.append_dns_question(&question);
+        data.append(&question);
         assert_eq!(
             data.0,
             [3, 119, 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0, 0, 1, 0, 1]
@@ -75,10 +79,15 @@ mod test {
         assert_eq!(
             question,
             DNSQuestion {
-                QNAME: Rc::from(Domain::from_str(&"www.google.com".to_string())),
+                QNAME: Rc::from(Domain::from("www.google.com")),
                 QTYPE: DNSType::A.to_u16(),
                 QCLASS: 1,
             }
         );
+    }
+    
+    #[test]
+    fn test_raw_data_append_dns_record() {
+        todo!()
     }
 }
