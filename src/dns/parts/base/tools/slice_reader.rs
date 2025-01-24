@@ -29,9 +29,6 @@ impl<'a, N: generic_array::ArrayLength> From<&'a mut ArrayU8<N>> for SliceReader
 }
 
 impl<'a> SliceReader<'a> {
-    pub fn from_array(slice: &'a [u8]) -> Self {
-        SliceReader { slice, pos: 0 }
-    }
 
     pub fn pos(&self) -> usize {
         self.pos
@@ -125,6 +122,7 @@ impl<'a> SliceReader<'a> {
 
 #[cfg(test)]
 mod tests {
+    use generic_array::typenum::{U9};
     use super::*;
     #[test]
     fn test_slice_reader() {
@@ -132,7 +130,7 @@ mod tests {
             0u8, 1u8, 2u8, 3u8, 4u8, 5u8, 6u8, 7u8, 8u8, 9u8, 10u8, 11u8, 12u8, 13u8, 14u8, 15u8,
             16u8,
         ];
-        let mut reader = SliceReader::from_array(&slice);
+        let mut reader = SliceReader::from(&slice[..]);
         assert_eq!(
             reader.slice,
             [
@@ -188,5 +186,15 @@ mod tests {
         assert_eq!(reader.pos(), 5);
         assert_eq!(reader.read_slice(4), &slice[5..9]);
         assert_eq!(reader.pos(), 9);
+    }
+    
+    #[test]
+    fn test_from() {
+        let mut array_u8: ArrayU8<U9> = ArrayU8::from_bytes(&[1u8, 2u8, 3u8, 4u8, 5u8, 6u8, 7u8, 8u8, 9u8]);
+        let reader = SliceReader::from(&mut array_u8);
+        assert_eq!(reader.as_ref(), &[1u8, 2u8, 3u8, 4u8, 5u8, 6u8, 7u8, 8u8, 9u8]);
+        let slice = &[1u8, 2u8, 3u8, 4u8, 5u8, 6u8, 7u8, 8u8, 9u8];
+        let reader = SliceReader::from(&slice[..]);
+        assert_eq!(reader.as_ref(), slice);
     }
 }

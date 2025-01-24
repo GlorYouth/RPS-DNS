@@ -86,7 +86,7 @@ mod tests {
         arr[0] = 1;
         let arr: ArrayU8<U2> = ArrayU8::from_bytes(arr.as_slice());
         assert_eq!(arr.to_vec(), vec![1, 0]);
-        let arr: ArrayU8<U2> = ArrayU8::from_reader(&mut SliceReader::from_array(&[0, 1]));
+        let arr: ArrayU8<U2> = ArrayU8::from_reader(&mut SliceReader::from(&[0, 1][..]));
         assert_eq!(arr.to_vec(), vec![0, 1]);
         let arr: ArrayU8<U2> = ArrayU8::from_u16(0x10_01);
         assert_eq!(arr.to_vec(), vec![0x10, 0x01]);

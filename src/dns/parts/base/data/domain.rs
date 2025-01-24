@@ -165,18 +165,18 @@ mod tests {
     #[test]
     fn test_domain_from_reader() {
         assert_eq!(
-            &Domain::from_reader(&mut SliceReader::from_array(&[
+            &Domain::from_reader(&mut SliceReader::from(&[
                 3, 119, 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0
-            ]))
+            ][..]))
             .to_string()
             .unwrap(),
             "www.google.com"
         );
 
         assert_eq!(
-            &Domain::from_reader(&mut SliceReader::from_array(&[
+            &Domain::from_reader(&mut SliceReader::from(&[
                 3, 119, 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0
-            ]))
+            ][..]))
             .0,
             &[3, 119, 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0]
         )
@@ -185,7 +185,7 @@ mod tests {
     #[test]
     fn test_domain_from_reader_for_answer() {
         let mut map: HashMap<u16, Rc<Domain>> = HashMap::new();
-        let reader = &mut SliceReader::from_array(&[
+        let reader = &mut SliceReader::from(&[
             3,
             119,
             119,
@@ -228,7 +228,7 @@ mod tests {
             0x38,
             0x73,
             0x00,
-        ]);
+        ][..]);
         assert_eq!(
             &Domain::from_reader_for_question(reader, &mut map).0,
             &[3, 119, 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0]

@@ -6,7 +6,7 @@ use std::rc::Rc;
 #[allow(non_snake_case)]
 #[derive(Debug, PartialEq)]
 pub struct DNSQuestion {
-    pub QNAME: Rc<Domain>, // 让'Domain'不止在Map存储不可变引用/可变引用，后面
+    pub QNAME: Rc<Domain>, //HashMap和Name均需要用引用
     pub QTYPE: u16,
     pub QCLASS: u16,
 }
@@ -38,9 +38,9 @@ mod tests {
             0x03, 0x69, 0x70, 0x77, 0x02, 0x63, 0x6e, 0x00, 0x00, 0x1c, 0x00, 0x01, 0xc0, 0x0c, 0x00, 0x05, 0x00, 0x01
         ];
         let mut map: HashMap<u16, Rc<Domain>> = HashMap::new();
-        let reader = &mut SliceReader::from_array(slice);
+        let reader = &mut SliceReader::from(&slice[..]);
         let question = DNSQuestion::from_reader(reader, &mut map);
-        assert_eq!(question.QNAME, Domain::from_reader_for_question(&mut SliceReader::from_array(slice), &mut map));
+        assert_eq!(question.QNAME, Domain::from_reader_for_question(&mut SliceReader::from(&slice[..]), &mut map));
         assert_eq!(question.QTYPE, DNSType::AAAA.to_u16());
         assert_eq!(question.QCLASS,0x1)
     }

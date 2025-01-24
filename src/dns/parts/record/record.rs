@@ -7,7 +7,7 @@ use std::rc::Rc;
 #[allow(non_snake_case)]
 #[derive(Debug)]
 pub struct DNSRecord {
-    pub NAME: Rc<Domain>,
+    pub NAME: Rc<Domain>, //HashMap和Name均需要用引用
     pub TYPE: u16,
     pub CLASS: u16,
     pub TTL: u32,
