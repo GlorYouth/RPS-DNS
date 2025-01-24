@@ -190,7 +190,7 @@ mod tests {
     
     #[test]
     fn test_from() {
-        let mut array_u8: ArrayU8<U9> = ArrayU8::from_bytes(&[1u8, 2u8, 3u8, 4u8, 5u8, 6u8, 7u8, 8u8, 9u8]);
+        let mut array_u8: ArrayU8<U9> = ArrayU8::from(&[1u8, 2u8, 3u8, 4u8, 5u8, 6u8, 7u8, 8u8, 9u8][..]);
         let reader = SliceReader::from(&mut array_u8);
         assert_eq!(reader.as_ref(), &[1u8, 2u8, 3u8, 4u8, 5u8, 6u8, 7u8, 8u8, 9u8]);
         let slice = &[1u8, 2u8, 3u8, 4u8, 5u8, 6u8, 7u8, 8u8, 9u8];

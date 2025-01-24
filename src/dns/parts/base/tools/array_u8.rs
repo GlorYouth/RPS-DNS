@@ -1,9 +1,10 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
 use crate::*;
-use generic_array::typenum::U2;
+
 use generic_array::{ArrayLength, GenericArray};
 use std::ops::{Index, IndexMut};
+use generic_array::typenum::U2;
 
 #[derive(Debug)]
 pub struct ArrayU8<N: ArrayLength> {
@@ -31,13 +32,23 @@ impl<N: ArrayLength> ArrayU8<N> {
         self.data.to_vec()
     }
 
-    pub fn from_bytes(b: &[u8]) -> ArrayU8<N> {
+    pub fn from_reader(reader: &mut SliceReader) -> ArrayU8<N> {
         let mut arr = GenericArray::default();
-        arr.copy_from_slice(b);
+        for i in 0..N::USIZE {
+            arr[i] = reader.read_u8();
+        }
         ArrayU8 { data: arr }
     }
+    
+    pub fn from_slice(slice: &[u8]) -> ArrayU8<N> {
+        let mut arr = GenericArray::default();
+        arr.copy_from_slice(slice);
+        ArrayU8 { data: arr }
+    }
+}
 
-    pub fn from_reader(reader: &mut SliceReader) -> ArrayU8<N> {
+impl<N: ArrayLength> From<&mut SliceReader<'_>> for ArrayU8<N> {
+    fn from(reader: &mut SliceReader) -> ArrayU8<N> {
         let mut arr = GenericArray::default();
         for i in 0..N::USIZE {
             arr[i] = reader.read_u8();
@@ -46,27 +57,35 @@ impl<N: ArrayLength> ArrayU8<N> {
     }
 }
 
-impl ArrayU8<U2> {
-    pub fn from_u16(u: u16) -> ArrayU8<U2> {
+impl<N: ArrayLength> From<&[u8]> for ArrayU8<N> {
+    fn from(slice: &[u8]) -> ArrayU8<N> {
+        let mut arr = GenericArray::default();
+        arr.copy_from_slice(slice);
+        ArrayU8 { data: arr }
+    }
+}
+
+impl From<u16> for ArrayU8<U2> {
+    fn from(u: u16) -> Self {
         ArrayU8 {
             data: GenericArray::from(u.to_be_bytes()),
         }
     }
 }
 
-impl Index<u8> for ArrayU8<U2> {
+impl<N: ArrayLength> Index<usize> for ArrayU8<N> {
     type Output = u8;
-
-    fn index(&self, index: u8) -> &Self::Output {
-        self.data.index(index as usize)
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.data.index(index)
     }
 }
 
-impl IndexMut<u8> for ArrayU8<U2> {
-    fn index_mut(&mut self, index: u8) -> &mut Self::Output {
-        self.data.index_mut(index as usize)
+impl<N: ArrayLength> IndexMut<usize> for ArrayU8<N> {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        self.data.index_mut(index)
     }
 }
+
 
 impl<N: ArrayLength> From<GenericArray<u8, N>> for ArrayU8<N> {
     fn from(value: GenericArray<u8, N>) -> Self {
@@ -79,16 +98,17 @@ impl<N: ArrayLength> From<GenericArray<u8, N>> for ArrayU8<N> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    
     #[test]
     fn test_array_u8() {
         let mut arr = ArrayU8::<U2>::new();
         assert_eq!(arr.to_vec(), vec![0, 0]);
         arr[0] = 1;
-        let arr: ArrayU8<U2> = ArrayU8::from_bytes(arr.as_slice());
+        let arr: ArrayU8<U2> = ArrayU8::from(arr.as_slice());
         assert_eq!(arr.to_vec(), vec![1, 0]);
-        let arr: ArrayU8<U2> = ArrayU8::from_reader(&mut SliceReader::from(&[0, 1][..]));
+        let arr: ArrayU8<U2> = ArrayU8::from(&mut SliceReader::from(&[0, 1][..]));
         assert_eq!(arr.to_vec(), vec![0, 1]);
-        let arr: ArrayU8<U2> = ArrayU8::from_u16(0x10_01);
+        let arr: ArrayU8<U2> = ArrayU8::from(0x10_01);
         assert_eq!(arr.to_vec(), vec![0x10, 0x01]);
     }
 }

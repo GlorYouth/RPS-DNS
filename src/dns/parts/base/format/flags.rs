@@ -64,7 +64,7 @@ mod tests {
 
     #[test]
     fn test_flags_from_array() {
-        let arr = ArrayU8::<U2>::from_bytes(&[0b1000_0001, 0b1000_0000]);
+        let arr = ArrayU8::from(&[0b1000_0001, 0b1000_0000][..]);
         let flags = Flags::from_array(arr);
         assert_eq!(flags.QR, 0b0000_0001);
         assert_eq!(flags.Opcode, 0b0000_0000);
@@ -78,16 +78,16 @@ mod tests {
 
     #[test]
     fn test_flags_to_vec() {
-        let flags = Flags::from_array(ArrayU8::from_bytes(&[0b1000_0001, 0b1000_0000]));
+        let flags = Flags::from_array(ArrayU8::from(&[0b1000_0001, 0b1000_0000][..]));
         assert_eq!(
             flags.into_vec(),
-            ArrayU8::<U2>::from_bytes(&[0b1000_0001, 0b1000_0000]).to_vec()
+            ArrayU8::<U2>::from(&[0b1000_0001, 0b1000_0000][..]).to_vec()
         );
     }
 
     #[test]
     fn test_flags_into_u16() {
-        let flags = Flags::from_array(ArrayU8::from_bytes(&[0b1000_0001, 0b1000_0000]));
+        let flags = Flags::from_array(ArrayU8::from(&[0b1000_0001, 0b1000_0000][..]));
         assert_eq!(
             flags.into_u16(),
             u16::from_be_bytes([0b1000_0001, 0b1000_0000])

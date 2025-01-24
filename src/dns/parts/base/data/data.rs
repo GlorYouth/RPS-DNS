@@ -54,7 +54,7 @@ mod test {
         let mut data = RawData::with_capacity(DNSHeader::SIZE);
         data.append(&DNSHeader {
             ID: 0x8ac8_u16,
-            FLAGS: ArrayU8::from_bytes(&[0x1, 0x0]),
+            FLAGS: ArrayU8::from(&[0x1, 0x0][..]),
             QDCOUNT: 1,
             ANCOUNT: 0,
             NSCOUNT: 0,
