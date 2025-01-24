@@ -11,18 +11,18 @@ pub struct SliceReader<'a> {
 }
 
 impl<'a> From<&'a [u8]> for SliceReader<'a> {
-    fn from(value: &'a [u8]) -> Self {
+    fn from(slice: &'a [u8]) -> Self {
         SliceReader {
-            slice: value,
+            slice,
             pos: 0,
         }
     }
 }
 
 impl<'a, N: generic_array::ArrayLength> From<&'a mut ArrayU8<N>> for SliceReader<'a> {
-    fn from(value: &'a mut ArrayU8<N>) -> SliceReader<'a> {
+    fn from(array: &'a mut ArrayU8<N>) -> SliceReader<'a> {
         SliceReader {
-            slice: value.as_mut_slice(),
+            slice: array.as_mut_slice(),
             pos: 0,
         }
     }
@@ -117,6 +117,20 @@ impl<'a> SliceReader<'a> {
     pub fn read_slice(&mut self, len: usize) -> &'a [u8] {
         self.pos += len;
         &self.slice[self.pos - len..self.pos]
+    }
+    
+    pub fn from_slice(slice: &'a [u8]) -> Self {
+        SliceReader {
+            slice,
+            pos: 0,
+        }
+    }
+    
+    pub fn from_array_u8<N: generic_array::ArrayLength>(array: &mut ArrayU8<N>) -> SliceReader {
+        SliceReader {
+            slice: array.as_mut_slice(),
+            pos: 0,
+        }
     }
 }
 
