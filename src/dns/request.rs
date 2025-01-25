@@ -19,7 +19,7 @@ impl DNSRequest {
         DNSRequest {
             header: DNSHeader {
                 ID: rand::rng().random(),
-                FLAGS: ArrayU8::from(&[0x1, 0x0][..]),
+                FLAGS: Flags::from(&[0x1, 0x0][..]),
                 QDCOUNT: 1,
                 ANCOUNT: 0,
                 NSCOUNT: 0,
@@ -38,7 +38,7 @@ impl DNSRequest {
         DNSRequest {
             header: DNSHeader {
                 ID: rand::rng().random(),
-                FLAGS: ArrayU8::from(&[0x1, 0x0][..]),
+                FLAGS: Flags::from(&[0x1, 0x0][..]),
                 QDCOUNT: hosts.len() as u16,
                 ANCOUNT: 0,
                 NSCOUNT: 0,

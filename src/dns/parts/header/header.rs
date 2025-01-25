@@ -1,12 +1,11 @@
 use crate::dns::parts::base::*;
-use generic_array::typenum::U2;
 #[allow(non_snake_case)]
 #[derive(Debug)]
 pub struct DNSHeader {
     // 请求会随机生成一个ID，对该请求的响应必须返回同样的ID。这是为了在无状态的UDP协议中区分不同的响应。
     pub ID: u16,
 
-    pub FLAGS: ArrayU8<U2>,
+    pub FLAGS: Flags,
 
     // Question的数量
     pub QDCOUNT: u16,
@@ -29,7 +28,7 @@ impl DNSHeader {
     pub fn from_reader(reader: &mut SliceReader) -> DNSHeader {
         DNSHeader {
             ID: reader.read_u16(),
-            FLAGS: ArrayU8::from_reader(reader),
+            FLAGS: Flags::from_reader(reader),
             QDCOUNT: reader.read_u16(),
             ANCOUNT: reader.read_u16(),
             NSCOUNT: reader.read_u16(),
