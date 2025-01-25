@@ -34,7 +34,7 @@ impl Append<DNSRecord> for RawData {
         self.0.extend_from_slice(&record.CLASS.to_be_bytes());
         self.0.extend_from_slice(&record.TTL.to_be_bytes());
         self.0.extend_from_slice(&record.RDLENGTH.to_be_bytes());
-        self.0.append(&mut record.RDATA.vec.clone());
+        self.0.append(&mut record.RDATA.to_bytes());
     }
 }
 
@@ -47,6 +47,7 @@ impl RawData {
 #[cfg(test)]
 mod test {
     use super::*;
+    use std::collections::HashMap;
     use std::rc::Rc;
 
     #[test]
@@ -89,24 +90,25 @@ mod test {
     #[test]
     fn test_raw_data_append_dns_record() {
         let mut data = RawData::with_capacity(DNSRecord::ESTIMATED_SIZE);
+        let mut map = HashMap::new();
         data.append(&DNSRecord {
             NAME: Rc::new(Domain::from("www.google.com")),
             TYPE: DNSType::A.to_u16(),
             CLASS: 1,
             TTL: 2,
             RDLENGTH: 0,
-            RDATA: RecordData {
-                vec: vec![],
-                rtype: RecordDataType::NotResolved,
-                rtype_u16: DNSType::A.to_u16(),
-            },
+            RDATA: RecordData::from_reader(
+                &mut SliceReader::from_slice(&[1, 1, 1, 1]),
+                &mut map,
+                DNSType::A.to_u16(),
+            ),
         });
 
         assert_eq!(
             data.0,
             [
                 3, 119, 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0, 0, 1, 0, 1,
-                0, 0, 0, 2, 0, 0
+                0, 0, 0, 2, 0, 0, 1, 1, 1, 1
             ]
         )
     }

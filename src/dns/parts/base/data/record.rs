@@ -1,30 +1,38 @@
 use crate::dns::parts::base::*;
-use crate::RecordDataType::NotResolved;
 use std::collections::HashMap;
+use std::net::{Ipv4Addr, Ipv6Addr};
 use std::rc::Rc;
 
-#[derive(Debug)]
-#[derive(Clone)]
-pub enum RecordDataType {
-    A(std::net::Ipv4Addr),
+#[derive(Debug, Clone)]
+enum RecordDataType {
+    A(AddrReader),
     CNAME(Rc<Domain>),
-    AAAA(std::net::Ipv6Addr),
-    NotResolved,
+    AAAA(AddrReader),
+}
+
+#[derive(Debug, PartialEq)]
+pub enum RecordResolvedType {
+    Ipv4(Ipv4Addr),
+    Domain(String),
+    Ipv6(Ipv6Addr),
+}
+
+impl From<AddrType> for RecordResolvedType {
+    fn from(t: AddrType) -> Self {
+        match t {
+            AddrType::Ipv4(ipv4) => RecordResolvedType::Ipv4(ipv4),
+            AddrType::Ipv6(ipv6) => RecordResolvedType::Ipv6(ipv6),
+        }
+    }
 }
 
 #[derive(Debug)]
 pub struct RecordData {
-    pub vec: Vec<u8>,
-    pub rtype: RecordDataType,
-    pub rtype_u16: u16,
+    rtype: RecordDataType,
 }
 
 impl RecordData {
     pub const ESTIMATE_SIZE: usize = Domain::ESTIMATE_DOMAIN_SIZE;
-
-    pub fn len(&self) -> usize {
-        self.vec.len()
-    }
 
     pub fn from_reader(
         reader: &mut SliceReader,
@@ -33,41 +41,36 @@ impl RecordData {
     ) -> RecordData {
         match rtype {
             1 => RecordData {
-                vec: addr_read::from_ipv4(reader),
-                rtype: NotResolved,
-                rtype_u16: rtype,
+                rtype: RecordDataType::A(AddrReader::from_reader_ipv4(reader)),
             },
-            5 => {
-                let result = Domain::from_reader_and_check_map(reader, map);
-                RecordData {
-                    vec: result.0.clone(),
-                    rtype: RecordDataType::CNAME(result),
-                    rtype_u16: rtype,
-                }
-            }
+            5 => RecordData {
+                rtype: RecordDataType::CNAME(Domain::from_reader_and_check_map(reader, map)),
+            },
             28 => RecordData {
-                vec: addr_read::from_ipv6(reader),
-                rtype: NotResolved,
-                rtype_u16: rtype,
+                rtype: RecordDataType::AAAA(AddrReader::from_reader_ipv6(reader)),
             },
             _ => {
                 panic!()
             }
         }
     }
+    
 
-    pub fn resolve(&self) -> RecordDataType {
-        match self.rtype_u16 {
-            1 => RecordDataType::A(std::net::Ipv4Addr::from(
-                <[u8;4]>::try_from(&self.vec[..4]).unwrap()
-            )),
-            5 => self.rtype.to_owned(),
-            28 => RecordDataType::AAAA(std::net::Ipv6Addr::from(
-                <[u8;16]>::try_from(&self.vec[..16]).unwrap()
-            )),
-            _ => {
-                panic!()
+    pub fn resolve(&self) -> RecordResolvedType {
+        match self.rtype.clone() {
+            RecordDataType::A(mut reader) => RecordResolvedType::from(reader.get_addr()),
+            RecordDataType::AAAA(mut reader) => RecordResolvedType::from(reader.get_addr()),
+            RecordDataType::CNAME(domain) => {
+                RecordResolvedType::Domain(domain.to_string().unwrap())
             }
+        }
+    }
+
+    pub fn to_bytes(&self) -> Vec<u8> {
+        match self.rtype.clone() {
+            RecordDataType::A(reader) => reader.vec,
+            RecordDataType::CNAME(domain) => domain.0.to_vec(),
+            RecordDataType::AAAA(reader) => reader.vec,
         }
     }
 }
@@ -84,8 +87,8 @@ mod tests {
                 map,
                 DNSType::to_u16(&DNSType::A)
             )
-            .vec,
-            &[61, 240, 220, 6]
+            .resolve(),
+            RecordResolvedType::Ipv4(Ipv4Addr::new(61, 240, 220, 6))
         )
     }
 
@@ -103,11 +106,11 @@ mod tests {
                 map,
                 DNSType::to_u16(&DNSType::AAAA)
             )
-            .vec,
-            &[
+            .resolve(),
+            RecordResolvedType::Ipv6(Ipv6Addr::from([
                 0x24, 0x08, 0x87, 0x52, 0x0e, 0x00, 0x00, 0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x59
-            ]
+            ]))
         )
     }
 
@@ -125,11 +128,18 @@ mod tests {
                 map,
                 DNSType::to_u16(&DNSType::CNAME)
             )
-            .vec,
-            &[
-                0x0b, 0x78, 0x6e, 0x2d, 0x2d, 0x79, 0x65, 0x74, 0x73, 0x37, 0x36, 0x65, 0x0a, 0x78,
-                0x6e, 0x2d, 0x2d, 0x66, 0x69, 0x71, 0x73, 0x38, 0x73, 0x00
-            ]
+            .resolve(),
+            RecordResolvedType::Domain(
+                Domain::from(
+                    [
+                        0x0b, 0x78, 0x6e, 0x2d, 0x2d, 0x79, 0x65, 0x74, 0x73, 0x37, 0x36, 0x65,
+                        0x0a, 0x78, 0x6e, 0x2d, 0x2d, 0x66, 0x69, 0x71, 0x73, 0x38, 0x73, 0x00
+                    ]
+                    .to_vec()
+                )
+                .to_string()
+                .unwrap()
+            )
         );
         // todo test c00c类压缩包
     }

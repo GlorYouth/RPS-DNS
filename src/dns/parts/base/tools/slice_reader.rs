@@ -53,17 +53,17 @@ impl<'a> SliceReader<'a> {
 
     pub fn read_u16(&mut self) -> u16 {
         self.pos += 2;
-        u16::from_be_bytes(self.slice[self.pos-2..self.pos].try_into().unwrap())
+        u16::from_be_bytes(self.slice[self.pos - 2..self.pos].try_into().unwrap())
     }
 
     pub fn read_u32(&mut self) -> u32 {
         self.pos += 4;
-        u32::from_be_bytes(self.slice[self.pos-4..self.pos].try_into().unwrap())
+        u32::from_be_bytes(self.slice[self.pos - 4..self.pos].try_into().unwrap())
     }
 
     pub fn read_u64(&mut self) -> u64 {
         self.pos += 8;
-        u64::from_be_bytes(self.slice[self.pos-8..self.pos].try_into().unwrap())
+        u64::from_be_bytes(self.slice[self.pos - 8..self.pos].try_into().unwrap())
     }
 
     pub fn iter_from_current_pos(&self) -> Iter<u8> {

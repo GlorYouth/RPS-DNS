@@ -52,7 +52,7 @@ mod tests {
         assert_eq!(records.0[0].TTL, 3590);
         assert_eq!(records.0[0].RDLENGTH, 38);
         assert_eq!(
-            Domain::from(records.0[0].RDATA.vec.clone())
+            Domain::from(records.0[0].RDATA.to_bytes())
                 .to_string()
                 .unwrap(),
             "ocsp.comodoca.com.cdn.cloudflare.net"
@@ -69,7 +69,7 @@ mod tests {
         assert_eq!(records.0[1].TTL, 300);
         assert_eq!(records.0[1].RDLENGTH, 16);
         assert_eq!(
-            records.0[1].RDATA.vec.clone(),
+            records.0[1].RDATA.to_bytes(),
             vec![
                 0x26, 0x06, 0x47, 0x00, 0x44, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x68, 0x12,
                 0x26, 0xe9
@@ -87,7 +87,7 @@ mod tests {
         assert_eq!(records.0[2].TTL, 300);
         assert_eq!(records.0[2].RDLENGTH, 16);
         assert_eq!(
-            records.0[2].RDATA.vec.clone(),
+            records.0[2].RDATA.to_bytes(),
             vec![
                 0x26, 0x06, 0x47, 0x00, 0x44, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xac, 0x40,
                 0x95, 0x17
