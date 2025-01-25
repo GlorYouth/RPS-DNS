@@ -21,7 +21,7 @@ impl DNSRecord {
         Self::ENSURED_SIZE + Domain::ESTIMATE_DOMAIN_SIZE + RecordData::ESTIMATE_SIZE;
 
     pub fn get_size(&self) -> usize {
-        self.NAME.len() + self.RDATA.len() + 8
+        self.NAME.len() + self.RDLENGTH as usize + 8
     }
 }
 

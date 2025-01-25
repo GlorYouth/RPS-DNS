@@ -1,9 +1,9 @@
 mod data;
 mod domain;
-mod record;
 mod flags;
+mod record;
 
 pub use data::*;
 pub use domain::*;
-pub use record::*;
 pub use flags::*;
+pub use record::*;

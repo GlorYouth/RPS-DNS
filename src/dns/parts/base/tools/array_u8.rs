@@ -65,7 +65,7 @@ impl<N: ArrayLength> From<&[u8]> for ArrayU8<N> {
     }
 }
 
-impl<N: ArrayLength> From<[u8;2]> for ArrayU8<N> {
+impl<N: ArrayLength> From<[u8; 2]> for ArrayU8<N> {
     fn from(slice: [u8; 2]) -> ArrayU8<N> {
         let mut arr = GenericArray::default();
         arr.copy_from_slice(&slice);

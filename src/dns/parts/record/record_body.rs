@@ -43,25 +43,55 @@ mod tests {
         ]);
         reader.set_pos(34);
         let records = RecordBody::from_reader(reader, &mut map, 3);
-        assert_eq!(records.0[0].NAME.to_string().unwrap(),Domain::from("ocsp.sectigo.com").to_string().unwrap());
-        assert_eq!(records.0[0].TYPE,5);
-        assert_eq!(records.0[0].CLASS,1);
-        assert_eq!(records.0[0].TTL,3590);
-        assert_eq!(records.0[0].RDLENGTH,38);
-        assert_eq!(Domain::from(records.0[0].RDATA.0.clone()).to_string().unwrap(),"ocsp.comodoca.com.cdn.cloudflare.net");
+        assert_eq!(
+            records.0[0].NAME.to_string().unwrap(),
+            Domain::from("ocsp.sectigo.com").to_string().unwrap()
+        );
+        assert_eq!(records.0[0].TYPE, 5);
+        assert_eq!(records.0[0].CLASS, 1);
+        assert_eq!(records.0[0].TTL, 3590);
+        assert_eq!(records.0[0].RDLENGTH, 38);
+        assert_eq!(
+            Domain::from(records.0[0].RDATA.vec.clone())
+                .to_string()
+                .unwrap(),
+            "ocsp.comodoca.com.cdn.cloudflare.net"
+        );
 
-        assert_eq!(records.0[1].NAME.to_string().unwrap(),Domain::from("ocsp.comodoca.com.cdn.cloudflare.net").to_string().unwrap());
-        assert_eq!(records.0[1].TYPE,28);
-        assert_eq!(records.0[1].CLASS,1);
-        assert_eq!(records.0[1].TTL,300);
-        assert_eq!(records.0[1].RDLENGTH,16);
-        assert_eq!(records.0[1].RDATA.0.clone(), vec![0x26, 0x06, 0x47, 0x00, 0x44, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x68, 0x12, 0x26, 0xe9]);
+        assert_eq!(
+            records.0[1].NAME.to_string().unwrap(),
+            Domain::from("ocsp.comodoca.com.cdn.cloudflare.net")
+                .to_string()
+                .unwrap()
+        );
+        assert_eq!(records.0[1].TYPE, 28);
+        assert_eq!(records.0[1].CLASS, 1);
+        assert_eq!(records.0[1].TTL, 300);
+        assert_eq!(records.0[1].RDLENGTH, 16);
+        assert_eq!(
+            records.0[1].RDATA.vec.clone(),
+            vec![
+                0x26, 0x06, 0x47, 0x00, 0x44, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x68, 0x12,
+                0x26, 0xe9
+            ]
+        );
 
-        assert_eq!(records.0[2].NAME.to_string().unwrap(),Domain::from("ocsp.comodoca.com.cdn.cloudflare.net").to_string().unwrap());
-        assert_eq!(records.0[2].TYPE,28);
-        assert_eq!(records.0[2].CLASS,1);
-        assert_eq!(records.0[2].TTL,300);
-        assert_eq!(records.0[2].RDLENGTH,16);
-        assert_eq!(records.0[2].RDATA.0.clone(), vec![0x26, 0x06, 0x47, 0x00, 0x44, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xac, 0x40, 0x95, 0x17]);
+        assert_eq!(
+            records.0[2].NAME.to_string().unwrap(),
+            Domain::from("ocsp.comodoca.com.cdn.cloudflare.net")
+                .to_string()
+                .unwrap()
+        );
+        assert_eq!(records.0[2].TYPE, 28);
+        assert_eq!(records.0[2].CLASS, 1);
+        assert_eq!(records.0[2].TTL, 300);
+        assert_eq!(records.0[2].RDLENGTH, 16);
+        assert_eq!(
+            records.0[2].RDATA.vec.clone(),
+            vec![
+                0x26, 0x06, 0x47, 0x00, 0x44, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xac, 0x40,
+                0x95, 0x17
+            ]
+        );
     }
 }

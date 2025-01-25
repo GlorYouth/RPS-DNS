@@ -34,7 +34,7 @@ impl Append<DNSRecord> for RawData {
         self.0.extend_from_slice(&record.CLASS.to_be_bytes());
         self.0.extend_from_slice(&record.TTL.to_be_bytes());
         self.0.extend_from_slice(&record.RDLENGTH.to_be_bytes());
-        self.0.append(&mut record.RDATA.0.clone());
+        self.0.append(&mut record.RDATA.vec.clone());
     }
 }
 
@@ -54,7 +54,7 @@ mod test {
         let mut data = RawData::with_capacity(DNSHeader::SIZE);
         data.append(&DNSHeader {
             ID: 0x8ac8_u16,
-            FLAGS: Flags::from(&[0x1, 0x0][..]),
+            FLAGS: FlagsData::from(&[0x1, 0x0][..]),
             QDCOUNT: 1,
             ANCOUNT: 0,
             NSCOUNT: 0,
@@ -95,7 +95,11 @@ mod test {
             CLASS: 1,
             TTL: 2,
             RDLENGTH: 0,
-            RDATA: RecordData { 0: vec![] },
+            RDATA: RecordData {
+                vec: vec![],
+                rtype: RecordDataType::NotResolved,
+                rtype_u16: DNSType::A.to_u16(),
+            },
         });
 
         assert_eq!(

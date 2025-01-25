@@ -48,7 +48,7 @@ mod tests {
 
     #[test]
     fn test_flags_to_vec() {
-        let flags = Flags(ArrayU8::from(&[0b1000_0001, 0b1000_0000][..])).resolve();
+        let flags = FlagsData(ArrayU8::from(&[0b1000_0001, 0b1000_0000][..])).resolve();
         assert_eq!(
             flags.into_vec(),
             ArrayU8::<U2>::from(&[0b1000_0001, 0b1000_0000][..]).to_vec()
@@ -57,7 +57,7 @@ mod tests {
 
     #[test]
     fn test_flags_into_u16() {
-        let flags = Flags(ArrayU8::from(&[0b1000_0001, 0b1000_0000][..])).resolve();
+        let flags = FlagsData(ArrayU8::from(&[0b1000_0001, 0b1000_0000][..])).resolve();
         assert_eq!(
             flags.into_u16(),
             u16::from_be_bytes([0b1000_0001, 0b1000_0000])

@@ -55,20 +55,20 @@ mod tests {
             ][..],
         );
         let mut answer = DNSAnswer::from_reader(reader);
-        assert_eq!(answer.header.ID,0xa8e1);
+        assert_eq!(answer.header.ID, 0xa8e1);
         let flags = answer.header.FLAGS.resolve();
-        assert_eq!(flags.QR,1);
-        assert_eq!(flags.Opcode,0);
-        assert_eq!(flags.AA,0);
-        assert_eq!(flags.TC,0);
-        assert_eq!(flags.RD,1);
-        assert_eq!(flags.RA,1);
-        assert_eq!(flags.Z,0);
-        assert_eq!(flags.RCODE,0);
-        assert_eq!(answer.header.QDCOUNT,1);
-        assert_eq!(answer.header.ANCOUNT,3);
-        assert_eq!(answer.header.NSCOUNT,0);
-        assert_eq!(answer.header.ARCOUNT,0);
+        assert_eq!(flags.QR, 1);
+        assert_eq!(flags.Opcode, 0);
+        assert_eq!(flags.AA, 0);
+        assert_eq!(flags.TC, 0);
+        assert_eq!(flags.RD, 1);
+        assert_eq!(flags.RA, 1);
+        assert_eq!(flags.Z, 0);
+        assert_eq!(flags.RCODE, 0);
+        assert_eq!(answer.header.QDCOUNT, 1);
+        assert_eq!(answer.header.ANCOUNT, 3);
+        assert_eq!(answer.header.NSCOUNT, 0);
+        assert_eq!(answer.header.ARCOUNT, 0);
         // todo test 多record类型合成
     }
 }
