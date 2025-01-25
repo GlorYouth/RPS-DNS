@@ -39,25 +39,11 @@ impl<'a> SliceReader<'a> {
     }
 
     pub fn peek_u32(&mut self) -> u32 {
-        u32::from_be_bytes([
-            self.slice[self.pos],
-            self.slice[self.pos + 1],
-            self.slice[self.pos + 2],
-            self.slice[self.pos + 3],
-        ])
+        u32::from_be_bytes(self.slice[self.pos..self.pos + 4].try_into().unwrap())
     }
 
     pub fn peek_u64(&mut self) -> u64 {
-        u64::from_be_bytes([
-            self.slice[self.pos],
-            self.slice[self.pos + 1],
-            self.slice[self.pos + 2],
-            self.slice[self.pos + 3],
-            self.slice[self.pos + 4],
-            self.slice[self.pos + 5],
-            self.slice[self.pos + 6],
-            self.slice[self.pos + 7],
-        ])
+        u64::from_be_bytes(self.slice[self.pos..self.pos + 8].try_into().unwrap())
     }
 
     pub fn read_u8(&mut self) -> u8 {
@@ -67,31 +53,17 @@ impl<'a> SliceReader<'a> {
 
     pub fn read_u16(&mut self) -> u16 {
         self.pos += 2;
-        u16::from_be_bytes([self.slice[self.pos - 2], self.slice[self.pos - 1]])
+        u16::from_be_bytes(self.slice[self.pos-2..self.pos].try_into().unwrap())
     }
 
     pub fn read_u32(&mut self) -> u32 {
         self.pos += 4;
-        u32::from_be_bytes([
-            self.slice[self.pos - 4],
-            self.slice[self.pos - 3],
-            self.slice[self.pos - 2],
-            self.slice[self.pos - 1],
-        ])
+        u32::from_be_bytes(self.slice[self.pos-4..self.pos].try_into().unwrap())
     }
 
     pub fn read_u64(&mut self) -> u64 {
         self.pos += 8;
-        u64::from_be_bytes([
-            self.slice[self.pos - 8],
-            self.slice[self.pos - 7],
-            self.slice[self.pos - 6],
-            self.slice[self.pos - 5],
-            self.slice[self.pos - 4],
-            self.slice[self.pos - 3],
-            self.slice[self.pos - 2],
-            self.slice[self.pos - 1],
-        ])
+        u64::from_be_bytes(self.slice[self.pos-8..self.pos].try_into().unwrap())
     }
 
     pub fn iter_from_current_pos(&self) -> Iter<u8> {
