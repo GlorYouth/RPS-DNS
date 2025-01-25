@@ -46,8 +46,8 @@ impl RawData {
 
 #[cfg(test)]
 mod test {
-    use std::rc::Rc;
     use super::*;
+    use std::rc::Rc;
 
     #[test]
     fn test_raw_data_append_dns_header() {
@@ -85,7 +85,7 @@ mod test {
             }
         );
     }
-    
+
     #[test]
     fn test_raw_data_append_dns_record() {
         let mut data = RawData::with_capacity(DNSRecord::ESTIMATED_SIZE);
@@ -95,11 +95,15 @@ mod test {
             CLASS: 1,
             TTL: 2,
             RDLENGTH: 0,
-            RDATA: RecordData{
-                0: vec![],
-            },
+            RDATA: RecordData { 0: vec![] },
         });
-        
-        assert_eq!(data.0, [3, 119, 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0, 0, 1, 0, 1, 0, 0, 0, 2, 0, 0])
+
+        assert_eq!(
+            data.0,
+            [
+                3, 119, 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0, 0, 1, 0, 1,
+                0, 0, 0, 2, 0, 0
+            ]
+        )
     }
 }

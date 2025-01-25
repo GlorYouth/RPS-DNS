@@ -12,8 +12,8 @@ pub enum QuestionBody {
 }
 
 impl QuestionBody {
-    pub const ESTIMATE_SIZE_FOR_ONE : usize = DNSQuestion::ESTIMATE_SIZE;
-    
+    pub const ESTIMATE_SIZE_FOR_ONE: usize = DNSQuestion::ESTIMATE_SIZE;
+
     pub fn from_reader(
         reader: &mut SliceReader,
         map: &mut HashMap<u16, Rc<Domain>>,
@@ -28,12 +28,10 @@ impl QuestionBody {
         }
         QuestionBody::Multi(vec)
     }
-    
+
     pub fn get_domains(&self) -> Result<Vec<String>, Utf8Error> {
         match self {
-            QuestionBody::Single(question) => {
-                Ok(vec![question.get_domain()?])
-            }
+            QuestionBody::Single(question) => Ok(vec![question.get_domain()?]),
             QuestionBody::Multi(questions) => {
                 let mut vec = Vec::with_capacity(questions.len());
                 for question in questions {
@@ -45,29 +43,37 @@ impl QuestionBody {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
     use super::*;
+    use std::collections::HashMap;
     #[test]
     fn test() {
         let mut map: HashMap<u16, Rc<Domain>> = HashMap::new();
-        let single_question = QuestionBody::from_reader(&mut SliceReader::from_slice(
-            &[0x03, 0x69, 0x70, 0x77, 0x02, 0x63, 0x6e, 0x00, 0x00, 0x1c, 0x00, 0x01]
-        ),&mut map,1);
+        let single_question = QuestionBody::from_reader(
+            &mut SliceReader::from_slice(&[
+                0x03, 0x69, 0x70, 0x77, 0x02, 0x63, 0x6e, 0x00, 0x00, 0x1c, 0x00, 0x01,
+            ]),
+            &mut map,
+            1,
+        );
         assert_eq!(single_question.get_domains().unwrap()[0], "ipw.cn");
         if let QuestionBody::Single(question) = single_question {
             assert_eq!(question.get_domain().unwrap(), "ipw.cn");
             assert_eq!(question.QTYPE, 0x1c);
             assert_eq!(question.QCLASS, 0x1);
         }
-        
+
         map.clear();
-        let multi_question = QuestionBody::from_reader(&mut SliceReader::from_slice(
-            &[0x03, 0x69, 0x70, 0x77, 0x02, 0x63, 0x6e, 0x00, 0x00, 0x1c, 0x00, 0x01, 
-                3, 119, 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0, 0x0, 0x1, 0x00, 0x01]
-        ),&mut map,2);
+        let multi_question = QuestionBody::from_reader(
+            &mut SliceReader::from_slice(&[
+                0x03, 0x69, 0x70, 0x77, 0x02, 0x63, 0x6e, 0x00, 0x00, 0x1c, 0x00, 0x01, 3, 119,
+                119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0, 0x0, 0x1, 0x00,
+                0x01,
+            ]),
+            &mut map,
+            2,
+        );
         assert_eq!(multi_question.get_domains().unwrap()[0], "ipw.cn");
         assert_eq!(multi_question.get_domains().unwrap()[1], "www.google.com");
         if let QuestionBody::Multi(questions) = multi_question {

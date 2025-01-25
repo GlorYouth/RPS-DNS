@@ -1,22 +1,20 @@
 #![cfg_attr(debug_assertions, allow(dead_code, unused))]
 
-use std::collections::HashMap;
-use std::rc::Rc;
 use crate::dns::parts::*;
 use rand::Rng;
-
-
+use std::collections::HashMap;
+use std::rc::Rc;
 
 struct DNSRequest {
     header: DNSHeader,
     question: QuestionBody,
-    
+
     map: HashMap<u16, Rc<Domain>>,
 }
 
 impl DNSRequest {
-    pub const ESTIMATE_SIZE: usize = DNSHeader::SIZE+DNSQuestion::ESTIMATE_SIZE;
-    
+    pub const ESTIMATE_SIZE: usize = DNSHeader::SIZE + DNSQuestion::ESTIMATE_SIZE;
+
     fn new(host: &String, qtype: DNSType) -> DNSRequest {
         DNSRequest {
             header: DNSHeader {
@@ -97,6 +95,10 @@ impl DNSRequest {
         let header = DNSHeader::from_reader(reader);
         let mut map: HashMap<u16, Rc<Domain>> = HashMap::new();
         let question = QuestionBody::from_reader(reader, &mut map, header.QDCOUNT);
-        DNSRequest { header, question, map }
+        DNSRequest {
+            header,
+            question,
+            map,
+        }
     }
 }

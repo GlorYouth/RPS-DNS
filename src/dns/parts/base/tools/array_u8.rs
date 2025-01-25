@@ -2,9 +2,9 @@
 
 use crate::*;
 
+use generic_array::typenum::U2;
 use generic_array::{ArrayLength, GenericArray};
 use std::ops::{Index, IndexMut};
-use generic_array::typenum::U2;
 
 #[derive(Debug)]
 pub struct ArrayU8<N: ArrayLength> {
@@ -39,7 +39,7 @@ impl<N: ArrayLength> ArrayU8<N> {
         }
         ArrayU8 { data: arr }
     }
-    
+
     pub fn from_slice(slice: &[u8]) -> ArrayU8<N> {
         let mut arr = GenericArray::default();
         arr.copy_from_slice(slice);
@@ -86,7 +86,6 @@ impl<N: ArrayLength> IndexMut<usize> for ArrayU8<N> {
     }
 }
 
-
 impl<N: ArrayLength> From<GenericArray<u8, N>> for ArrayU8<N> {
     fn from(value: GenericArray<u8, N>) -> Self {
         ArrayU8 {
@@ -98,7 +97,7 @@ impl<N: ArrayLength> From<GenericArray<u8, N>> for ArrayU8<N> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_array_u8() {
         let mut arr = ArrayU8::<U2>::new();

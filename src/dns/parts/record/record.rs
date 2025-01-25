@@ -17,7 +17,8 @@ pub struct DNSRecord {
 
 impl DNSRecord {
     const ENSURED_SIZE: usize = 10;
-    pub const ESTIMATED_SIZE: usize = Self::ENSURED_SIZE + Domain::ESTIMATE_DOMAIN_SIZE + RecordData::ESTIMATE_SIZE;
+    pub const ESTIMATED_SIZE: usize =
+        Self::ENSURED_SIZE + Domain::ESTIMATE_DOMAIN_SIZE + RecordData::ESTIMATE_SIZE;
 
     pub fn get_size(&self) -> usize {
         self.NAME.len() + self.RDATA.len() + 8
@@ -31,7 +32,7 @@ impl DNSRecord {
         let class = reader.read_u16();
         let ttl = reader.read_u32();
         let rdlength = reader.read_u16();
-        let rdata = RecordData::from_reader(reader, rtype);
+        let rdata = RecordData::from_reader(reader, map, rtype);
         DNSRecord {
             NAME: name,
             TYPE: rtype,

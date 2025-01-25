@@ -64,7 +64,11 @@ impl From<&str> for Domain {
     }
 }
 
-
+impl From<Vec<u8>> for Domain {
+    fn from(vec: Vec<u8>) -> Self {
+        Domain(vec)
+    }
+}
 
 impl Domain {
     pub fn from_reader_and_check_map(
@@ -98,7 +102,7 @@ impl Domain {
     pub fn new(vec: Vec<u8>) -> Domain {
         Domain(vec)
     }
-    
+
     pub fn clone(&self) -> Domain {
         Domain(self.0.clone())
     }
@@ -141,8 +145,6 @@ impl Domain {
     }
 }
 
-
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -176,7 +178,7 @@ mod tests {
             .unwrap(),
             "小米.中国"
         );
-        
+
         assert_eq!(
             Domain::new(
                 [3, 119, 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0].to_vec()
@@ -189,18 +191,18 @@ mod tests {
     #[test]
     fn test_domain_from_reader() {
         assert_eq!(
-            &Domain::from(&mut SliceReader::from(&[
-                3, 119, 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0
-            ][..]))
+            &Domain::from(&mut SliceReader::from(
+                &[3, 119, 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0][..]
+            ))
             .to_string()
             .unwrap(),
             "www.google.com"
         );
 
         assert_eq!(
-            &Domain::from(&mut SliceReader::from(&[
-                3, 119, 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0
-            ][..]))
+            &Domain::from(&mut SliceReader::from(
+                &[3, 119, 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0][..]
+            ))
             .0,
             &[3, 119, 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0]
         )
@@ -209,50 +211,52 @@ mod tests {
     #[test]
     fn test_domain_from_reader_for_answer() {
         let mut map: HashMap<u16, Rc<Domain>> = HashMap::new();
-        let reader = &mut SliceReader::from(&[
-            3,
-            119,
-            119,
-            119,
-            6,
-            103,
-            111,
-            111,
-            103,
-            108,
-            101,
-            3,
-            99,
-            111,
-            109,
-            0,
-            0b1100_0000,
-            0x0,
-            0x0b,
-            0x78,
-            0x6e,
-            0x2d,
-            0x2d,
-            0x79,
-            0x65,
-            0x74,
-            0x73,
-            0x37,
-            0x36,
-            0x65,
-            0x0a,
-            0x78,
-            0x6e,
-            0x2d,
-            0x2d,
-            0x66,
-            0x69,
-            0x71,
-            0x73,
-            0x38,
-            0x73,
-            0x00,
-        ][..]);
+        let reader = &mut SliceReader::from(
+            &[
+                3,
+                119,
+                119,
+                119,
+                6,
+                103,
+                111,
+                111,
+                103,
+                108,
+                101,
+                3,
+                99,
+                111,
+                109,
+                0,
+                0b1100_0000,
+                0x0,
+                0x0b,
+                0x78,
+                0x6e,
+                0x2d,
+                0x2d,
+                0x79,
+                0x65,
+                0x74,
+                0x73,
+                0x37,
+                0x36,
+                0x65,
+                0x0a,
+                0x78,
+                0x6e,
+                0x2d,
+                0x2d,
+                0x66,
+                0x69,
+                0x71,
+                0x73,
+                0x38,
+                0x73,
+                0x00,
+            ][..],
+        );
         assert_eq!(
             &Domain::from_reader_and_check_map(reader, &mut map).0,
             &[3, 119, 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0]

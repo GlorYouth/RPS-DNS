@@ -44,9 +44,11 @@ mod tests {
 
     #[test]
     fn test_from_reader() {
-        let reader = &mut SliceReader::from(&[
-            0x00, 0x03, 0x81, 0x80, 0x00, 0x01, 0x00, 0x0b, 0x00, 0x00, 0x00, 0x00,
-        ][..]);
+        let reader = &mut SliceReader::from(
+            &[
+                0x00, 0x03, 0x81, 0x80, 0x00, 0x01, 0x00, 0x0b, 0x00, 0x00, 0x00, 0x00,
+            ][..],
+        );
         let header = DNSHeader::from_reader(reader);
         assert_eq!(header.ID, 0x0003);
         assert_eq!(header.QDCOUNT, 0x0001);
