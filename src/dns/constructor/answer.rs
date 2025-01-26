@@ -3,8 +3,9 @@
 use crate::dns::constructor::small_parts::{
     DNSHeaderConstructor, DNSQuestionConstructor, DNSRecordConstructor,
 };
-use crate::dns::error::{Error, ErrorKind};
 use crate::{DNSAnswer, DNSHeader, DNSRecord, QuestionBody, RecordBody};
+use crate::dns::error::Error;
+use crate::dns::error::Error::InvalidVecLength;
 
 pub struct DNSAnswerConstructor {
     pub header: DNSHeaderConstructor,
@@ -75,6 +76,6 @@ impl DNSAnswerConstructor {
                 domain_map: Default::default(),
             });
         }
-        Err(ErrorKind::DNSQuestionNumber)?
+        Err(InvalidVecLength { length: self.questions.len() })?
     }
 }

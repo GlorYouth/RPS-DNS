@@ -2,7 +2,6 @@ use crate::dns::component::small_parts::question::question::DNSQuestion;
 use crate::dns::component::*;
 use std::collections::HashMap;
 use std::rc::Rc;
-use std::str::Utf8Error;
 
 #[allow(unused)]
 #[derive(Debug)]
@@ -18,18 +17,18 @@ impl QuestionBody {
         reader: &mut SliceReader,
         map: &mut HashMap<u16, Rc<Domain>>,
         qdcount: u16,
-    ) -> Self {
+    ) -> Result<QuestionBody, DomainReadError> {
         if qdcount == 1 {
-            return QuestionBody::Single(DNSQuestion::from_reader(reader, map));
+            return Ok(QuestionBody::Single(DNSQuestion::from_reader(reader, map)?));
         }
         let mut vec = Vec::with_capacity(qdcount as usize);
         for _ in 0..qdcount {
-            vec.push(DNSQuestion::from_reader(reader, map));
+            vec.push(DNSQuestion::from_reader(reader, map)?);
         }
-        QuestionBody::Multi(vec)
+        Ok(QuestionBody::Multi(vec))
     }
 
-    pub fn get_domains(&self) -> Result<Vec<String>, Utf8Error> {
+    pub fn get_domains(&self) -> Result<Vec<String>, DomainDecodeError> {
         match self {
             QuestionBody::Single(question) => Ok(vec![question.get_domain()?]),
             QuestionBody::Multi(questions) => {
@@ -56,7 +55,7 @@ mod tests {
             ]),
             &mut map,
             1,
-        );
+        ).unwrap();
         assert_eq!(single_question.get_domains().unwrap()[0], "ipw.cn");
         if let QuestionBody::Single(question) = single_question {
             assert_eq!(question.get_domain().unwrap(), "ipw.cn");
@@ -73,7 +72,7 @@ mod tests {
             ]),
             &mut map,
             2,
-        );
+        ).unwrap();
         assert_eq!(multi_question.get_domains().unwrap()[0], "ipw.cn");
         assert_eq!(multi_question.get_domains().unwrap()[1], "www.google.com");
         if let QuestionBody::Multi(questions) = multi_question {

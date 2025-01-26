@@ -101,7 +101,8 @@ mod test {
                 &mut SliceReader::from_slice(&[1, 1, 1, 1]),
                 &mut map,
                 DNSType::A.to_u16(),
-            ),
+            )
+            .unwrap(),
         });
 
         assert_eq!(

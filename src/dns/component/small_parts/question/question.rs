@@ -3,7 +3,6 @@
 use crate::dns::component::small_parts::base::*;
 use std::collections::HashMap;
 use std::rc::Rc;
-use std::str::Utf8Error;
 
 #[allow(non_snake_case)]
 #[derive(Debug, PartialEq)]
@@ -20,18 +19,18 @@ impl DNSQuestion {
         self.QNAME.len() + 4
     }
 
-    pub fn get_domain(&self) -> Result<String, Utf8Error> {
+    pub fn get_domain(&self) -> Result<String, DomainDecodeError> {
         self.QNAME.to_string()
     }
 }
 
 impl DNSQuestion {
-    pub fn from_reader(reader: &mut SliceReader, map: &mut HashMap<u16, Rc<Domain>>) -> Self {
-        DNSQuestion {
-            QNAME: Domain::from_reader_and_check_map(reader, map),
+    pub fn from_reader(reader: &mut SliceReader, map: &mut HashMap<u16, Rc<Domain>>) -> Result<DNSQuestion, DomainReadError> {
+        Ok(DNSQuestion {
+            QNAME: Domain::from_reader_and_check_map(reader, map)?,
             QTYPE: reader.read_u16(),
             QCLASS: reader.read_u16(),
-        }
+        })
     }
 }
 
@@ -45,10 +44,10 @@ mod tests {
         ];
         let mut map: HashMap<u16, Rc<Domain>> = HashMap::new();
         let reader = &mut SliceReader::from(&slice[..]);
-        let question = DNSQuestion::from_reader(reader, &mut map);
+        let question = DNSQuestion::from_reader(reader, &mut map).unwrap();
         assert_eq!(
             question.QNAME,
-            Domain::from_reader_and_check_map(&mut SliceReader::from(&slice[..]), &mut map)
+            Domain::from_reader_and_check_map(&mut SliceReader::from(&slice[..]), &mut map).unwrap()
         );
         assert_eq!(question.QTYPE, DNSType::AAAA.to_u16());
         assert_eq!(question.QCLASS, 0x1)

@@ -2,9 +2,10 @@
 
 use crate::dns::constructor::answer::DNSAnswerConstructor;
 use crate::dns::constructor::small_parts::{DNSHeaderConstructor, DNSQuestionConstructor};
-use crate::dns::error::{Error, ErrorKind};
 use crate::{DNSAnswer, DNSRequest, QuestionBody, RecordBody};
 use std::collections::HashMap;
+use crate::dns::error::Error;
+use crate::dns::error::Error::InvalidVecLength;
 
 pub struct DNSRequestConstructor {
     pub header: DNSHeaderConstructor,
@@ -32,6 +33,6 @@ impl DNSRequestConstructor {
                 map: HashMap::new(),
             });
         }
-        Err(ErrorKind::DNSQuestionNumber)?
+        Err(InvalidVecLength { length: self.questions.len() })?
     }
 }

@@ -4,6 +4,7 @@ use crate::dns::component::small_parts::record::record::DNSRecord;
 use crate::dns::component::*;
 use std::collections::HashMap;
 use std::rc::Rc;
+use crate::dns::error::Error;
 
 #[derive(Debug)]
 pub struct RecordBody(pub Vec<DNSRecord>);
@@ -13,12 +14,12 @@ impl RecordBody {
         reader: &mut SliceReader,
         map: &mut HashMap<u16, Rc<Domain>>,
         count: u16,
-    ) -> RecordBody {
+    ) -> Result<RecordBody, Error> {
         let mut records = Vec::with_capacity(count as usize);
         for _ in 0..count {
-            records.push(DNSRecord::from_reader(reader, map));
+            records.push(DNSRecord::from_reader(reader, map)?);
         }
-        RecordBody(records)
+        Ok(RecordBody(records))
     }
 }
 
@@ -43,6 +44,7 @@ mod tests {
         ]);
         reader.set_pos(34);
         let records = RecordBody::from_reader(reader, &mut map, 3);
+        let records = records.unwrap();
         assert_eq!(
             records.0[0].NAME.to_string().unwrap(),
             Domain::from("ocsp.sectigo.com").to_string().unwrap()
