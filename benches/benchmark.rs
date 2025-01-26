@@ -1,4 +1,4 @@
-use core::bench_func::*;
+use dns_core::bench_func::*;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 fn criterion_benchmark(c: &mut Criterion) {

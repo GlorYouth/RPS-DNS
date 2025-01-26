@@ -1,7 +1,7 @@
 use std::fmt;
 use thiserror::Error;
 
-#[derive(Debug, Error)]
+#[derive(Error, Debug)]
 pub enum ErrorKind {
     #[error("Input Vec Len Mismatch, it should be {0} got {1}")]
     VecLenMismatch(usize, usize),

@@ -1,7 +1,6 @@
 #![allow(non_snake_case, dead_code)]
 
-use crate::FlagsData;
-
+#[allow(unused_imports)]
 #[derive(Debug)]
 pub struct FlagsFormat {
     // 0代表请求，1代表响应
