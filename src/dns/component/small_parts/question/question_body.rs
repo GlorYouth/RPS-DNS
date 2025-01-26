@@ -1,5 +1,5 @@
-use crate::dns::parts::question::question::DNSQuestion;
-use crate::dns::parts::*;
+use crate::dns::component::small_parts::question::question::DNSQuestion;
+use crate::dns::component::*;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::str::Utf8Error;

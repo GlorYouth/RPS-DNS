@@ -6,6 +6,13 @@ use generic_array::typenum::U2;
 pub struct FlagsData(pub ArrayU8<U2>);
 
 impl FlagsData {
+    pub fn new(flags: FlagsFormat) -> FlagsData {
+        let mut arr = ArrayU8::<U2>::new();
+        arr[0] = flags.QR << 7 | flags.Opcode << 3 | flags.AA << 2 | flags.TC << 1 | flags.RD;
+        arr[1] = flags.RA << 7 | flags.Z << 6 | flags.RCODE;
+        FlagsData(arr)
+    }
+
     pub fn from_reader(reader: &mut SliceReader) -> FlagsData {
         FlagsData(ArrayU8::<U2>::from_reader(reader))
     }

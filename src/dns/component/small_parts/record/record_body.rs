@@ -1,12 +1,12 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
-use crate::dns::parts::record::record::DNSRecord;
-use crate::dns::parts::*;
+use crate::dns::component::small_parts::record::record::DNSRecord;
+use crate::dns::component::*;
 use std::collections::HashMap;
 use std::rc::Rc;
 
 #[derive(Debug)]
-pub struct RecordBody(Vec<DNSRecord>);
+pub struct RecordBody(pub Vec<DNSRecord>);
 
 impl RecordBody {
     pub fn from_reader(

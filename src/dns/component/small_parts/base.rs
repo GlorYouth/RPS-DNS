@@ -1,5 +1,4 @@
 mod data;
-mod error;
 mod format;
 mod tools;
 

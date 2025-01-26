@@ -1,6 +1,6 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
-use crate::dns::parts::base::*;
+use crate::dns::component::small_parts::base::*;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::str::Utf8Error;

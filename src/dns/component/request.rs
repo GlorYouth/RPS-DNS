@@ -1,15 +1,15 @@
 #![cfg_attr(debug_assertions, allow(dead_code, unused))]
 
-use crate::dns::parts::*;
+use crate::dns::component::*;
 use rand::Rng;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-struct DNSRequest {
-    header: DNSHeader,
-    question: QuestionBody,
+pub struct DNSRequest {
+    pub header: DNSHeader,
+    pub question: QuestionBody,
 
-    map: HashMap<u16, Rc<Domain>>,
+    pub map: HashMap<u16, Rc<Domain>>,
 }
 
 impl DNSRequest {

@@ -1,5 +1,5 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
-use crate::dns::parts::*;
+use crate::dns::component::*;
 
 pub struct RawData(Vec<u8>);
 

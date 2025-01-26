@@ -1,8 +1,8 @@
-mod answer;
-mod parts;
-mod request;
+mod component;
+mod constructor;
+mod error;
 
-pub use answer::*;
-pub use parts::*;
+pub use component::answer::*;
 #[allow(unused_imports)]
-pub use request::*;
+pub use component::request::*;
+pub use component::*;

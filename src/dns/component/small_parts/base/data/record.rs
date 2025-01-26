@@ -1,7 +1,10 @@
-use crate::dns::parts::base::*;
+use crate::dns::component::small_parts::base::*;
+use crate::dns::error::Error;
+use crate::dns::error::ErrorKind::UncoveredDNSType;
 use std::collections::HashMap;
 use std::net::{Ipv4Addr, Ipv6Addr};
 use std::rc::Rc;
+use std::str::Utf8Error;
 
 #[derive(Debug, Clone)]
 enum RecordDataType {
@@ -18,6 +21,7 @@ pub enum RecordResolvedType {
 }
 
 impl From<AddrType> for RecordResolvedType {
+    #[inline]
     fn from(t: AddrType) -> Self {
         match t {
             AddrType::Ipv4(ipv4) => RecordResolvedType::Ipv4(ipv4),
@@ -54,15 +58,27 @@ impl RecordData {
             }
         }
     }
-    
 
-    pub fn resolve(&self) -> RecordResolvedType {
+    pub fn from_vec(vec: Vec<u8>, rtype: u16) -> Result<RecordData, Error> {
+        match rtype {
+            1 => Ok(RecordData {
+                rtype: RecordDataType::A(AddrReader::from_vec(vec, rtype)?),
+            }),
+            5 => Ok(RecordData {
+                rtype: RecordDataType::CNAME(Rc::from(Domain::from(vec))),
+            }),
+            28 => Ok(RecordData {
+                rtype: RecordDataType::AAAA(AddrReader::from_vec(vec, rtype)?),
+            }),
+            _ => Err(UncoveredDNSType(rtype as usize))?,
+        }
+    }
+
+    pub fn resolve(&self) -> Result<RecordResolvedType, Utf8Error> {
         match self.rtype.clone() {
-            RecordDataType::A(mut reader) => RecordResolvedType::from(reader.get_addr()),
-            RecordDataType::AAAA(mut reader) => RecordResolvedType::from(reader.get_addr()),
-            RecordDataType::CNAME(domain) => {
-                RecordResolvedType::Domain(domain.to_string().unwrap())
-            }
+            RecordDataType::A(mut reader) => Ok(RecordResolvedType::from(reader.get_addr())),
+            RecordDataType::AAAA(mut reader) => Ok(RecordResolvedType::from(reader.get_addr())),
+            RecordDataType::CNAME(domain) => Ok(RecordResolvedType::Domain(domain.to_string()?)),
         }
     }
 
@@ -87,7 +103,8 @@ mod tests {
                 map,
                 DNSType::to_u16(&DNSType::A)
             )
-            .resolve(),
+            .resolve()
+            .unwrap(),
             RecordResolvedType::Ipv4(Ipv4Addr::new(61, 240, 220, 6))
         )
     }
@@ -106,7 +123,8 @@ mod tests {
                 map,
                 DNSType::to_u16(&DNSType::AAAA)
             )
-            .resolve(),
+            .resolve()
+            .unwrap(),
             RecordResolvedType::Ipv6(Ipv6Addr::from([
                 0x24, 0x08, 0x87, 0x52, 0x0e, 0x00, 0x00, 0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x59
@@ -128,7 +146,8 @@ mod tests {
                 map,
                 DNSType::to_u16(&DNSType::CNAME)
             )
-            .resolve(),
+            .resolve()
+            .unwrap(),
             RecordResolvedType::Domain(
                 Domain::from(
                     [

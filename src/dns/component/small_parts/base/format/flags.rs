@@ -1,5 +1,7 @@
 #![allow(non_snake_case, dead_code)]
 
+use crate::FlagsData;
+
 #[derive(Debug)]
 pub struct FlagsFormat {
     // 0代表请求，1代表响应

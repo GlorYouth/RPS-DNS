@@ -1,3 +1,5 @@
+use crate::dns::error::ErrorKind::UnknownAddrType;
+use crate::dns::error::{Error, ErrorKind};
 use crate::*;
 use std::net::{Ipv4Addr, Ipv6Addr};
 
@@ -13,6 +15,24 @@ pub struct AddrReader {
 }
 
 impl AddrReader {
+    pub fn from_vec(v: Vec<u8>, addr_type: u16) -> Result<AddrReader, Error> {
+        match addr_type {
+            1 => {
+                if v.len() != 4 {
+                    Err(ErrorKind::VecLenMismatch(4, v.len()))?
+                }
+                Ok(AddrReader { vec: v })
+            }
+            28 => {
+                if v.len() != 16 {
+                    Err(ErrorKind::VecLenMismatch(16, v.len()))?
+                }
+                Ok(AddrReader { vec: v })
+            }
+            _ => Err(UnknownAddrType(addr_type as usize))?,
+        }
+    }
+
     #[inline]
     pub fn from_reader_ipv4(reader: &mut SliceReader) -> AddrReader {
         Self {

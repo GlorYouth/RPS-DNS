@@ -1,4 +1,4 @@
-use crate::dns::parts::base::*;
+use crate::dns::component::small_parts::base::*;
 #[allow(non_snake_case)]
 #[derive(Debug)]
 pub struct DNSHeader {

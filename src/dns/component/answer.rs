@@ -1,6 +1,6 @@
 #![cfg_attr(debug_assertions, allow(dead_code, unused))]
 
-use crate::dns::parts::*;
+use crate::dns::component::*;
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -12,7 +12,7 @@ pub struct DNSAnswer {
     pub authority: RecordBody,
     pub additional: RecordBody,
 
-    domain_map: HashMap<u16, Rc<Domain>>,
+    pub domain_map: HashMap<u16, Rc<Domain>>,
 }
 
 impl DNSAnswer {
