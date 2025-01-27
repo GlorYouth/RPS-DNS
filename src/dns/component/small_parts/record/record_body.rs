@@ -21,6 +21,18 @@ impl RecordBody {
         }
         Ok(RecordBody(records))
     }
+
+    pub fn from_reader_uncheck(
+        reader: &mut SliceReader,
+        map: &mut HashMap<u16, Rc<Domain>>,
+        count: u16,
+    ) -> RecordBody {
+        let mut records = Vec::with_capacity(count as usize);
+        for _ in 0..count {
+            records.push(DNSRecord::from_reader_uncheck(reader, map));
+        }
+        RecordBody(records)
+    }
 }
 
 #[cfg(test)]

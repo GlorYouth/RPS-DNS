@@ -79,6 +79,13 @@ impl Domain {
         })
     }
 
+    fn from_reader_uncheck(reader: &mut SliceReader) -> Self {
+        if let Some(offset) = reader.iter_from_current_pos().position(|b| *b == 0x0) {
+            return Domain(Vec::from(reader.read_slice(offset + 1)));
+        }
+        panic!()
+    }
+
     pub fn from_reader_and_check_map(
         reader: &mut SliceReader,
         map: &mut HashMap<u16, Rc<Domain>>,
@@ -107,6 +114,29 @@ impl Domain {
             container_type: "&mut SliceReader".to_string(),
             other_info: "has ".to_string().add(format!("{:?}", reader.as_ref()).as_str()),
         })
+    }
+
+
+    pub fn from_reader_and_check_map_uncheck(
+        reader: &mut SliceReader,
+        map: &mut HashMap<u16, Rc<Domain>>,
+    ) -> Rc<Domain> {
+        if reader.peek_u8() & 0b1100_0000 == 0b1100_0000 {
+            let key = &reader.read_u16();
+            let value = map.get_mut(key);
+            return if let Some(v) = value {
+                v.clone()
+            } else {
+                panic!()
+            };
+        }
+        if let Some(offset) = reader.iter_from_current_pos().position(|b| *b == 0x0) {
+            let pos = reader.pos() as u16;
+            let domain = Rc::new(Domain(Vec::from(reader.read_slice(offset + 1))));
+            map.insert(pos | 0b1100_0000_0000_0000, domain.clone());
+            return domain;
+        }
+        panic!()
     }
 }
 
@@ -165,6 +195,42 @@ impl Domain {
             }
         }
         Ok(decoded)
+    }
+
+    pub fn to_string_uncheck(&self) -> String {
+        let mut decoded = String::with_capacity(40);
+        let mut i = 0;
+
+        while i < self.0.len() - 1 {
+            //排除最后的'\0'
+            let part_length = self.0[i] as usize;
+            i += 1; // 移动到部分内容
+
+            let part_bytes = self.0[i..(i + part_length)].as_ref();
+            i += part_length; // 移动到下一部分
+
+            if part_bytes.starts_with(b"xn--") {
+                // Punycode 编码的部分，解码
+                let input = std::str::from_utf8(&part_bytes[4..]).unwrap();// 去掉 'xn--' 前缀
+                match punycode::decode(input) {
+                    Ok(decoded_part) => {
+                        decoded.push_str(&decoded_part);
+                    }
+                    Err(_) => {
+                        panic!()
+                    }
+                }
+            } else {
+                // 直接是 ASCII 字符部分
+                decoded.push_str(&String::from_utf8_lossy(part_bytes));
+            }
+
+            // 添加分隔符 "."
+            if i < self.0.len() - 1 {
+                decoded.push('.');
+            }
+        }
+        decoded
     }
 }
 

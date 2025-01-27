@@ -26,71 +26,87 @@ impl<'a, N: generic_array::ArrayLength> From<&'a mut ArrayU8<N>> for SliceReader
 }
 
 impl<'a> SliceReader<'a> {
+    #[inline]
     pub fn pos(&self) -> usize {
         self.pos
     }
 
+    #[inline]
     pub fn peek_u8(&mut self) -> u8 {
         self.slice[self.pos]
     }
 
+    #[inline]
     pub fn peek_u16(&mut self) -> u16 {
         u16::from_be_bytes([self.slice[self.pos], self.slice[self.pos + 1]])
     }
 
+    #[inline]
     pub fn peek_u32(&mut self) -> u32 {
         u32::from_be_bytes(self.slice[self.pos..self.pos + 4].try_into().unwrap())
     }
 
+    #[inline]
     pub fn peek_u64(&mut self) -> u64 {
         u64::from_be_bytes(self.slice[self.pos..self.pos + 8].try_into().unwrap())
     }
 
+    #[inline]
     pub fn read_u8(&mut self) -> u8 {
         self.pos += 1;
         self.slice[self.pos - 1]
     }
 
+    #[inline]
     pub fn read_u16(&mut self) -> u16 {
         self.pos += 2;
         u16::from_be_bytes(self.slice[self.pos - 2..self.pos].try_into().unwrap())
     }
 
+    #[inline]
     pub fn read_u32(&mut self) -> u32 {
         self.pos += 4;
         u32::from_be_bytes(self.slice[self.pos - 4..self.pos].try_into().unwrap())
     }
 
+    #[inline]
     pub fn read_u64(&mut self) -> u64 {
         self.pos += 8;
         u64::from_be_bytes(self.slice[self.pos - 8..self.pos].try_into().unwrap())
     }
 
+    #[inline]
     pub fn iter_from_current_pos(&self) -> Iter<u8> {
         self.slice[self.pos..].iter()
     }
 
+    #[inline]
     pub fn skip(&mut self, n: usize) {
         self.pos += n;
     }
 
+    #[inline]
     pub fn set_pos(&mut self, pos: usize) {
         self.pos = pos;
     }
 
+    #[inline]
     pub fn as_ref(&self) -> &[u8] {
         self.slice
     }
 
+    #[inline]
     pub fn read_slice(&mut self, len: usize) -> &'a [u8] {
         self.pos += len;
         &self.slice[self.pos - len..self.pos]
     }
 
+    #[inline]
     pub fn from_slice(slice: &'a [u8]) -> Self {
         SliceReader { slice, pos: 0 }
     }
 
+    #[inline]
     pub fn from_array_u8<N: generic_array::ArrayLength>(array: &mut ArrayU8<N>) -> SliceReader {
         SliceReader {
             slice: array.as_mut_slice(),

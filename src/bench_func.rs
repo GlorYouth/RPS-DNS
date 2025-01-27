@@ -1,5 +1,7 @@
 use crate::*;
 use std::any::Any;
+
+
 #[allow(dead_code)]
 pub fn bench_decode() {
     for _ in 0..20 {
@@ -16,7 +18,7 @@ pub fn bench_decode() {
             0x00, 0x01, 0x00, 0x00, 0x00, 0x1e, 0x00, 0x10, 0x24, 0x08, 0x87, 0x11, 0x00, 0x10,
             0x10, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x25,
         ]);
-        let answer = DNSAnswer::from_reader(reader);
+        let answer = DNSAnswer::from_reader(reader).unwrap();
         answer.type_id();
     }
 }

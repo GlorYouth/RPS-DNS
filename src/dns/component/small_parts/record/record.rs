@@ -44,4 +44,21 @@ impl DNSRecord {
             RDATA: rdata,
         })
     }
+
+    pub fn from_reader_uncheck(reader: &mut SliceReader, map: &mut HashMap<u16, Rc<Domain>>) -> DNSRecord {
+        let name = Domain::from_reader_and_check_map_uncheck(reader, map);
+        let rtype = reader.read_u16();
+        let class = reader.read_u16();
+        let ttl = reader.read_u32();
+        let rdlength = reader.read_u16();
+        let rdata = RecordData::from_reader_uncheck(reader, map, rtype);
+        DNSRecord {
+            NAME: name,
+            TYPE: rtype,
+            CLASS: class,
+            TTL: ttl,
+            RDLENGTH: rdlength,
+            RDATA: rdata,
+        }
+    }
 }

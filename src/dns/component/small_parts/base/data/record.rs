@@ -58,6 +58,25 @@ impl RecordData {
         }
     }
 
+    pub fn from_reader_uncheck(
+        reader: &mut SliceReader,
+        map: &mut HashMap<u16, Rc<Domain>>,
+        rtype: u16,
+    ) -> RecordData {
+        match rtype {
+            1 => RecordData {
+                rtype: RecordDataType::A(AddrReader::from_reader_ipv4(reader)),
+            },
+            5 => RecordData {
+                rtype: RecordDataType::CNAME(Domain::from_reader_and_check_map_uncheck(reader, map)),
+            },
+            28 => RecordData {
+                rtype: RecordDataType::AAAA(AddrReader::from_reader_ipv6(reader)),
+            },
+            _ => panic!()
+        }
+    }
+
     pub fn from_vec(vec: Vec<u8>, rtype: u16) -> Result<RecordData, Error> {
         match rtype {
             1 => Ok(RecordData {

@@ -34,6 +34,23 @@ impl DNSAnswer {
             domain_map: map,
         })
     }
+    
+    pub fn from_reader_uncheck(reader: &mut SliceReader) -> DNSAnswer {
+        let mut map = HashMap::with_capacity(5);
+        let header = DNSHeader::from_reader(reader);
+        let question = QuestionBody::from_reader_uncheck(reader, &mut map, header.QDCOUNT);
+        let answer = RecordBody::from_reader_uncheck(reader, &mut map, header.ANCOUNT);
+        let authority = RecordBody::from_reader_uncheck(reader, &mut map, header.NSCOUNT);
+        let additional = RecordBody::from_reader_uncheck(reader, &mut map, header.ARCOUNT);
+        DNSAnswer {
+            header,
+            question,
+            answer,
+            authority,
+            additional,
+            domain_map: map,
+        }
+    }
 }
 
 #[cfg(test)]
