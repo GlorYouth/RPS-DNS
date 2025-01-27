@@ -59,7 +59,7 @@ impl RecordData {
             _ => Err(AddrReaderError::UnknownAddrType {
                 addr_type: rtype as usize,
             })
-            .context(AddrSnafu),
+            .context(AddrSnafu)?,
         }
     }
 
@@ -102,7 +102,7 @@ impl RecordData {
         }
     }
 
-    pub fn resolve(&self) -> Result<RecordResolvedType, DomainDecodeError> {
+    pub fn resolve(&self) -> Result<RecordResolvedType, Box<DomainDecodeError>> {
         match self.rtype.clone() {
             RecordDataType::A(mut reader) => Ok(RecordResolvedType::from(reader.get_addr())),
             RecordDataType::AAAA(mut reader) => Ok(RecordResolvedType::from(reader.get_addr())),

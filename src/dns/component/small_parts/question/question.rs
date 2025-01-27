@@ -19,7 +19,7 @@ impl DNSQuestion {
         self.QNAME.len() + 4
     }
 
-    pub fn get_domain(&self) -> Result<String, DomainDecodeError> {
+    pub fn get_domain(&self) -> Result<String, Box<DomainDecodeError>> {
         self.QNAME.to_string()
     }
     pub fn get_domain_uncheck(&self) -> String {

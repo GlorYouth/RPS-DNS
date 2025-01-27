@@ -160,7 +160,7 @@ impl Domain {
         Domain(self.0.clone())
     }
 
-    pub fn to_string(&self) -> Result<String, DomainDecodeError> {
+    pub fn to_string(&self) -> Result<String, Box<DomainDecodeError>> {
         let mut decoded = String::with_capacity(40);
         let mut i = 0;
 
@@ -180,9 +180,9 @@ impl Domain {
                         decoded.push_str(&decoded_part);
                     }
                     Err(_) => {
-                        return Err(DomainDecodeError::PunycodeDecode {
+                        return Err(Box::from(DomainDecodeError::PunycodeDecode {
                             string: input.to_string(),
-                        })
+                        }))
                     }
                 }
             } else {

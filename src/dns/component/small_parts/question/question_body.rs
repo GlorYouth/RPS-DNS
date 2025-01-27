@@ -43,7 +43,7 @@ impl QuestionBody {
         QuestionBody::Multi(vec)
     }
 
-    pub fn get_domains(&self) -> Result<Vec<String>, DomainDecodeError> {
+    pub fn get_domains(&self) -> Result<Vec<String>, Box<DomainDecodeError>> {
         match self {
             QuestionBody::Single(question) => Ok(vec![question.get_domain()?]),
             QuestionBody::Multi(questions) => {

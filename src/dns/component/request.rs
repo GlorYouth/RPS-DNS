@@ -93,7 +93,7 @@ impl DNSRequest {
     fn from_data(data: &[u8]) -> Result<DNSRequest, Box<DomainReadError>> {
         let reader = &mut SliceReader::from(data);
         let header = DNSHeader::from_reader(reader);
-        let mut map: HashMap<u16, Rc<Domain>> = HashMap::new();
+        let mut map = HashMap::new();
         let question = QuestionBody::from_reader(reader, &mut map, header.QDCOUNT)?;
         Ok(DNSRequest {
             header,
