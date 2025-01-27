@@ -18,7 +18,7 @@ impl QuestionBody {
         reader: &mut SliceReader,
         map: &mut HashMap<u16, Rc<Domain>>,
         qdcount: u16,
-    ) -> Result<QuestionBody, Box<DomainReadError>> {
+    ) -> Result<QuestionBody, Box<DomainError>> {
         if likely(qdcount == 1) {
             return Ok(QuestionBody::Single(DNSQuestion::from_reader(reader, map)?));
         }

@@ -1,11 +1,9 @@
 #![cfg_attr(debug_assertions, allow(dead_code, unused_imports))]
 
 use std::borrow::Cow;
-use crate::dns::component::small_parts::base::data::domain::DomainDecodeError::InputNotAscii;
 use crate::*;
-use snafu::{ResultExt, Snafu};
 use std::collections::HashMap;
-use std::fmt::{Debug, Error};
+use std::fmt::{write, Debug, Display, Formatter};
 use std::ops::Add;
 use std::rc::Rc;
 use std::str::Utf8Error;
@@ -61,18 +59,21 @@ impl From<&str> for Domain {
 }
 
 impl From<Vec<u8>> for Domain {
+    #[inline]
     fn from(vec: Vec<u8>) -> Self {
         Domain(Box::from(vec))
     }
 }
 
 impl Clone for Domain {
+    #[inline]
     fn clone(&self) -> Self {
         Domain(self.0.clone())
     }
 }
 
 impl Into<Box<[u8]>> for Domain {
+    #[inline]
     fn into(self) -> Box<[u8]> {
         self.0
     }
@@ -80,11 +81,11 @@ impl Into<Box<[u8]>> for Domain {
 
 
 impl Domain {
-    fn from_reader(reader: &mut SliceReader) -> Result<Self, DomainReadError> {
+    fn from_reader(reader: &mut SliceReader) -> Result<Self, DomainError> {
         if let Some(offset) = reader.iter_from_current_pos().position(|b| *b == 0x0) {
             return Ok(Domain(Box::from(reader.read_slice(offset + 1))));
         }
-        Err(DomainReadError::ReadFailed {
+        Err(DomainError::ReadFailed {
             findings: String::from("0x0_u8"),
             container_type: Cow::from("&mut SliceReader"),
             other_info: "has "
@@ -103,14 +104,14 @@ impl Domain {
     pub fn from_reader_and_check_map(
         reader: &mut SliceReader,
         map: &mut HashMap<u16, Rc<Domain>>,
-    ) -> Result<Rc<Domain>, Box<DomainReadError>> {
+    ) -> Result<Rc<Domain>, Box<DomainError>> {
         if reader.peek_u8() & 0b1100_0000 == 0b1100_0000 {
             let key = &reader.read_u16();
             let value = map.get_mut(key);
             return if let Some(v) = value {
                 Ok(v.clone())
             } else {
-                Err(Box::from(DomainReadError::ReadFailed {
+                Err(Box::from(DomainError::ReadFailed {
                     findings: key.to_string(),
                     container_type: Cow::from("&mut HashMap<u16, Rc<Domain>>"),
                     other_info: "has ".to_string().add(format!("{:?}", map).as_str()),
@@ -123,7 +124,7 @@ impl Domain {
             map.insert(pos | 0b1100_0000_0000_0000, domain.clone());
             return Ok(domain);
         }
-        Err(Box::from(DomainReadError::ReadFailed {
+        Err(Box::from(DomainError::ReadFailed {
             findings: String::from("0x0_u8"),
             container_type: Cow::from("&mut SliceReader"),
             other_info: "has "
@@ -153,16 +154,18 @@ impl Domain {
         }
         panic!()
     }
-    
+
 }
 
 impl AsRef<[u8]> for Domain {
+    #[inline]
     fn as_ref(&self) -> &[u8] {
         self.0.as_ref()
     }
 }
 
 impl From<&[u8]> for Domain {
+    #[inline]
     fn from(arr: &[u8]) -> Self {
         Self(Box::from(arr))
     }
@@ -170,17 +173,20 @@ impl From<&[u8]> for Domain {
 
 impl Domain {
     pub const ESTIMATE_DOMAIN_SIZE: usize = 40;
-    
 
+
+    #[inline]
     pub fn len(&self) -> usize {
         self.0.len()
     }
 
+    #[inline]
     pub fn new(vec: Vec<u8>) -> Domain {
         Domain(Box::from(vec))
     }
-    
 
+
+    #[inline]
     pub fn clone(&self) -> Domain {
         Domain(self.0.clone())
     }
@@ -199,7 +205,7 @@ impl Domain {
 
             if part_bytes.starts_with(b"xn--") {
                 // Punycode 编码的部分，解码
-                let input = std::str::from_utf8(&part_bytes[4..]).context(InputNotAsciiSnafu)?; // 去掉 'xn--' 前缀
+                let input = std::str::from_utf8(&part_bytes[4..])?; // 去掉 'xn--' 前缀
                 match punycode::decode(input) {
                     Ok(decoded_part) => {
                         decoded.push_str(&decoded_part);
@@ -258,45 +264,63 @@ impl Domain {
         }
         decoded
     }
-    
+
+    #[inline]
     pub fn to_byte(&self) -> Vec<u8> {
         Vec::from(self.0.clone())
     }
 }
 
-#[derive(Debug, Snafu)]
-#[snafu(visibility(pub))]
 pub enum DomainError {
-    #[snafu(display("Domain error:\n {}", source))]
-    ReadError { source: Box<DomainReadError> },
-
-    #[snafu(display("Domain error:\n {}", source))]
-    DecodeError { source: Box<DomainDecodeError> },
-}
-
-#[derive(Debug, Snafu)]
-#[snafu(visibility(pub))]
-pub enum DomainReadError {
-    #[snafu(display(
-        "Failed to find {} in {}, which {}",
-        findings,
-        container_type,
-        other_info
-    ))]
     ReadFailed {
         findings: String,
         container_type: Cow<'static,str>,
         other_info: String,
     },
+    DecodeFailed,
 }
 
-#[derive(Debug, Snafu)]
 pub enum DomainDecodeError {
-    #[snafu(display("Has character that are not ASCII, source: {}", source))]
     InputNotAscii { source: Utf8Error },
-
-    #[snafu(display("Punycode decode error, string: {}", string))]
     PunycodeDecode { string: String },
+}
+
+impl Display for DomainDecodeError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl Debug for DomainDecodeError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl From<Utf8Error> for DomainDecodeError {
+    fn from(source: Utf8Error) -> Self {
+        DomainDecodeError::InputNotAscii { source }
+    }
+}
+
+impl From<Utf8Error> for Box<DomainDecodeError> {
+    fn from(source: Utf8Error) -> Self {
+        Box::from(DomainDecodeError::InputNotAscii { source })
+    }
+}
+
+
+
+impl Display for DomainError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl Debug for DomainError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 #[cfg(test)]

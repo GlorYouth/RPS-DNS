@@ -1,4 +1,5 @@
 
 fn main() {
-    println!("{:?}",size_of::<String>());
+    println!("{:?}",size_of::<&String>());
+    
 }

@@ -1,17 +1,39 @@
+use std::fmt::{Debug, Display, Formatter};
 use crate::{AddrReaderError, DomainError};
-use snafu::Snafu;
 
-#[derive(Debug, Snafu)]
-#[snafu(visibility(pub))]
+
 pub enum Error {
-    #[snafu(display("{}", source))]
     DomainError {
-        source: DomainError,
+        source: Box<DomainError>,
     },
-    #[snafu(display("AddrReaderError: \n{}", source))]
+
     AddrError {
         source: AddrReaderError,
     },
-    #[snafu(display("Invalid vec length: {}", length))]
+
     InvalidVecLength { length: usize },
+}
+
+impl From<Box<DomainError>> for Error {
+    fn from(source: Box<DomainError>) -> Error {
+        Error::DomainError { source }
+    }
+}
+
+impl From<AddrReaderError> for Error {
+    fn from(source: AddrReaderError) -> Error {
+        Error::AddrError { source }
+    }
+}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl Debug for Error {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }

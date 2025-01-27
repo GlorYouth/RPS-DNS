@@ -1,6 +1,5 @@
 use crate::dns::component::small_parts::base::*;
-use crate::dns::error::{AddrSnafu, DomainSnafu, Error};
-use snafu::ResultExt;
+use crate::dns::error::{Error};
 use std::collections::HashMap;
 use std::net::{Ipv4Addr, Ipv6Addr};
 use std::rc::Rc;
@@ -48,9 +47,7 @@ impl RecordData {
             }),
             5 => Ok(RecordData {
                 rtype: RecordDataType::CNAME(
-                    Domain::from_reader_and_check_map(reader, map)
-                        .context(ReadSnafu)
-                        .context(DomainSnafu)?,
+                    Domain::from_reader_and_check_map(reader, map)?,
                 ),
             }),
             28 => Ok(RecordData {
@@ -58,8 +55,7 @@ impl RecordData {
             }),
             _ => Err(AddrReaderError::UnknownAddrType {
                 addr_type: rtype as usize,
-            })
-            .context(AddrSnafu)?,
+            })?,
         }
     }
 
@@ -87,31 +83,38 @@ impl RecordData {
     pub fn from_vec(vec: Vec<u8>, rtype: u16) -> Result<RecordData, Error> {
         match rtype {
             1 => Ok(RecordData {
-                rtype: RecordDataType::A(AddrReader::from_vec(vec, rtype).context(AddrSnafu)?),
+                rtype: RecordDataType::A(AddrReader::from_vec(vec, rtype)?),
             }),
             5 => Ok(RecordData {
                 rtype: RecordDataType::CNAME(Rc::from(Domain::from(vec))),
             }),
             28 => Ok(RecordData {
-                rtype: RecordDataType::AAAA(AddrReader::from_vec(vec, rtype).context(AddrSnafu)?),
+                rtype: RecordDataType::AAAA(AddrReader::from_vec(vec, rtype)?),
             }),
             _ => Err(AddrReaderError::UnknownAddrType {
                 addr_type: rtype as usize,
-            })
-            .context(AddrSnafu)?,
+            })?,
         }
     }
 
     pub fn resolve(&self) -> Result<RecordResolvedType, Box<DomainDecodeError>> {
-        match self.rtype.clone() {
-            RecordDataType::A(mut reader) => Ok(RecordResolvedType::from(reader.get_addr())),
-            RecordDataType::AAAA(mut reader) => Ok(RecordResolvedType::from(reader.get_addr())),
+        match &self.rtype {
+            RecordDataType::A(reader) => Ok(RecordResolvedType::from(reader.get_addr())),
+            RecordDataType::AAAA(reader) => Ok(RecordResolvedType::from(reader.get_addr())),
             RecordDataType::CNAME(domain) => Ok(RecordResolvedType::Domain(domain.to_string()?)),
         }
     }
 
     pub fn to_bytes(&self) -> Vec<u8> {
-        match self.rtype.clone() {
+        match &self.rtype {
+            RecordDataType::A(reader) => reader.vec.clone(),
+            RecordDataType::CNAME(domain) => domain.to_byte(),
+            RecordDataType::AAAA(reader) => reader.vec.clone(),
+        }
+    }
+
+    pub fn into_bytes(self) -> Vec<u8> {
+        match self.rtype {
             RecordDataType::A(reader) => reader.vec,
             RecordDataType::CNAME(domain) => domain.to_byte(),
             RecordDataType::AAAA(reader) => reader.vec,
