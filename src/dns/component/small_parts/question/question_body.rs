@@ -2,12 +2,13 @@ use crate::dns::component::small_parts::question::question::DNSQuestion;
 use crate::dns::component::*;
 use std::collections::HashMap;
 use std::rc::Rc;
+use likely_stable::likely;
 
 #[allow(unused)]
 #[derive(Debug)]
 pub enum QuestionBody {
     Single(DNSQuestion),
-    Multi(Vec<DNSQuestion>),
+    Multi(Box<[DNSQuestion]>),
 }
 
 impl QuestionBody {
@@ -18,14 +19,14 @@ impl QuestionBody {
         map: &mut HashMap<u16, Rc<Domain>>,
         qdcount: u16,
     ) -> Result<QuestionBody, Box<DomainReadError>> {
-        if qdcount == 1 {
+        if likely(qdcount == 1) {
             return Ok(QuestionBody::Single(DNSQuestion::from_reader(reader, map)?));
         }
         let mut vec = Vec::with_capacity(qdcount as usize);
         for _ in 0..qdcount {
             vec.push(DNSQuestion::from_reader(reader, map)?);
         }
-        Ok(QuestionBody::Multi(vec))
+        Ok(QuestionBody::Multi(Box::from(vec)))
     }
 
     pub fn from_reader_uncheck(
@@ -33,14 +34,14 @@ impl QuestionBody {
         map: &mut HashMap<u16, Rc<Domain>>,
         qdcount: u16,
     ) -> QuestionBody {
-        if qdcount == 1 {
+        if likely(qdcount == 1) {
             return QuestionBody::Single(DNSQuestion::from_reader_uncheck(reader, map));
         }
         let mut vec = Vec::with_capacity(qdcount as usize);
         for _ in 0..qdcount {
             vec.push(DNSQuestion::from_reader_uncheck(reader, map));
         }
-        QuestionBody::Multi(vec)
+        QuestionBody::Multi(Box::from(vec))
     }
 
     pub fn get_domains(&self) -> Result<Vec<String>, Box<DomainDecodeError>> {

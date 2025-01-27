@@ -113,7 +113,7 @@ impl RecordData {
     pub fn to_bytes(&self) -> Vec<u8> {
         match self.rtype.clone() {
             RecordDataType::A(reader) => reader.vec,
-            RecordDataType::CNAME(domain) => domain.0.to_vec(),
+            RecordDataType::CNAME(domain) => domain.to_byte(),
             RecordDataType::AAAA(reader) => reader.vec,
         }
     }

@@ -21,7 +21,7 @@ impl Append<DNSHeader> for RawData {
 
 impl Append<DNSQuestion> for RawData {
     fn append(&mut self, question: &DNSQuestion) {
-        self.0.append(&mut question.QNAME.0.clone());
+        self.0.extend_from_slice(question.QNAME.as_ref().as_ref());
         self.0.extend_from_slice(&question.QTYPE.to_be_bytes());
         self.0.extend_from_slice(&question.QCLASS.to_be_bytes());
     }
@@ -29,7 +29,7 @@ impl Append<DNSQuestion> for RawData {
 
 impl Append<DNSRecord> for RawData {
     fn append(&mut self, record: &DNSRecord) {
-        self.0.append(&mut record.NAME.0.to_vec());
+        self.0.extend_from_slice(&record.NAME.as_ref().as_ref());
         self.0.extend_from_slice(&record.TYPE.to_be_bytes());
         self.0.extend_from_slice(&record.CLASS.to_be_bytes());
         self.0.extend_from_slice(&record.TTL.to_be_bytes());
