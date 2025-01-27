@@ -1,10 +1,10 @@
 #![cfg_attr(debug_assertions, allow(dead_code, unused))]
 
 use crate::dns::component::*;
+use crate::dns::error::{DomainSnafu, Error};
+use snafu::ResultExt;
 use std::collections::HashMap;
 use std::rc::Rc;
-use snafu::ResultExt;
-use crate::dns::error::{DomainSnafu, Error};
 
 #[derive(Debug)]
 pub struct DNSAnswer {
@@ -18,10 +18,12 @@ pub struct DNSAnswer {
 }
 
 impl DNSAnswer {
-    pub fn from_reader(reader: &mut SliceReader) -> Result<DNSAnswer,Error> {
+    pub fn from_reader(reader: &mut SliceReader) -> Result<DNSAnswer, Error> {
         let mut map = HashMap::with_capacity(5);
         let header = DNSHeader::from_reader(reader);
-        let question = QuestionBody::from_reader(reader, &mut map, header.QDCOUNT).context(ReadSnafu).context(DomainSnafu)?;
+        let question = QuestionBody::from_reader(reader, &mut map, header.QDCOUNT)
+            .context(ReadSnafu)
+            .context(DomainSnafu)?;
         let answer = RecordBody::from_reader(reader, &mut map, header.ANCOUNT)?;
         let authority = RecordBody::from_reader(reader, &mut map, header.NSCOUNT)?;
         let additional = RecordBody::from_reader(reader, &mut map, header.ARCOUNT)?;
@@ -34,7 +36,7 @@ impl DNSAnswer {
             domain_map: map,
         })
     }
-    
+
     pub fn from_reader_uncheck(reader: &mut SliceReader) -> DNSAnswer {
         let mut map = HashMap::with_capacity(5);
         let header = DNSHeader::from_reader(reader);

@@ -90,7 +90,7 @@ impl DNSRequest {
         data
     }
 
-    fn from_data(data: &[u8]) -> Result<DNSRequest, DomainReadError> {
+    fn from_data(data: &[u8]) -> Result<DNSRequest, Box<DomainReadError>> {
         let reader = &mut SliceReader::from(data);
         let header = DNSHeader::from_reader(reader);
         let mut map: HashMap<u16, Rc<Domain>> = HashMap::new();

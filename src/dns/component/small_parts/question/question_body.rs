@@ -17,7 +17,7 @@ impl QuestionBody {
         reader: &mut SliceReader,
         map: &mut HashMap<u16, Rc<Domain>>,
         qdcount: u16,
-    ) -> Result<QuestionBody, DomainReadError> {
+    ) -> Result<QuestionBody, Box<DomainReadError>> {
         if qdcount == 1 {
             return Ok(QuestionBody::Single(DNSQuestion::from_reader(reader, map)?));
         }
@@ -83,7 +83,8 @@ mod tests {
             ]),
             &mut map,
             1,
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(single_question.get_domains().unwrap()[0], "ipw.cn");
         if let QuestionBody::Single(question) = single_question {
             assert_eq!(question.get_domain().unwrap(), "ipw.cn");
@@ -100,7 +101,8 @@ mod tests {
             ]),
             &mut map,
             2,
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(multi_question.get_domains().unwrap()[0], "ipw.cn");
         assert_eq!(multi_question.get_domains().unwrap()[1], "www.google.com");
         if let QuestionBody::Multi(questions) = multi_question {

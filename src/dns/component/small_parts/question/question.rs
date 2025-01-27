@@ -28,7 +28,10 @@ impl DNSQuestion {
 }
 
 impl DNSQuestion {
-    pub fn from_reader(reader: &mut SliceReader, map: &mut HashMap<u16, Rc<Domain>>) -> Result<DNSQuestion, DomainReadError> {
+    pub fn from_reader(
+        reader: &mut SliceReader,
+        map: &mut HashMap<u16, Rc<Domain>>,
+    ) -> Result<DNSQuestion, Box<DomainReadError>> {
         Ok(DNSQuestion {
             QNAME: Domain::from_reader_and_check_map(reader, map)?,
             QTYPE: reader.read_u16(),
@@ -36,7 +39,10 @@ impl DNSQuestion {
         })
     }
 
-    pub fn from_reader_uncheck(reader: &mut SliceReader, map: &mut HashMap<u16, Rc<Domain>>) -> DNSQuestion {
+    pub fn from_reader_uncheck(
+        reader: &mut SliceReader,
+        map: &mut HashMap<u16, Rc<Domain>>,
+    ) -> DNSQuestion {
         DNSQuestion {
             QNAME: Domain::from_reader_and_check_map_uncheck(reader, map),
             QTYPE: reader.read_u16(),
@@ -58,7 +64,8 @@ mod tests {
         let question = DNSQuestion::from_reader(reader, &mut map).unwrap();
         assert_eq!(
             question.QNAME,
-            Domain::from_reader_and_check_map(&mut SliceReader::from(&slice[..]), &mut map).unwrap()
+            Domain::from_reader_and_check_map(&mut SliceReader::from(&slice[..]), &mut map)
+                .unwrap()
         );
         assert_eq!(question.QTYPE, DNSType::AAAA.to_u16());
         assert_eq!(question.QCLASS, 0x1)

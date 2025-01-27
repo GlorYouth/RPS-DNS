@@ -1,7 +1,7 @@
-use crate::*;
-use std::net::{Ipv4Addr, Ipv6Addr};
-use snafu::Snafu;
 use crate::dns::component::small_parts::base::tools::addr_read::AddrReaderError::MismatchVecLen;
+use crate::*;
+use snafu::Snafu;
+use std::net::{Ipv4Addr, Ipv6Addr};
 
 #[derive(Clone, Debug)]
 pub enum AddrType {
@@ -13,7 +13,6 @@ pub enum AddrType {
 pub struct AddrReader {
     pub vec: Vec<u8>,
 }
-
 
 impl AddrReader {
     pub fn from_vec(v: Vec<u8>, addr_type: u16) -> Result<AddrReader, AddrReaderError> {
@@ -38,7 +37,7 @@ impl AddrReader {
             }
             _ => Err(AddrReaderError::UnknownAddrType {
                 addr_type: addr_type as usize,
-            })
+            }),
         }
     }
 
@@ -56,7 +55,8 @@ impl AddrReader {
         }
     }
 
-    pub fn get_addr(&mut self) -> AddrType { //此函数不应有运行时错误
+    pub fn get_addr(&mut self) -> AddrType {
+        //此函数不应有运行时错误
         match self.vec.len() {
             4 => AddrType::Ipv4(std::net::Ipv4Addr::from(
                 <[u8; 4]>::try_from(&self.vec[..]).unwrap(),
@@ -74,14 +74,9 @@ impl AddrReader {
 #[snafu(visibility(pub))]
 pub enum AddrReaderError {
     #[snafu(display("Unknown addr type: {}", addr_type))]
-    UnknownAddrType {
-        addr_type: usize,
-    },
+    UnknownAddrType { addr_type: usize },
     #[snafu(display("Mismatch vec len, expected {}, got {}", expected, actual))]
-    MismatchVecLen {
-        expected: usize,
-        actual: usize,
-    }
+    MismatchVecLen { expected: usize, actual: usize },
 }
 
 #[cfg(test)]

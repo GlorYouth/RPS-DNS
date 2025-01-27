@@ -28,8 +28,13 @@ impl DNSRecord {
 }
 
 impl DNSRecord {
-    pub fn from_reader(reader: &mut SliceReader, map: &mut HashMap<u16, Rc<Domain>>) -> Result<DNSRecord, Error> {
-        let name = Domain::from_reader_and_check_map(reader, map).context(ReadSnafu).context(DomainSnafu)?;
+    pub fn from_reader(
+        reader: &mut SliceReader,
+        map: &mut HashMap<u16, Rc<Domain>>,
+    ) -> Result<DNSRecord, Error> {
+        let name = Domain::from_reader_and_check_map(reader, map)
+            .context(ReadSnafu)
+            .context(DomainSnafu)?;
         let rtype = reader.read_u16();
         let class = reader.read_u16();
         let ttl = reader.read_u32();
@@ -45,7 +50,10 @@ impl DNSRecord {
         })
     }
 
-    pub fn from_reader_uncheck(reader: &mut SliceReader, map: &mut HashMap<u16, Rc<Domain>>) -> DNSRecord {
+    pub fn from_reader_uncheck(
+        reader: &mut SliceReader,
+        map: &mut HashMap<u16, Rc<Domain>>,
+    ) -> DNSRecord {
         let name = Domain::from_reader_and_check_map_uncheck(reader, map);
         let rtype = reader.read_u16();
         let class = reader.read_u16();

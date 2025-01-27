@@ -1,5 +1,6 @@
 #![cfg_attr(debug_assertions, allow(dead_code, unused_imports))]
 
+use crate::dns::component::small_parts::base::data::domain::DomainDecodeError::InputNotAscii;
 use crate::*;
 use snafu::{ResultExt, Snafu};
 use std::collections::HashMap;
@@ -7,7 +8,6 @@ use std::fmt::{Debug, Error};
 use std::ops::Add;
 use std::rc::Rc;
 use std::str::Utf8Error;
-use crate::dns::component::small_parts::base::data::domain::DomainDecodeError::InputNotAscii;
 
 const SIZE_OF_XN: usize = "xn--".len();
 #[derive(PartialEq, Debug)]
@@ -35,8 +35,6 @@ impl From<&String> for Domain {
         Self(encoded)
     }
 }
-
-
 
 impl From<&str> for Domain {
     fn from(str: &str) -> Self {
@@ -75,7 +73,9 @@ impl Domain {
         Err(DomainReadError::ReadFailed {
             findings: "0x0_u8".to_string(),
             container_type: "&mut SliceReader".to_string(),
-            other_info: "has ".to_string().add(format!("{:?}", reader.as_ref()).as_str()),
+            other_info: "has "
+                .to_string()
+                .add(format!("{:?}", reader.as_ref()).as_str()),
         })
     }
 
@@ -89,18 +89,18 @@ impl Domain {
     pub fn from_reader_and_check_map(
         reader: &mut SliceReader,
         map: &mut HashMap<u16, Rc<Domain>>,
-    ) -> Result<Rc<Domain>, DomainReadError> {
+    ) -> Result<Rc<Domain>, Box<DomainReadError>> {
         if reader.peek_u8() & 0b1100_0000 == 0b1100_0000 {
             let key = &reader.read_u16();
             let value = map.get_mut(key);
             return if let Some(v) = value {
                 Ok(v.clone())
             } else {
-                Err(DomainReadError::ReadFailed {
+                Err(Box::from(DomainReadError::ReadFailed {
                     findings: key.to_string(),
                     container_type: "&mut HashMap<u16, Rc<Domain>>".to_string(),
                     other_info: "has ".to_string().add(format!("{:?}", map).as_str()),
-                })
+                }))
             };
         }
         if let Some(offset) = reader.iter_from_current_pos().position(|b| *b == 0x0) {
@@ -109,13 +109,14 @@ impl Domain {
             map.insert(pos | 0b1100_0000_0000_0000, domain.clone());
             return Ok(domain);
         }
-        Err(DomainReadError::ReadFailed {
+        Err(Box::from(DomainReadError::ReadFailed {
             findings: "0x0_u8".to_string(),
             container_type: "&mut SliceReader".to_string(),
-            other_info: "has ".to_string().add(format!("{:?}", reader.as_ref()).as_str()),
-        })
+            other_info: "has "
+                .to_string()
+                .add(format!("{:?}", reader.as_ref()).as_str()),
+        }))
     }
-
 
     pub fn from_reader_and_check_map_uncheck(
         reader: &mut SliceReader,
@@ -173,14 +174,14 @@ impl Domain {
 
             if part_bytes.starts_with(b"xn--") {
                 // Punycode 编码的部分，解码
-                let input = std::str::from_utf8(&part_bytes[4..]).context(InputNotAsciiSnafu)?;// 去掉 'xn--' 前缀
+                let input = std::str::from_utf8(&part_bytes[4..]).context(InputNotAsciiSnafu)?; // 去掉 'xn--' 前缀
                 match punycode::decode(input) {
                     Ok(decoded_part) => {
                         decoded.push_str(&decoded_part);
                     }
                     Err(_) => {
-                        return  Err(DomainDecodeError::PunycodeDecode {
-                            string: input.to_string()
+                        return Err(DomainDecodeError::PunycodeDecode {
+                            string: input.to_string(),
                         })
                     }
                 }
@@ -211,7 +212,7 @@ impl Domain {
 
             if part_bytes.starts_with(b"xn--") {
                 // Punycode 编码的部分，解码
-                let input = std::str::from_utf8(&part_bytes[4..]).unwrap();// 去掉 'xn--' 前缀
+                let input = std::str::from_utf8(&part_bytes[4..]).unwrap(); // 去掉 'xn--' 前缀
                 match punycode::decode(input) {
                     Ok(decoded_part) => {
                         decoded.push_str(&decoded_part);
@@ -234,22 +235,15 @@ impl Domain {
     }
 }
 
-
 #[derive(Debug, Snafu)]
 #[snafu(visibility(pub))]
 pub enum DomainError {
     #[snafu(display("Domain error:\n {}", source))]
-    ReadError {
-        source: DomainReadError,
-    },
+    ReadError { source: Box<DomainReadError> },
 
     #[snafu(display("Domain error:\n {}", source))]
-    DecodeError {
-        source: DomainDecodeError,
-    },
-    
+    DecodeError { source: Box<DomainDecodeError> },
 }
-
 
 #[derive(Debug, Snafu)]
 #[snafu(visibility(pub))]
@@ -270,14 +264,10 @@ pub enum DomainReadError {
 #[derive(Debug, Snafu)]
 pub enum DomainDecodeError {
     #[snafu(display("Has character that are not ASCII, source: {}", source))]
-    InputNotAscii {
-        source: Utf8Error,
-    },
+    InputNotAscii { source: Utf8Error },
 
     #[snafu(display("Punycode decode error, string: {}", string))]
-    PunycodeDecode {
-        string: String
-    }
+    PunycodeDecode { string: String },
 }
 
 #[cfg(test)]
@@ -328,7 +318,8 @@ mod tests {
         assert_eq!(
             &Domain::from_reader(&mut SliceReader::from(
                 &[3, 119, 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0][..]
-            )).unwrap()
+            ))
+            .unwrap()
             .to_string()
             .unwrap(),
             "www.google.com"
@@ -337,7 +328,8 @@ mod tests {
         assert_eq!(
             &Domain::from_reader(&mut SliceReader::from(
                 &[3, 119, 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0][..]
-            )).unwrap()
+            ))
+            .unwrap()
             .0,
             &[3, 119, 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0]
         )
@@ -419,4 +411,3 @@ mod tests {
         )
     }
 }
-

@@ -1,7 +1,6 @@
 use crate::*;
 use std::any::Any;
 
-
 #[allow(dead_code)]
 pub fn bench_decode() {
     for _ in 0..20 {

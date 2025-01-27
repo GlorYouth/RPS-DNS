@@ -47,14 +47,19 @@ impl RecordData {
                 rtype: RecordDataType::A(AddrReader::from_reader_ipv4(reader)),
             }),
             5 => Ok(RecordData {
-                rtype: RecordDataType::CNAME(Domain::from_reader_and_check_map(reader, map).context(ReadSnafu).context(DomainSnafu)?),
+                rtype: RecordDataType::CNAME(
+                    Domain::from_reader_and_check_map(reader, map)
+                        .context(ReadSnafu)
+                        .context(DomainSnafu)?,
+                ),
             }),
             28 => Ok(RecordData {
                 rtype: RecordDataType::AAAA(AddrReader::from_reader_ipv6(reader)),
             }),
             _ => Err(AddrReaderError::UnknownAddrType {
                 addr_type: rtype as usize,
-            }).context(AddrSnafu),
+            })
+            .context(AddrSnafu),
         }
     }
 
@@ -68,12 +73,14 @@ impl RecordData {
                 rtype: RecordDataType::A(AddrReader::from_reader_ipv4(reader)),
             },
             5 => RecordData {
-                rtype: RecordDataType::CNAME(Domain::from_reader_and_check_map_uncheck(reader, map)),
+                rtype: RecordDataType::CNAME(Domain::from_reader_and_check_map_uncheck(
+                    reader, map,
+                )),
             },
             28 => RecordData {
                 rtype: RecordDataType::AAAA(AddrReader::from_reader_ipv6(reader)),
             },
-            _ => panic!()
+            _ => panic!(),
         }
     }
 
@@ -90,7 +97,8 @@ impl RecordData {
             }),
             _ => Err(AddrReaderError::UnknownAddrType {
                 addr_type: rtype as usize,
-            }).context(AddrSnafu)?,
+            })
+            .context(AddrSnafu)?,
         }
     }
 

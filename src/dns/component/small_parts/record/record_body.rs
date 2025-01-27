@@ -2,9 +2,9 @@
 
 use crate::dns::component::small_parts::record::record::DNSRecord;
 use crate::dns::component::*;
+use crate::dns::error::Error;
 use std::collections::HashMap;
 use std::rc::Rc;
-use crate::dns::error::Error;
 
 #[derive(Debug)]
 pub struct RecordBody(pub Vec<DNSRecord>);
