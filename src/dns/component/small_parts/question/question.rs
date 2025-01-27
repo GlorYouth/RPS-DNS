@@ -15,13 +15,17 @@ pub struct DNSQuestion {
 impl DNSQuestion {
     pub const ESTIMATE_SIZE: usize = Domain::ESTIMATE_DOMAIN_SIZE + 4;
 
+    #[inline]
     pub fn get_size(&self) -> usize {
         self.QNAME.len() + 4
     }
 
+    #[inline]
     pub fn get_domain(&self) -> Result<String, Box<DomainDecodeError>> {
         self.QNAME.to_string()
     }
+    
+    #[inline]
     pub fn get_domain_check_success(&self) -> Option<String> {
         self.QNAME.to_string_check_success()
     }
@@ -39,12 +43,13 @@ impl DNSQuestion {
         })
     }
 
+    #[inline]
     pub fn from_reader_check_success(
         reader: &mut SliceReader,
         map: &mut HashMap<u16, Rc<Domain>>,
     ) -> Option<DNSQuestion> {
         Option::from(DNSQuestion {
-            QNAME: Domain::from_reader_check_map_and_check_success(reader, map)?,
+            QNAME: Domain::from_reader_and_check_map_check_success(reader, map)?,
             QTYPE: reader.read_u16(),
             QCLASS: reader.read_u16(),
         })

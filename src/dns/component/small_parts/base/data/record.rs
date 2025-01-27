@@ -69,7 +69,7 @@ impl RecordData {
                 rtype: RecordDataType::A(AddrReader::from_reader_ipv4(reader)),
             }),
             5 => Option::from(RecordData {
-                rtype: RecordDataType::CNAME(Domain::from_reader_check_map_and_check_success(
+                rtype: RecordDataType::CNAME(Domain::from_reader_and_check_map_check_success(
                     reader, map,
                 )?),
             }),

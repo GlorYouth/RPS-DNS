@@ -51,7 +51,7 @@ impl DNSRecord {
         reader: &mut SliceReader,
         map: &mut HashMap<u16, Rc<Domain>>,
     ) -> Option<DNSRecord> {
-        let name = Domain::from_reader_check_map_and_check_success(reader, map)?;
+        let name = Domain::from_reader_and_check_map_check_success(reader, map)?;
         let rtype = reader.read_u16();
         let class = reader.read_u16();
         let ttl = reader.read_u32();

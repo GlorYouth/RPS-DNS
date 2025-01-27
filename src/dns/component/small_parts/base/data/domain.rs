@@ -94,11 +94,11 @@ impl Domain {
         })
     }
 
-    fn from_reader_uncheck(reader: &mut SliceReader) -> Self {
+    fn from_reader_check_success(reader: &mut SliceReader) -> Option<Self> {
         if let Some(offset) = reader.iter_from_current_pos().position(|b| *b == 0x0) {
-            return Domain(Box::from(reader.read_slice(offset + 1)));
+            return Option::from(Domain(Box::from(reader.read_slice(offset + 1))));
         }
-        panic!()
+        None
     }
 
     pub fn from_reader_and_check_map(
@@ -133,26 +133,26 @@ impl Domain {
         }))?
     }
 
-    pub fn from_reader_and_check_map_uncheck(
+    pub fn from_reader_and_check_map_check_success(
         reader: &mut SliceReader,
         map: &mut HashMap<u16, Rc<Domain>>,
-    ) -> Rc<Domain> {
+    ) -> Option<Rc<Domain>> {
         if reader.peek_u8() & 0b1100_0000 == 0b1100_0000 {
             let key = &reader.read_u16();
             let value = map.get_mut(key);
             return if let Some(v) = value {
-                v.clone()
+                Option::from(v.clone())
             } else {
-                panic!()
+                None
             };
         }
         if let Some(offset) = reader.iter_from_current_pos().position(|b| *b == 0x0) {
             let pos = reader.pos() as u16;
             let domain = Rc::new(Domain(Box::from(reader.read_slice(offset + 1))));
             map.insert(pos | 0b1100_0000_0000_0000, domain.clone());
-            return domain;
+            return Option::from(domain);
         }
-        panic!()
+        None
     }
 
 }
@@ -229,7 +229,7 @@ impl Domain {
         Ok(decoded)
     }
 
-    pub fn to_string_uncheck(&self) -> String {
+    pub fn to_string_check_success(&self) -> Option<String> {
         let mut decoded = String::with_capacity(40);
         let mut i = 0;
 
@@ -249,7 +249,7 @@ impl Domain {
                         decoded.push_str(&decoded_part);
                     }
                     Err(_) => {
-                        panic!()
+                        return None;
                     }
                 }
             } else {
@@ -262,7 +262,7 @@ impl Domain {
                 decoded.push('.');
             }
         }
-        decoded
+        Option::from(decoded)
     }
 
     #[inline]
