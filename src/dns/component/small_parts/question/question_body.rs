@@ -29,19 +29,19 @@ impl QuestionBody {
         Ok(QuestionBody::Multi(Box::from(vec)))
     }
 
-    pub fn from_reader_uncheck(
+    pub fn from_reader_check_success(
         reader: &mut SliceReader,
         map: &mut HashMap<u16, Rc<Domain>>,
         qdcount: u16,
-    ) -> QuestionBody {
+    ) -> Option<QuestionBody> {
         if likely(qdcount == 1) {
-            return QuestionBody::Single(DNSQuestion::from_reader_uncheck(reader, map));
+            return Option::from(QuestionBody::Single(DNSQuestion::from_reader_check_success(reader, map)?));
         }
         let mut vec = Vec::with_capacity(qdcount as usize);
         for _ in 0..qdcount {
-            vec.push(DNSQuestion::from_reader_uncheck(reader, map));
+            vec.push(DNSQuestion::from_reader_check_success(reader, map)?);
         }
-        QuestionBody::Multi(Box::from(vec))
+        Option::from(QuestionBody::Multi(Box::from(vec)))
     }
 
     pub fn get_domains(&self) -> Result<Vec<String>, Box<DomainDecodeError>> {
@@ -57,15 +57,15 @@ impl QuestionBody {
         }
     }
 
-    pub fn get_domains_uncheck(&self) -> Vec<String> {
+    pub fn get_domains_check_success(&self) -> Option<Vec<String>> {
         match self {
-            QuestionBody::Single(question) => vec![question.get_domain_uncheck()],
+            QuestionBody::Single(question) => Option::from(vec![question.get_domain_check_success()?]),
             QuestionBody::Multi(questions) => {
                 let mut vec = Vec::with_capacity(questions.len());
                 for question in questions {
-                    vec.push(question.get_domain_uncheck());
+                    vec.push(question.get_domain_check_success()?);
                 }
-                vec
+                Option::from(vec)
             }
         }
     }
