@@ -63,24 +63,24 @@ impl RecordData {
         }
     }
 
-    pub fn from_reader_uncheck(
+    pub fn from_reader_check_success(
         reader: &mut SliceReader,
         map: &mut HashMap<u16, Rc<Domain>>,
         rtype: u16,
-    ) -> RecordData {
+    ) -> Option<RecordData> {
         match rtype {
-            1 => RecordData {
+            1 => Option::from(RecordData {
                 rtype: RecordDataType::A(AddrReader::from_reader_ipv4(reader)),
-            },
-            5 => RecordData {
-                rtype: RecordDataType::CNAME(Domain::from_reader_and_check_map_uncheck(
+            }),
+            5 => Option::from(RecordData {
+                rtype: RecordDataType::CNAME(Domain::from_reader_check_map_and_check_success(
                     reader, map,
-                )),
-            },
-            28 => RecordData {
+                )?),
+            }),
+            28 => Option::from(RecordData {
                 rtype: RecordDataType::AAAA(AddrReader::from_reader_ipv6(reader)),
-            },
-            _ => panic!(),
+            }),
+            _ => None,
         }
     }
 

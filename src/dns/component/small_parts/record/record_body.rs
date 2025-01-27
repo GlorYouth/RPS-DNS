@@ -22,16 +22,16 @@ impl RecordBody {
         Ok(RecordBody(records))
     }
 
-    pub fn from_reader_uncheck(
+    pub fn from_reader_check_success(
         reader: &mut SliceReader,
         map: &mut HashMap<u16, Rc<Domain>>,
         count: u16,
-    ) -> RecordBody {
+    ) -> Option<RecordBody> {
         let mut records = Vec::with_capacity(count as usize);
         for _ in 0..count {
-            records.push(DNSRecord::from_reader_uncheck(reader, map));
+            records.push(DNSRecord::from_reader_check_success(reader, map)?);
         }
-        RecordBody(records)
+        Option::from(RecordBody(records))
     }
 }
 

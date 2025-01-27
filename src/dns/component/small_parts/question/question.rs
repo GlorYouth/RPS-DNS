@@ -22,8 +22,8 @@ impl DNSQuestion {
     pub fn get_domain(&self) -> Result<String, DomainDecodeError> {
         self.QNAME.to_string()
     }
-    pub fn get_domain_uncheck(&self) -> String {
-        self.QNAME.to_string_uncheck()
+    pub fn get_domain_check_success(&self) -> Option<String> {
+        self.QNAME.to_string_check_success()
     }
 }
 
@@ -39,15 +39,15 @@ impl DNSQuestion {
         })
     }
 
-    pub fn from_reader_uncheck(
+    pub fn from_reader_check_success(
         reader: &mut SliceReader,
         map: &mut HashMap<u16, Rc<Domain>>,
-    ) -> DNSQuestion {
-        DNSQuestion {
-            QNAME: Domain::from_reader_and_check_map_uncheck(reader, map),
+    ) -> Option<DNSQuestion> {
+        Option::from(DNSQuestion {
+            QNAME: Domain::from_reader_check_map_and_check_success(reader, map)?,
             QTYPE: reader.read_u16(),
             QCLASS: reader.read_u16(),
-        }
+        })
     }
 }
 
