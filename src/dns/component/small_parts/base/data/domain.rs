@@ -1,17 +1,16 @@
 #![cfg_attr(debug_assertions, allow(dead_code, unused_imports))]
 
-use crate::dns::component::small_parts::base::data::domain::DomainDecodeError::InputNotAscii;
+use std::borrow::Cow;
 use crate::*;
-use snafu::{ResultExt, Snafu};
 use std::collections::HashMap;
-use std::fmt::{Debug, Error};
+use std::fmt::{write, Debug, Display, Formatter};
 use std::ops::Add;
 use std::rc::Rc;
 use std::str::Utf8Error;
 
 const SIZE_OF_XN: usize = "xn--".len();
 #[derive(PartialEq, Debug)]
-pub struct Domain(pub Vec<u8>);
+pub struct Domain(Box<[u8]>);
 
 impl From<&String> for Domain {
     fn from(str: &String) -> Self {
@@ -32,7 +31,7 @@ impl From<&String> for Domain {
         }
 
         encoded.push(0);
-        Self(encoded)
+        Self(Box::from(encoded))
     }
 }
 
@@ -55,112 +54,144 @@ impl From<&str> for Domain {
         }
 
         encoded.push(0);
-        Self(encoded)
+        Self(Box::from(encoded))
     }
 }
 
 impl From<Vec<u8>> for Domain {
+    #[inline]
     fn from(vec: Vec<u8>) -> Self {
-        Domain(vec)
+        Domain(Box::from(vec))
     }
 }
 
+impl Clone for Domain {
+    #[inline]
+    fn clone(&self) -> Self {
+        Domain(self.0.clone())
+    }
+}
+
+impl Into<Box<[u8]>> for Domain {
+    #[inline]
+    fn into(self) -> Box<[u8]> {
+        self.0
+    }
+}
+
+
 impl Domain {
-    fn from_reader(reader: &mut SliceReader) -> Result<Self, DomainReadError> {
+    fn from_reader(reader: &mut SliceReader) -> Result<Self, DomainError> {
         if let Some(offset) = reader.iter_from_current_pos().position(|b| *b == 0x0) {
-            return Ok(Domain(Vec::from(reader.read_slice(offset + 1))));
+            return Ok(Domain(Box::from(reader.read_slice(offset + 1))));
         }
-        Err(DomainReadError::ReadFailed {
-            findings: "0x0_u8".to_string(),
-            container_type: "&mut SliceReader".to_string(),
+        Err(DomainError::ReadFailed {
+            findings: String::from("0x0_u8"),
+            container_type: Cow::from("&mut SliceReader"),
             other_info: "has "
                 .to_string()
                 .add(format!("{:?}", reader.as_ref()).as_str()),
         })
     }
 
-    fn from_reader_check_success(reader: &mut SliceReader) -> Option<Self> {
+    fn from_reader_uncheck(reader: &mut SliceReader) -> Self {
         if let Some(offset) = reader.iter_from_current_pos().position(|b| *b == 0x0) {
-            return Option::from(Domain(Vec::from(reader.read_slice(offset + 1))));
+            return Domain(Box::from(reader.read_slice(offset + 1)));
         }
-        None
+        panic!()
     }
 
     pub fn from_reader_and_check_map(
         reader: &mut SliceReader,
         map: &mut HashMap<u16, Rc<Domain>>,
-    ) -> Result<Rc<Domain>, Box<DomainReadError>> {
+    ) -> Result<Rc<Domain>, Box<DomainError>> {
         if reader.peek_u8() & 0b1100_0000 == 0b1100_0000 {
             let key = &reader.read_u16();
             let value = map.get_mut(key);
             return if let Some(v) = value {
                 Ok(v.clone())
             } else {
-                Err(Box::from(DomainReadError::ReadFailed {
+                Err(Box::from(DomainError::ReadFailed {
                     findings: key.to_string(),
-                    container_type: "&mut HashMap<u16, Rc<Domain>>".to_string(),
+                    container_type: Cow::from("&mut HashMap<u16, Rc<Domain>>"),
                     other_info: "has ".to_string().add(format!("{:?}", map).as_str()),
                 }))
             };
         }
         if let Some(offset) = reader.iter_from_current_pos().position(|b| *b == 0x0) {
             let pos = reader.pos() as u16;
-            let domain = Rc::new(Domain(Vec::from(reader.read_slice(offset + 1))));
+            let domain = Rc::new(Domain(Box::from(reader.read_slice(offset + 1))));
             map.insert(pos | 0b1100_0000_0000_0000, domain.clone());
             return Ok(domain);
         }
-        Err(Box::from(DomainReadError::ReadFailed {
-            findings: "0x0_u8".to_string(),
-            container_type: "&mut SliceReader".to_string(),
+        Err(Box::from(DomainError::ReadFailed {
+            findings: String::from("0x0_u8"),
+            container_type: Cow::from("&mut SliceReader"),
             other_info: "has "
                 .to_string()
                 .add(format!("{:?}", reader.as_ref()).as_str()),
-        }))
+        }))?
     }
 
-    pub fn from_reader_check_map_and_check_success(
+    pub fn from_reader_and_check_map_uncheck(
         reader: &mut SliceReader,
         map: &mut HashMap<u16, Rc<Domain>>,
-    ) -> Option<Rc<Domain>> {
+    ) -> Rc<Domain> {
         if reader.peek_u8() & 0b1100_0000 == 0b1100_0000 {
             let key = &reader.read_u16();
             let value = map.get_mut(key);
             return if let Some(v) = value {
-                Option::from(v.clone())
+                v.clone()
             } else {
-                None
+                panic!()
             };
         }
         if let Some(offset) = reader.iter_from_current_pos().position(|b| *b == 0x0) {
             let pos = reader.pos() as u16;
-            let domain = Rc::new(Domain(Vec::from(reader.read_slice(offset + 1))));
+            let domain = Rc::new(Domain(Box::from(reader.read_slice(offset + 1))));
             map.insert(pos | 0b1100_0000_0000_0000, domain.clone());
-            return Option::from(domain);
+            return domain;
         }
-        None
+        panic!()
+    }
+
+}
+
+impl AsRef<[u8]> for Domain {
+    #[inline]
+    fn as_ref(&self) -> &[u8] {
+        self.0.as_ref()
+    }
+}
+
+impl From<&[u8]> for Domain {
+    #[inline]
+    fn from(arr: &[u8]) -> Self {
+        Self(Box::from(arr))
     }
 }
 
 impl Domain {
     pub const ESTIMATE_DOMAIN_SIZE: usize = 40;
 
-    pub fn with_capacity(capacity: usize) -> Domain {
-        Domain(Vec::with_capacity(capacity))
-    }
 
+    #[inline]
     pub fn len(&self) -> usize {
         self.0.len()
     }
 
+    #[inline]
     pub fn new(vec: Vec<u8>) -> Domain {
-        Domain(vec)
+        Domain(Box::from(vec))
     }
 
+
+    #[inline]
     pub fn clone(&self) -> Domain {
         Domain(self.0.clone())
     }
 
-    pub fn to_string(&self) -> Result<String, DomainDecodeError> {
+    pub fn to_string(&self) -> Result<String, Box<DomainDecodeError>> {
         let mut decoded = String::with_capacity(40);
         let mut i = 0;
 
@@ -174,15 +205,15 @@ impl Domain {
 
             if part_bytes.starts_with(b"xn--") {
                 // Punycode 编码的部分，解码
-                let input = std::str::from_utf8(&part_bytes[4..]).context(InputNotAsciiSnafu)?; // 去掉 'xn--' 前缀
+                let input = std::str::from_utf8(&part_bytes[4..])?; // 去掉 'xn--' 前缀
                 match punycode::decode(input) {
                     Ok(decoded_part) => {
                         decoded.push_str(&decoded_part);
                     }
                     Err(_) => {
-                        return Err(DomainDecodeError::PunycodeDecode {
+                        return Err(Box::from(DomainDecodeError::PunycodeDecode {
                             string: input.to_string(),
-                        })
+                        }))
                     }
                 }
             } else {
@@ -198,7 +229,7 @@ impl Domain {
         Ok(decoded)
     }
 
-    pub fn to_string_check_success(&self) -> Option<String> {
+    pub fn to_string_uncheck(&self) -> String {
         let mut decoded = String::with_capacity(40);
         let mut i = 0;
 
@@ -218,7 +249,7 @@ impl Domain {
                         decoded.push_str(&decoded_part);
                     }
                     Err(_) => {
-                        return None;
+                        panic!()
                     }
                 }
             } else {
@@ -231,43 +262,65 @@ impl Domain {
                 decoded.push('.');
             }
         }
-        Option::from(decoded)
+        decoded
+    }
+
+    #[inline]
+    pub fn to_byte(&self) -> Vec<u8> {
+        Vec::from(self.0.clone())
     }
 }
 
-#[derive(Debug, Snafu)]
-#[snafu(visibility(pub))]
 pub enum DomainError {
-    #[snafu(display("Domain error:\n {}", source))]
-    ReadError { source: Box<DomainReadError> },
-
-    #[snafu(display("Domain error:\n {}", source))]
-    DecodeError { source: Box<DomainDecodeError> },
-}
-
-#[derive(Debug, Snafu)]
-#[snafu(visibility(pub))]
-pub enum DomainReadError {
-    #[snafu(display(
-        "Failed to find {} in {}, which {}",
-        findings,
-        container_type,
-        other_info
-    ))]
     ReadFailed {
         findings: String,
-        container_type: String,
+        container_type: Cow<'static,str>,
         other_info: String,
     },
+    DecodeFailed,
 }
 
-#[derive(Debug, Snafu)]
 pub enum DomainDecodeError {
-    #[snafu(display("Has character that are not ASCII, source: {}", source))]
     InputNotAscii { source: Utf8Error },
-
-    #[snafu(display("Punycode decode error, string: {}", string))]
     PunycodeDecode { string: String },
+}
+
+impl Display for DomainDecodeError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl Debug for DomainDecodeError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl From<Utf8Error> for DomainDecodeError {
+    fn from(source: Utf8Error) -> Self {
+        DomainDecodeError::InputNotAscii { source }
+    }
+}
+
+impl From<Utf8Error> for Box<DomainDecodeError> {
+    fn from(source: Utf8Error) -> Self {
+        Box::from(DomainDecodeError::InputNotAscii { source })
+    }
+}
+
+
+
+impl Display for DomainError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl Debug for DomainError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 #[cfg(test)]
@@ -277,15 +330,15 @@ mod tests {
     #[test]
     fn test_domain_from_str() {
         assert_eq!(
-            Domain::from("小米.中国").0,
-            [
+            Domain::from("小米.中国"),
+            Domain::from(&[
                 0x0b, 0x78, 0x6e, 0x2d, 0x2d, 0x79, 0x65, 0x74, 0x73, 0x37, 0x36, 0x65, 0x0a, 0x78,
                 0x6e, 0x2d, 0x2d, 0x66, 0x69, 0x71, 0x73, 0x38, 0x73, 0x00
-            ]
-        );
+            ][..]
+        ));
         assert_eq!(
-            Domain::from("www.google.com").0,
-            [3, 119, 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0]
+            Domain::from("www.google.com"),
+            Domain::from(&[3_u8, 119, 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0][..])
         )
     }
 
@@ -326,12 +379,11 @@ mod tests {
         );
 
         assert_eq!(
-            &Domain::from_reader(&mut SliceReader::from(
+            Domain::from_reader(&mut SliceReader::from(
                 &[3, 119, 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0][..]
             ))
-            .unwrap()
-            .0,
-            &[3, 119, 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0]
+            .unwrap(),
+            Domain::from(&[3, 119, 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0][..])
         )
     }
 
@@ -385,29 +437,26 @@ mod tests {
             ][..],
         );
         assert_eq!(
-            &Domain::from_reader_and_check_map(reader, &mut map)
-                .unwrap()
-                .0,
-            &[3, 119, 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0]
+            Domain::from_reader_and_check_map(reader, &mut map)
+                .unwrap(),
+            Domain::from(&[3, 119, 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0][..]).into()
         );
         assert_eq!(
-            map[&0b1100_0000_0000_0000].0,
-            &[3, 119, 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0]
+            map[&0b1100_0000_0000_0000],
+            Domain::from(&[3, 119, 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0][..]).into()
         );
         assert_eq!(
-            &Domain::from_reader_and_check_map(reader, &mut map)
-                .unwrap()
-                .0,
-            &[3, 119, 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0]
+            Domain::from_reader_and_check_map(reader, &mut map)
+                .unwrap(),
+            Domain::from(&[3, 119, 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0][..]).into()
         );
         assert_eq!(
-            &Domain::from_reader_and_check_map(reader, &mut map)
-                .unwrap()
-                .0,
-            &[
+            Domain::from_reader_and_check_map(reader, &mut map)
+                .unwrap(),
+            Domain::from(&[
                 0x0b, 0x78, 0x6e, 0x2d, 0x2d, 0x79, 0x65, 0x74, 0x73, 0x37, 0x36, 0x65, 0x0a, 0x78,
                 0x6e, 0x2d, 0x2d, 0x66, 0x69, 0x71, 0x73, 0x38, 0x73, 0x00
-            ]
+            ][..]).into()
         )
     }
 }

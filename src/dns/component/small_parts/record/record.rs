@@ -1,8 +1,7 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
 use crate::dns::component::small_parts::base::*;
-use crate::dns::error::{DomainSnafu, Error};
-use snafu::ResultExt;
+use crate::dns::error::{Error};
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -32,9 +31,7 @@ impl DNSRecord {
         reader: &mut SliceReader,
         map: &mut HashMap<u16, Rc<Domain>>,
     ) -> Result<DNSRecord, Error> {
-        let name = Domain::from_reader_and_check_map(reader, map)
-            .context(ReadSnafu)
-            .context(DomainSnafu)?;
+        let name = Domain::from_reader_and_check_map(reader, map)?;
         let rtype = reader.read_u16();
         let class = reader.read_u16();
         let ttl = reader.read_u32();

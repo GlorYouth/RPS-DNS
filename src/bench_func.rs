@@ -30,12 +30,11 @@ fn bench_encode_domain() {
 #[allow(dead_code)]
 fn bench_decode_domain() {
     for _ in 0..20 {
-        Domain::new(
-            [
+        Domain::from(
+            &[
                 0x0b, 0x78, 0x6e, 0x2d, 0x2d, 0x79, 0x65, 0x74, 0x73, 0x37, 0x36, 0x65, 0x0a, 0x78,
                 0x6e, 0x2d, 0x2d, 0x66, 0x69, 0x71, 0x73, 0x38, 0x73, 0x00,
-            ]
-            .to_vec(),
+            ][..]
         )
         .to_string()
         .unwrap();

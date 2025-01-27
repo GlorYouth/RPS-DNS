@@ -19,7 +19,7 @@ impl DNSQuestion {
         self.QNAME.len() + 4
     }
 
-    pub fn get_domain(&self) -> Result<String, DomainDecodeError> {
+    pub fn get_domain(&self) -> Result<String, Box<DomainDecodeError>> {
         self.QNAME.to_string()
     }
     pub fn get_domain_check_success(&self) -> Option<String> {
@@ -31,7 +31,7 @@ impl DNSQuestion {
     pub fn from_reader(
         reader: &mut SliceReader,
         map: &mut HashMap<u16, Rc<Domain>>,
-    ) -> Result<DNSQuestion, Box<DomainReadError>> {
+    ) -> Result<DNSQuestion, Box<DomainError>> {
         Ok(DNSQuestion {
             QNAME: Domain::from_reader_and_check_map(reader, map)?,
             QTYPE: reader.read_u16(),

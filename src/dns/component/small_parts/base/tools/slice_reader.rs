@@ -11,12 +11,14 @@ pub struct SliceReader<'a> {
 }
 
 impl<'a> From<&'a [u8]> for SliceReader<'a> {
+    #[inline]
     fn from(slice: &'a [u8]) -> Self {
         SliceReader { slice, pos: 0 }
     }
 }
 
 impl<'a, N: generic_array::ArrayLength> From<&'a mut ArrayU8<N>> for SliceReader<'a> {
+    #[inline]
     fn from(array: &'a mut ArrayU8<N>) -> SliceReader<'a> {
         SliceReader {
             slice: array.as_mut_slice(),
