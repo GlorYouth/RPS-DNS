@@ -1,7 +1,6 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
-use crate::*;
-
+use crate::dns::utils::slice_reader::SliceReader;
 use generic_array::typenum::U2;
 use generic_array::{ArrayLength, GenericArray};
 use std::ops::{Index, IndexMut};

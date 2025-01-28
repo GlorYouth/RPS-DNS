@@ -1,14 +1,18 @@
 #![cfg_attr(debug_assertions, allow(dead_code, unused_imports))]
 
+use crate::dns::utils::array_u8::ArrayU8;
 use crate::*;
-use std::ops::Deref;
+use std::ops::{Deref, Index};
 use std::slice::Iter;
+
+pub type SliceReaderSplit<'a,'b> = (&'a [u8], &'b mut usize);
 
 #[derive(Debug)]
 pub struct SliceReader<'a> {
     slice: &'a [u8],
     pos: usize,
 }
+
 
 impl<'a> From<&'a [u8]> for SliceReader<'a> {
     #[inline]
@@ -28,28 +32,29 @@ impl<'a, N: generic_array::ArrayLength> From<&'a mut ArrayU8<N>> for SliceReader
 }
 
 impl<'a> SliceReader<'a> {
+    
     #[inline]
     pub fn pos(&self) -> usize {
         self.pos
     }
 
     #[inline]
-    pub fn peek_u8(&mut self) -> u8 {
+    pub fn peek_u8(&self) -> u8 {
         self.slice[self.pos]
     }
 
     #[inline]
-    pub fn peek_u16(&mut self) -> u16 {
+    pub fn peek_u16(&self) -> u16 {
         u16::from_be_bytes([self.slice[self.pos], self.slice[self.pos + 1]])
     }
 
     #[inline]
-    pub fn peek_u32(&mut self) -> u32 {
+    pub fn peek_u32(&self) -> u32 {
         u32::from_be_bytes(self.slice[self.pos..self.pos + 4].try_into().unwrap())
     }
 
     #[inline]
-    pub fn peek_u64(&mut self) -> u64 {
+    pub fn peek_u64(&self) -> u64 {
         u64::from_be_bytes(self.slice[self.pos..self.pos + 8].try_into().unwrap())
     }
 
@@ -95,6 +100,16 @@ impl<'a> SliceReader<'a> {
     #[inline]
     pub fn as_ref(&self) -> &[u8] {
         self.slice
+    }
+
+    #[inline]
+    pub fn as_mut(&mut self) -> &'a [u8] {
+        self.slice
+    }
+
+    #[inline]
+    pub fn len(&self) -> usize {
+        self.slice.len()
     }
 
     #[inline]
