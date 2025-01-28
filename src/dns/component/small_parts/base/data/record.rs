@@ -36,22 +36,22 @@ pub struct RecordData {
 impl RecordData {
     pub const ESTIMATE_SIZE: usize = Domain::ESTIMATE_DOMAIN_SIZE;
 
-    pub fn from_reader(
+    pub fn from_reader_ret_err(
         reader: &mut SliceReader,
         map: &mut HashMap<u16, Rc<Domain>>,
         rtype: u16,
     ) -> Result<RecordData, Error> {
         match rtype {
             1 => Ok(RecordData {
-                rtype: RecordDataType::A(AddrReader::from_reader_ipv4(reader)),
+                rtype: RecordDataType::A(AddrReader::from_reader_ret_err_ipv4(reader)),
             }),
             5 => Ok(RecordData {
                 rtype: RecordDataType::CNAME(
-                    Domain::from_reader_and_check_map(reader, map)?,
+                    Domain::from_reader_check_map_and_ret_err(reader, map)?,
                 ),
             }),
             28 => Ok(RecordData {
-                rtype: RecordDataType::AAAA(AddrReader::from_reader_ipv6(reader)),
+                rtype: RecordDataType::AAAA(AddrReader::from_reader_ret_err_ipv6(reader)),
             }),
             _ => Err(AddrReaderError::UnknownAddrType {
                 addr_type: rtype as usize,
@@ -59,22 +59,22 @@ impl RecordData {
         }
     }
 
-    pub fn from_reader_check_success(
+    pub fn from_reader(
         reader: &mut SliceReader,
         map: &mut HashMap<u16, Rc<Domain>>,
         rtype: u16,
     ) -> Option<RecordData> {
         match rtype {
             1 => Option::from(RecordData {
-                rtype: RecordDataType::A(AddrReader::from_reader_ipv4(reader)),
+                rtype: RecordDataType::A(AddrReader::from_reader_ret_err_ipv4(reader)),
             }),
             5 => Option::from(RecordData {
-                rtype: RecordDataType::CNAME(Domain::from_reader_and_check_map_check_success(
+                rtype: RecordDataType::CNAME(Domain::from_reader_and_check_map(
                     reader, map,
                 )?),
             }),
             28 => Option::from(RecordData {
-                rtype: RecordDataType::AAAA(AddrReader::from_reader_ipv6(reader)),
+                rtype: RecordDataType::AAAA(AddrReader::from_reader_ret_err_ipv6(reader)),
             }),
             _ => None,
         }
@@ -97,6 +97,7 @@ impl RecordData {
         }
     }
 
+    #[inline]
     pub fn resolve(&self) -> Result<RecordResolvedType, Box<DomainDecodeError>> {
         match &self.rtype {
             RecordDataType::A(reader) => Ok(RecordResolvedType::from(reader.get_addr())),
@@ -105,6 +106,7 @@ impl RecordData {
         }
     }
 
+    #[inline]
     pub fn to_bytes(&self) -> Vec<u8> {
         match &self.rtype {
             RecordDataType::A(reader) => reader.vec.clone(),
@@ -113,6 +115,7 @@ impl RecordData {
         }
     }
 
+    #[inline]
     pub fn into_bytes(self) -> Vec<u8> {
         match self.rtype {
             RecordDataType::A(reader) => reader.vec,
@@ -129,7 +132,7 @@ mod tests {
     fn test_read_ipv4() {
         let map = &mut HashMap::new();
         assert_eq!(
-            RecordData::from_reader(
+            RecordData::from_reader_ret_err(
                 &mut SliceReader::from(&[61, 240, 220, 6][..]),
                 map,
                 DNSType::to_u16(&DNSType::A)
@@ -145,7 +148,7 @@ mod tests {
     fn test_read_ipv6() {
         let map = &mut HashMap::new();
         assert_eq!(
-            RecordData::from_reader(
+            RecordData::from_reader_ret_err(
                 &mut SliceReader::from(
                     &[
                         0x24, 0x08, 0x87, 0x52, 0x0e, 0x00, 0x00, 0x09, 0x00, 0x00, 0x00, 0x00,
@@ -169,7 +172,7 @@ mod tests {
     fn test_read_cname() {
         let map = &mut HashMap::new();
         assert_eq!(
-            RecordData::from_reader(
+            RecordData::from_reader_ret_err(
                 &mut SliceReader::from(
                     &[
                         0x0b, 0x78, 0x6e, 0x2d, 0x2d, 0x79, 0x65, 0x74, 0x73, 0x37, 0x36, 0x65,

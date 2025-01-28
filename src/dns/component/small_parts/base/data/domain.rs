@@ -81,7 +81,7 @@ impl Into<Box<[u8]>> for Domain {
 
 
 impl Domain {
-    fn from_reader(reader: &mut SliceReader) -> Result<Self, DomainError> {
+    fn from_reader_ret_err(reader: &mut SliceReader) -> Result<Self, DomainError> {
         if let Some(offset) = reader.iter_from_current_pos().position(|b| *b == 0x0) {
             return Ok(Domain(Box::from(reader.read_slice(offset + 1))));
         }
@@ -94,14 +94,15 @@ impl Domain {
         })
     }
 
-    fn from_reader_check_success(reader: &mut SliceReader) -> Option<Self> {
+    #[inline]
+    fn from_reader(reader: &mut SliceReader) -> Option<Self> {
         if let Some(offset) = reader.iter_from_current_pos().position(|b| *b == 0x0) {
             return Option::from(Domain(Box::from(reader.read_slice(offset + 1))));
         }
         None
     }
 
-    pub fn from_reader_and_check_map(
+    pub fn from_reader_check_map_and_ret_err(
         reader: &mut SliceReader,
         map: &mut HashMap<u16, Rc<Domain>>,
     ) -> Result<Rc<Domain>, Box<DomainError>> {
@@ -133,7 +134,7 @@ impl Domain {
         }))?
     }
 
-    pub fn from_reader_and_check_map_check_success(
+    pub fn from_reader_and_check_map(
         reader: &mut SliceReader,
         map: &mut HashMap<u16, Rc<Domain>>,
     ) -> Option<Rc<Domain>> {
@@ -367,9 +368,9 @@ mod tests {
         );
     }
     #[test]
-    fn test_domain_from_reader() {
+    fn test_domain_from_reader_ret_err() {
         assert_eq!(
-            &Domain::from_reader(&mut SliceReader::from(
+            &Domain::from_reader_ret_err(&mut SliceReader::from(
                 &[3, 119, 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0][..]
             ))
             .unwrap()
@@ -379,7 +380,7 @@ mod tests {
         );
 
         assert_eq!(
-            Domain::from_reader(&mut SliceReader::from(
+            Domain::from_reader_ret_err(&mut SliceReader::from(
                 &[3, 119, 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0][..]
             ))
             .unwrap(),
@@ -388,7 +389,7 @@ mod tests {
     }
 
     #[test]
-    fn test_domain_from_reader_for_answer() {
+    fn test_domain_from_reader_ret_err_for_answer() {
         let mut map: HashMap<u16, Rc<Domain>> = HashMap::new();
         let reader = &mut SliceReader::from(
             &[
@@ -437,7 +438,7 @@ mod tests {
             ][..],
         );
         assert_eq!(
-            Domain::from_reader_and_check_map(reader, &mut map)
+            Domain::from_reader_check_map_and_ret_err(reader, &mut map)
                 .unwrap(),
             Domain::from(&[3, 119, 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0][..]).into()
         );
@@ -446,12 +447,12 @@ mod tests {
             Domain::from(&[3, 119, 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0][..]).into()
         );
         assert_eq!(
-            Domain::from_reader_and_check_map(reader, &mut map)
+            Domain::from_reader_check_map_and_ret_err(reader, &mut map)
                 .unwrap(),
             Domain::from(&[3, 119, 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0][..]).into()
         );
         assert_eq!(
-            Domain::from_reader_and_check_map(reader, &mut map)
+            Domain::from_reader_check_map_and_ret_err(reader, &mut map)
                 .unwrap(),
             Domain::from(&[
                 0x0b, 0x78, 0x6e, 0x2d, 0x2d, 0x79, 0x65, 0x74, 0x73, 0x37, 0x36, 0x65, 0x0a, 0x78,

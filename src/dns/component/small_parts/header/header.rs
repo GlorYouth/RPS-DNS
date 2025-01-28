@@ -28,7 +28,7 @@ impl DNSHeader {
     pub fn from_reader(reader: &mut SliceReader) -> DNSHeader {
         DNSHeader {
             ID: reader.read_u16(),
-            FLAGS: FlagsData::from_reader(reader),
+            FLAGS: FlagsData::from_reader_ret_err(reader),
             QDCOUNT: reader.read_u16(),
             ANCOUNT: reader.read_u16(),
             NSCOUNT: reader.read_u16(),
@@ -42,7 +42,7 @@ mod tests {
     use crate::*;
 
     #[test]
-    fn test_from_reader() {
+    fn test_from_reader_ret_err() {
         let reader = &mut SliceReader::from(
             &[
                 0x00, 0x03, 0x81, 0x80, 0x00, 0x01, 0x00, 0x0b, 0x00, 0x00, 0x00, 0x00,

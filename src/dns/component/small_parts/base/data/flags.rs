@@ -15,8 +15,8 @@ impl FlagsData {
     }
 
     #[inline]
-    pub fn from_reader(reader: &mut SliceReader) -> FlagsData {
-        FlagsData(ArrayU8::<U2>::from_reader(reader))
+    pub fn from_reader_ret_err(reader: &mut SliceReader) -> FlagsData {
+        FlagsData(ArrayU8::<U2>::from_reader_ret_err(reader))
     }
 
     #[inline]
@@ -80,12 +80,14 @@ impl FlagsData {
 }
 
 impl From<[u8; 2]> for FlagsData {
+    #[inline]
     fn from(arr: [u8; 2]) -> Self {
         FlagsData(ArrayU8::<U2>::from(arr))
     }
 }
 
 impl From<&[u8]> for FlagsData {
+    #[inline]
     fn from(arr: &[u8]) -> Self {
         FlagsData(ArrayU8::<U2>::from(arr))
     }

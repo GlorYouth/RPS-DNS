@@ -97,7 +97,7 @@ mod test {
             CLASS: 1,
             TTL: 2,
             RDLENGTH: 0,
-            RDATA: RecordData::from_reader(
+            RDATA: RecordData::from_reader_ret_err(
                 &mut SliceReader::from_slice(&[1, 1, 1, 1]),
                 &mut map,
                 DNSType::A.to_u16(),

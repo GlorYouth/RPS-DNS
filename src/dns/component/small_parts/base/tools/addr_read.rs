@@ -41,14 +41,14 @@ impl AddrReader {
     }
 
     #[inline]
-    pub fn from_reader_ipv4(reader: &mut SliceReader) -> AddrReader {
+    pub fn from_reader_ret_err_ipv4(reader: &mut SliceReader) -> AddrReader {
         Self {
             vec: reader.read_slice(4).to_vec(),
         }
     }
 
     #[inline]
-    pub fn from_reader_ipv6(reader: &mut SliceReader) -> AddrReader {
+    pub fn from_reader_ret_err_ipv6(reader: &mut SliceReader) -> AddrReader {
         Self {
             vec: reader.read_slice(16).to_vec(),
         }
@@ -78,12 +78,14 @@ pub enum AddrReaderError {
 }
 
 impl std::fmt::Display for AddrReaderError {
+    #[inline]
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{:?}", self)
     }
 }
 
 impl std::fmt::Debug for AddrReaderError {
+    #[inline]
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{:?}", self)
     }
@@ -96,13 +98,13 @@ mod tests {
     #[test]
     fn test_from_ipv4() {
         let reader =
-            AddrReader::from_reader_ipv4(&mut SliceReader::from(&[0x3d, 0xf0, 0xdc, 0x06][..]));
+            AddrReader::from_reader_ret_err_ipv4(&mut SliceReader::from(&[0x3d, 0xf0, 0xdc, 0x06][..]));
         assert_eq!(reader.vec, &[61, 240, 220, 6]);
     }
 
     #[test]
     fn test_from_ipv6() {
-        let reader = AddrReader::from_reader_ipv6(&mut SliceReader::from(
+        let reader = AddrReader::from_reader_ret_err_ipv6(&mut SliceReader::from(
             &[
                 0x24, 0x08, 0x87, 0x52, 0x0e, 0x00, 0x00, 0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x59,

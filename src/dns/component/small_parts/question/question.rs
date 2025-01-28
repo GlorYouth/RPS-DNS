@@ -32,24 +32,24 @@ impl DNSQuestion {
 }
 
 impl DNSQuestion {
-    pub fn from_reader(
+    pub fn from_reader_ret_err(
         reader: &mut SliceReader,
         map: &mut HashMap<u16, Rc<Domain>>,
     ) -> Result<DNSQuestion, Box<DomainError>> {
         Ok(DNSQuestion {
-            QNAME: Domain::from_reader_and_check_map(reader, map)?,
+            QNAME: Domain::from_reader_check_map_and_ret_err(reader, map)?,
             QTYPE: reader.read_u16(),
             QCLASS: reader.read_u16(),
         })
     }
 
     #[inline]
-    pub fn from_reader_check_success(
+    pub fn from_reader(
         reader: &mut SliceReader,
         map: &mut HashMap<u16, Rc<Domain>>,
     ) -> Option<DNSQuestion> {
         Option::from(DNSQuestion {
-            QNAME: Domain::from_reader_and_check_map_check_success(reader, map)?,
+            QNAME: Domain::from_reader_and_check_map(reader, map)?,
             QTYPE: reader.read_u16(),
             QCLASS: reader.read_u16(),
         })
@@ -60,16 +60,16 @@ impl DNSQuestion {
 mod tests {
     use super::*;
     #[test]
-    fn test_from_reader() {
+    fn test_from_reader_ret_err() {
         let slice = &[
             0x03, 0x69, 0x70, 0x77, 0x02, 0x63, 0x6e, 0x00, 0x00, 0x1c, 0x00, 0x01,
         ];
         let mut map: HashMap<u16, Rc<Domain>> = HashMap::new();
         let reader = &mut SliceReader::from(&slice[..]);
-        let question = DNSQuestion::from_reader(reader, &mut map).unwrap();
+        let question = DNSQuestion::from_reader_ret_err(reader, &mut map).unwrap();
         assert_eq!(
             question.QNAME,
-            Domain::from_reader_and_check_map(&mut SliceReader::from(&slice[..]), &mut map)
+            Domain::from_reader_check_map_and_ret_err(&mut SliceReader::from(&slice[..]), &mut map)
                 .unwrap()
         );
         assert_eq!(question.QTYPE, DNSType::AAAA.to_u16());

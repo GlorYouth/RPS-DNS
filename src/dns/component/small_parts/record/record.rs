@@ -27,16 +27,16 @@ impl DNSRecord {
 }
 
 impl DNSRecord {
-    pub fn from_reader(
+    pub fn from_reader_ret_err(
         reader: &mut SliceReader,
         map: &mut HashMap<u16, Rc<Domain>>,
     ) -> Result<DNSRecord, Error> {
-        let name = Domain::from_reader_and_check_map(reader, map)?;
+        let name = Domain::from_reader_check_map_and_ret_err(reader, map)?;
         let rtype = reader.read_u16();
         let class = reader.read_u16();
         let ttl = reader.read_u32();
         let rdlength = reader.read_u16();
-        let rdata = RecordData::from_reader(reader, map, rtype)?;
+        let rdata = RecordData::from_reader_ret_err(reader, map, rtype)?;
         Ok(DNSRecord {
             NAME: name,
             TYPE: rtype,
@@ -47,16 +47,16 @@ impl DNSRecord {
         })
     }
 
-    pub fn from_reader_check_success(
+    pub fn from_reader(
         reader: &mut SliceReader,
         map: &mut HashMap<u16, Rc<Domain>>,
     ) -> Option<DNSRecord> {
-        let name = Domain::from_reader_and_check_map_check_success(reader, map)?;
+        let name = Domain::from_reader_and_check_map(reader, map)?;
         let rtype = reader.read_u16();
         let class = reader.read_u16();
         let ttl = reader.read_u32();
         let rdlength = reader.read_u16();
-        let rdata = RecordData::from_reader_check_success(reader, map, rtype)?;
+        let rdata = RecordData::from_reader(reader, map, rtype)?;
         Option::from(DNSRecord {
             NAME: name,
             TYPE: rtype,

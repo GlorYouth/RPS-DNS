@@ -58,6 +58,7 @@ impl DNSRequest {
         }
     }
 
+    #[inline]
     fn estimate_size(&self) -> usize {
         DNSHeader::SIZE + DNSQuestion::ESTIMATE_SIZE
     }
@@ -94,7 +95,7 @@ impl DNSRequest {
         let reader = &mut SliceReader::from(data);
         let header = DNSHeader::from_reader(reader);
         let mut map = HashMap::new();
-        let question = QuestionBody::from_reader(reader, &mut map, header.QDCOUNT)?;
+        let question = QuestionBody::from_reader_ret_err(reader, &mut map, header.QDCOUNT)?;
         Ok(DNSRequest {
             header,
             question,

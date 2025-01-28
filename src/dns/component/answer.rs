@@ -17,13 +17,13 @@ pub struct DNSAnswer {
 }
 
 impl DNSAnswer {
-    pub fn from_reader(reader: &mut SliceReader) -> Result<DNSAnswer, Error> {
+    pub fn from_reader_ret_err(reader: &mut SliceReader) -> Result<DNSAnswer, Error> {
         let mut map = HashMap::with_capacity(5);
         let header = DNSHeader::from_reader(reader);
-        let question = QuestionBody::from_reader(reader, &mut map, header.QDCOUNT)?;
-        let answer = RecordBody::from_reader(reader, &mut map, header.ANCOUNT)?;
-        let authority = RecordBody::from_reader(reader, &mut map, header.NSCOUNT)?;
-        let additional = RecordBody::from_reader(reader, &mut map, header.ARCOUNT)?;
+        let question = QuestionBody::from_reader_ret_err(reader, &mut map, header.QDCOUNT)?;
+        let answer = RecordBody::from_reader_ret_err(reader, &mut map, header.ANCOUNT)?;
+        let authority = RecordBody::from_reader_ret_err(reader, &mut map, header.NSCOUNT)?;
+        let additional = RecordBody::from_reader_ret_err(reader, &mut map, header.ARCOUNT)?;
         Ok(DNSAnswer {
             header,
             question,
@@ -34,13 +34,13 @@ impl DNSAnswer {
         })
     }
 
-    pub fn from_reader_check_success(reader: &mut SliceReader) -> Option<DNSAnswer> {
+    pub fn from_reader(reader: &mut SliceReader) -> Option<DNSAnswer> {
         let mut map = HashMap::with_capacity(5);
         let header = DNSHeader::from_reader(reader);
-        let question = QuestionBody::from_reader_check_success(reader, &mut map, header.QDCOUNT)?;
-        let answer = RecordBody::from_reader_check_success(reader, &mut map, header.ANCOUNT)?;
-        let authority = RecordBody::from_reader_check_success(reader, &mut map, header.NSCOUNT)?;
-        let additional = RecordBody::from_reader_check_success(reader, &mut map, header.ARCOUNT)?;
+        let question = QuestionBody::from_reader(reader, &mut map, header.QDCOUNT)?;
+        let answer = RecordBody::from_reader(reader, &mut map, header.ANCOUNT)?;
+        let authority = RecordBody::from_reader(reader, &mut map, header.NSCOUNT)?;
+        let additional = RecordBody::from_reader(reader, &mut map, header.ARCOUNT)?;
         Option::from(DNSAnswer {
             header,
             question,
@@ -73,7 +73,7 @@ mod tests {
                 0x0,
             ][..],
         );
-        let mut answer = DNSAnswer::from_reader(reader).unwrap();
+        let mut answer = DNSAnswer::from_reader_ret_err(reader).unwrap();
         assert_eq!(answer.header.ID, 0xa8e1);
         let flags = answer.header.FLAGS.resolve();
         assert_eq!(flags.QR, 1);

@@ -14,32 +14,32 @@ pub enum QuestionBody {
 impl QuestionBody {
     pub const ESTIMATE_SIZE_FOR_ONE: usize = DNSQuestion::ESTIMATE_SIZE;
 
-    pub fn from_reader(
+    pub fn from_reader_ret_err(
         reader: &mut SliceReader,
         map: &mut HashMap<u16, Rc<Domain>>,
         qdcount: u16,
     ) -> Result<QuestionBody, Box<DomainError>> {
         if likely(qdcount == 1) {
-            return Ok(QuestionBody::Single(DNSQuestion::from_reader(reader, map)?));
+            return Ok(QuestionBody::Single(DNSQuestion::from_reader_ret_err(reader, map)?));
         }
         let mut vec = Vec::with_capacity(qdcount as usize);
         for _ in 0..qdcount {
-            vec.push(DNSQuestion::from_reader(reader, map)?);
+            vec.push(DNSQuestion::from_reader_ret_err(reader, map)?);
         }
         Ok(QuestionBody::Multi(Box::from(vec)))
     }
 
-    pub fn from_reader_check_success(
+    pub fn from_reader(
         reader: &mut SliceReader,
         map: &mut HashMap<u16, Rc<Domain>>,
         qdcount: u16,
     ) -> Option<QuestionBody> {
         if likely(qdcount == 1) {
-            return Option::from(QuestionBody::Single(DNSQuestion::from_reader_check_success(reader, map)?));
+            return Option::from(QuestionBody::Single(DNSQuestion::from_reader(reader, map)?));
         }
         let mut vec = Vec::with_capacity(qdcount as usize);
         for _ in 0..qdcount {
-            vec.push(DNSQuestion::from_reader_check_success(reader, map)?);
+            vec.push(DNSQuestion::from_reader(reader, map)?);
         }
         Option::from(QuestionBody::Multi(Box::from(vec)))
     }
@@ -78,7 +78,7 @@ mod tests {
     #[test]
     fn test() {
         let mut map: HashMap<u16, Rc<Domain>> = HashMap::new();
-        let single_question = QuestionBody::from_reader(
+        let single_question = QuestionBody::from_reader_ret_err(
             &mut SliceReader::from_slice(&[
                 0x03, 0x69, 0x70, 0x77, 0x02, 0x63, 0x6e, 0x00, 0x00, 0x1c, 0x00, 0x01,
             ]),
@@ -94,7 +94,7 @@ mod tests {
         }
 
         map.clear();
-        let multi_question = QuestionBody::from_reader(
+        let multi_question = QuestionBody::from_reader_ret_err(
             &mut SliceReader::from_slice(&[
                 0x03, 0x69, 0x70, 0x77, 0x02, 0x63, 0x6e, 0x00, 0x00, 0x1c, 0x00, 0x01, 3, 119,
                 119, 119, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0, 0x0, 0x1, 0x00,

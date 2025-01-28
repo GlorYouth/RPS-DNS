@@ -29,11 +29,13 @@ pub struct FlagsFormat {
 }
 
 impl FlagsFormat {
+    #[inline]
     pub fn into_u16(self) -> u16 {
         ((self.QR << 7 | self.Opcode << 3 | self.AA << 2 | self.TC << 1 | self.RD) as u16) << 8
             | (self.RA << 7 | self.Z << 6 | self.RCODE) as u16
     }
 
+    #[inline]
     pub fn into_vec(self) -> Vec<u8> {
         let mut vec = Vec::with_capacity(2);
         vec.push(self.QR << 7 | self.Opcode << 3 | self.AA << 2 | self.TC << 1 | self.RD);

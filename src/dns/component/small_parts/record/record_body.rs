@@ -10,26 +10,28 @@ use std::rc::Rc;
 pub struct RecordBody(pub Vec<DNSRecord>);
 
 impl RecordBody {
-    pub fn from_reader(
+    #[inline]
+    pub fn from_reader_ret_err(
         reader: &mut SliceReader,
         map: &mut HashMap<u16, Rc<Domain>>,
         count: u16,
     ) -> Result<RecordBody, Error> {
         let mut records = Vec::with_capacity(count as usize);
         for _ in 0..count {
-            records.push(DNSRecord::from_reader(reader, map)?);
+            records.push(DNSRecord::from_reader_ret_err(reader, map)?);
         }
         Ok(RecordBody(records))
     }
 
-    pub fn from_reader_check_success(
+    #[inline]
+    pub fn from_reader(
         reader: &mut SliceReader,
         map: &mut HashMap<u16, Rc<Domain>>,
         count: u16,
     ) -> Option<RecordBody> {
         let mut records = Vec::with_capacity(count as usize);
         for _ in 0..count {
-            records.push(DNSRecord::from_reader_check_success(reader, map)?);
+            records.push(DNSRecord::from_reader(reader, map)?);
         }
         Option::from(RecordBody(records))
     }
@@ -39,7 +41,7 @@ impl RecordBody {
 mod tests {
     use super::*;
     #[test]
-    fn test_from_reader() {
+    fn test_from_reader_ret_err() {
         let mut map = HashMap::new();
         map.insert(0xc00c_u16, Rc::new(Domain::from("ocsp.sectigo.com")));
         let reader = &mut SliceReader::from_slice(&[
@@ -55,7 +57,7 @@ mod tests {
             0x47, 0x00, 0x44, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xac, 0x40, 0x95, 0x17,
         ]);
         reader.set_pos(34);
-        let records = RecordBody::from_reader(reader, &mut map, 3);
+        let records = RecordBody::from_reader_ret_err(reader, &mut map, 3);
         let records = records.unwrap();
         assert_eq!(
             records.0[0].NAME.to_string().unwrap(),

@@ -37,7 +37,7 @@ impl<N: ArrayLength> ArrayU8<N> {
     }
 
     #[inline]
-    pub fn from_reader(reader: &mut SliceReader) -> ArrayU8<N> {
+    pub fn from_reader_ret_err(reader: &mut SliceReader) -> ArrayU8<N> {
         let mut arr = GenericArray::default();
         for i in 0..N::USIZE {
             arr[i] = reader.read_u8();
