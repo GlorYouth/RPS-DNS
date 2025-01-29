@@ -6,3 +6,4 @@ mod record;
 mod request;
 #[allow(unused)]
 pub use answer::*;
+pub use header::RawHeader;
