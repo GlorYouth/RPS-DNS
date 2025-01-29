@@ -2,14 +2,13 @@
 
 use std::slice::Iter;
 
-pub type SliceReaderSplit<'a,'b> = (&'a [u8], &'b mut usize);
+pub type SliceReaderSplit<'a, 'b> = (&'a [u8], &'b mut usize);
 
 #[derive(Debug)]
 pub struct SliceReader<'a> {
     slice: &'a [u8],
     pos: usize,
 }
-
 
 impl<'a> From<&'a [u8]> for SliceReader<'a> {
     #[inline]
@@ -18,9 +17,7 @@ impl<'a> From<&'a [u8]> for SliceReader<'a> {
     }
 }
 
-
 impl<'a> SliceReader<'a> {
-    
     #[inline]
     pub fn pos(&self) -> usize {
         self.pos
@@ -110,7 +107,6 @@ impl<'a> SliceReader<'a> {
     pub fn from_slice(slice: &'a [u8]) -> Self {
         SliceReader { slice, pos: 0 }
     }
-    
 }
 
 #[cfg(test)]
@@ -123,13 +119,10 @@ mod tests {
             16u8,
         ];
         let mut reader = SliceReader::from(&slice[..]);
-        assert_eq!(
-            reader.slice,
-            [
-                0u8, 1u8, 2u8, 3u8, 4u8, 5u8, 6u8, 7u8, 8u8, 9u8, 10u8, 11u8, 12u8, 13u8, 14u8,
-                15u8, 16u8
-            ]
-        );
+        assert_eq!(reader.slice, [
+            0u8, 1u8, 2u8, 3u8, 4u8, 5u8, 6u8, 7u8, 8u8, 9u8, 10u8, 11u8, 12u8, 13u8, 14u8, 15u8,
+            16u8
+        ]);
         assert_eq!(reader.pos(), 0);
         assert_eq!(reader.peek_u8(), 0u8);
         assert_eq!(reader.read_u8(), 0);
@@ -179,5 +172,4 @@ mod tests {
         assert_eq!(reader.read_slice(4), &slice[5..9]);
         assert_eq!(reader.pos(), 9);
     }
-    
 }

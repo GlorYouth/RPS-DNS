@@ -20,7 +20,8 @@ impl<'a> RawQuestion<'a> {
     pub const FIX_SIZE: usize = 4;
     pub const LEAST_SIZE: usize = Self::FIX_SIZE + 2;
 
-    pub fn new<'b>( // 'b为引用存在的周期，比'a对象存在的周期短或等于
+    pub fn new<'b>(
+        // 'b为引用存在的周期，比'a对象存在的周期短或等于
         reader: &'b mut SliceReader<'a>,
         map: &'b mut HashMap<u16, RawDomain<'a>>,
     ) -> Option<RawQuestion<'a>> {
@@ -33,5 +34,20 @@ impl<'a> RawQuestion<'a> {
             name: Rc::from(name),
             other: reader.read_slice(Self::FIX_SIZE),
         })
+    }
+
+    #[inline]
+    pub fn get_name(&self) -> Option<String> {
+        self.name.to_string()
+    }
+
+    #[inline]
+    pub fn get_qtype(&self) -> u16 {
+        u16::from_be_bytes(self.other[0..2].try_into().unwrap())
+    }
+
+    #[inline]
+    pub fn get_qclass(&self) -> u16 {
+        u16::from_be_bytes(self.other[2..4].try_into().unwrap())
     }
 }

@@ -27,7 +27,7 @@ impl<'a> RawRequest<'a> {
     }
 
     pub fn init<F: FnMut(&RawHeader<'a>) -> Option<()>>(
-        & mut self,
+        &mut self,
         map: &mut HashMap<u16, RawDomain<'a>>,
         mut check: F,
     ) -> Option<()> {

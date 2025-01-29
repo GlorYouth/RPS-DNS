@@ -1,5 +1,5 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
-use crate::RawHeader;
+use crate::dns::RawHeader;
 
 pub struct Header {
     pub id: u16,

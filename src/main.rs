@@ -1,5 +1,2 @@
 mod dns;
-fn main() {
-    
-    
-}
+fn main() {}

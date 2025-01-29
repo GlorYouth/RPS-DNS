@@ -15,17 +15,18 @@ impl<'a> RawRecord<'a> {
     pub const FIX_SIZE: usize = 10;
     pub const LEAST_SIZE: usize = 12;
 
-    pub fn new<'b>( // 'b为引用存在的周期，比'a对象存在的周期短或等于
+    pub fn new<'b>(
+        // 'b为引用存在的周期，比'a对象存在的周期短或等于
         reader: &'b mut SliceReader<'a>,
         map: &'b mut HashMap<u16, RawDomain<'a>>,
     ) -> Option<RawRecord<'a>> {
         let name = RawDomain::new(reader, map)?;
         let len = reader.len();
-        
+
         if reader.pos() + Self::FIX_SIZE > len {
             return None;
         }
-        
+
         let other = reader.read_slice(8);
         let data_length = reader.read_u16() as usize;
 

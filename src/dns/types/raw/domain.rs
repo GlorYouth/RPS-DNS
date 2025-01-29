@@ -4,7 +4,7 @@ use crate::dns::utils::SliceReader;
 use crate::*;
 use std::borrow::Cow;
 use std::collections::HashMap;
-use std::fmt::{write, Debug, Display, Formatter};
+use std::fmt::{Debug, Display, Formatter, write};
 use std::ops::Add;
 use std::rc::Rc;
 use std::str::Utf8Error;
@@ -34,9 +34,10 @@ impl<'a> RawDomain<'a> {
     }
 
     #[inline]
-    pub fn new<'b>(reader: &'b mut SliceReader<'a>,
-               map: &'b mut HashMap<u16, RawDomain<'a>>
-    ) -> Option<RawDomain<'a>>  {
+    pub fn new<'b>(
+        reader: &'b mut SliceReader<'a>,
+        map: &'b mut HashMap<u16, RawDomain<'a>>,
+    ) -> Option<RawDomain<'a>> {
         if reader.peek_u8() & 0b1100_0000_u8 == 0b1100_0000_u8 {
             let key = reader.read_u16();
             if map.contains_key(&key) {
@@ -61,7 +62,7 @@ impl<'a> RawDomain<'a> {
         Some(name)
     }
 
-    pub fn to_string(&self) -> Result<String, Box<DomainDecodeError>> {
+    pub fn to_string_ret_err(&self) -> Result<String, Box<DomainDecodeError>> {
         let mut decoded = String::with_capacity(40);
         let mut i = 0;
 
@@ -83,7 +84,7 @@ impl<'a> RawDomain<'a> {
                     Err(_) => {
                         return Err(Box::from(DomainDecodeError::PunycodeDecode {
                             string: input.to_string(),
-                        }))
+                        }));
                     }
                 }
             } else {
@@ -99,7 +100,7 @@ impl<'a> RawDomain<'a> {
         Ok(decoded)
     }
 
-    pub fn to_string_check_success(&self) -> Option<String> {
+    pub fn to_string(&self) -> Option<String> {
         let mut decoded = String::with_capacity(40);
         let mut i = 0;
 
@@ -133,11 +134,6 @@ impl<'a> RawDomain<'a> {
             }
         }
         Option::from(decoded)
-    }
-
-    #[inline]
-    pub fn to_byte(&self) -> Vec<u8> {
-        Vec::from(self.0)
     }
 }
 

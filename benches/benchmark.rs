@@ -1,5 +1,5 @@
 #![allow(unused_imports)]
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use dns_core::bench_func::*;
 
 fn criterion_benchmark(c: &mut Criterion) {

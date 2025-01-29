@@ -7,3 +7,6 @@ mod request;
 #[allow(unused)]
 pub use answer::*;
 pub use header::RawHeader;
+pub use question::RawQuestion;
+pub use question::RawQuestionType;
+pub use record::RawRecord;
