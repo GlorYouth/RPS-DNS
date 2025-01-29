@@ -4,5 +4,5 @@ mod header;
 mod question;
 mod record;
 mod request;
-
+#[allow(unused)]
 pub use answer::*;

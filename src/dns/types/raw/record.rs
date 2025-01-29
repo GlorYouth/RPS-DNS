@@ -1,3 +1,4 @@
+#![cfg_attr(debug_assertions, allow(dead_code))]
 use crate::dns::types::raw::domain::RawDomain;
 use crate::dns::utils::SliceReader;
 use std::collections::HashMap;

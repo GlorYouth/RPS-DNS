@@ -8,6 +8,7 @@ use std::fmt::{write, Debug, Display, Formatter};
 use std::ops::Add;
 use std::rc::Rc;
 use std::str::Utf8Error;
+
 use crate::dns::types::raw::question::RawQuestion;
 
 const SIZE_OF_XN: usize = "xn--".len();

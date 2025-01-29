@@ -1,9 +1,9 @@
+#![cfg_attr(debug_assertions, allow(dead_code))]
 use crate::dns::types::raw::domain::RawDomain;
 use crate::dns::types::raw::header::RawHeader;
 use crate::dns::types::raw::question::{RawQuestion, RawQuestionType};
 use crate::dns::utils::SliceReader;
 use std::collections::HashMap;
-
 pub struct RawRequest<'a> {
     reader: SliceReader<'a>,
 

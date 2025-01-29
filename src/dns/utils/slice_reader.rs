@@ -1,8 +1,5 @@
-#![cfg_attr(debug_assertions, allow(dead_code, unused_imports))]
+#![cfg_attr(debug_assertions, allow(dead_code))]
 
-use crate::dns::utils::array_u8::ArrayU8;
-use crate::*;
-use std::ops::{Deref, Index};
 use std::slice::Iter;
 
 pub type SliceReaderSplit<'a,'b> = (&'a [u8], &'b mut usize);
@@ -21,15 +18,6 @@ impl<'a> From<&'a [u8]> for SliceReader<'a> {
     }
 }
 
-impl<'a, N: generic_array::ArrayLength> From<&'a mut ArrayU8<N>> for SliceReader<'a> {
-    #[inline]
-    fn from(array: &'a mut ArrayU8<N>) -> SliceReader<'a> {
-        SliceReader {
-            slice: array.as_mut_slice(),
-            pos: 0,
-        }
-    }
-}
 
 impl<'a> SliceReader<'a> {
     
@@ -122,20 +110,12 @@ impl<'a> SliceReader<'a> {
     pub fn from_slice(slice: &'a [u8]) -> Self {
         SliceReader { slice, pos: 0 }
     }
-
-    #[inline]
-    pub fn from_array_u8<N: generic_array::ArrayLength>(array: &mut ArrayU8<N>) -> SliceReader {
-        SliceReader {
-            slice: array.as_mut_slice(),
-            pos: 0,
-        }
-    }
+    
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use generic_array::typenum::U9;
     #[test]
     fn test_slice_reader() {
         let slice = [
@@ -199,18 +179,5 @@ mod tests {
         assert_eq!(reader.read_slice(4), &slice[5..9]);
         assert_eq!(reader.pos(), 9);
     }
-
-    #[test]
-    fn test_from() {
-        let mut array_u8: ArrayU8<U9> =
-            ArrayU8::from(&[1u8, 2u8, 3u8, 4u8, 5u8, 6u8, 7u8, 8u8, 9u8][..]);
-        let reader = SliceReader::from(&mut array_u8);
-        assert_eq!(
-            reader.as_ref(),
-            &[1u8, 2u8, 3u8, 4u8, 5u8, 6u8, 7u8, 8u8, 9u8]
-        );
-        let slice = &[1u8, 2u8, 3u8, 4u8, 5u8, 6u8, 7u8, 8u8, 9u8];
-        let reader = SliceReader::from(&slice[..]);
-        assert_eq!(reader.as_ref(), slice);
-    }
+    
 }
