@@ -27,15 +27,15 @@ impl<'a> RawAnswer<'a> {
             reader,
             raw_header,
             raw_question: RawQuestionType::None,
-            answer: Vec::new(),
+            answer: Vec::with_capacity(5), //预分配，提升性能
             authority: Vec::new(),
             additional: Vec::new(),
         })
     }
 
-    pub fn init<F: FnMut(&RawHeader<'a>) -> Option<()>>(
-        &'a mut self,
-        mut map: &'a mut HashMap<u16, RawDomain<'a>>,
+    pub fn init<'b,F: FnMut(&RawHeader<'a>) -> Option<()>>(
+        &'b mut self,
+        mut map: &'b mut HashMap<u16, RawDomain<'a>>,
         mut check: F,
     ) -> Option<()> {
         check(&self.raw_header)?;
@@ -56,9 +56,6 @@ impl<'a> RawAnswer<'a> {
         let nscount = self.raw_header.get_nscount();
         let arcount = self.raw_header.get_arcount();
 
-        self.answer = Vec::with_capacity(ancount as usize);
-        self.authority = Vec::with_capacity(nscount as usize);
-        self.additional = Vec::with_capacity(arcount as usize);
 
         for _ in 0..ancount {
             self.answer
@@ -76,6 +73,31 @@ impl<'a> RawAnswer<'a> {
         }
 
         Some(())
+    }
+
+    #[inline]
+    pub fn get_raw_header(&self) -> &RawHeader<'a> {
+        &self.raw_header
+    }
+
+    #[inline]
+    pub fn get_raw_question(&self) -> &RawQuestionType<'a> {
+        &self.raw_question
+    }
+    
+    #[inline]
+    pub fn get_raw_answer(&self) -> &Vec<RawRecord<'a>> {
+        &self.answer
+    }
+    
+    #[inline]
+    pub fn get_raw_authority(&self) -> &Vec<RawRecord<'a>> {
+        &self.authority
+    }
+    
+    #[inline]
+    pub fn get_raw_additional(&self) -> &Vec<RawRecord<'a>> {
+        &self.additional
     }
 }
 

@@ -2,7 +2,6 @@
 use crate::dns::types::raw::domain::RawDomain;
 use crate::dns::utils::SliceReader;
 use std::collections::HashMap;
-use std::rc::Rc;
 
 pub enum RawQuestionType<'a> {
     Single(RawQuestion<'a>),
@@ -12,7 +11,7 @@ pub enum RawQuestionType<'a> {
 
 #[derive(Debug)]
 pub struct RawQuestion<'a> {
-    name: Rc<RawDomain<'a>>,
+    name: RawDomain<'a>,
     other: &'a [u8],
 }
 
@@ -31,7 +30,7 @@ impl<'a> RawQuestion<'a> {
             return None; //检测出界，防止panic
         }
         Some(RawQuestion {
-            name: Rc::from(name),
+            name,
             other: reader.read_slice(Self::FIX_SIZE),
         })
     }

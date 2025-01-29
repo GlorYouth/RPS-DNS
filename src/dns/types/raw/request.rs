@@ -47,4 +47,14 @@ impl<'a> RawRequest<'a> {
         }
         Some(())
     }
+    
+    #[inline]
+    pub fn get_raw_header(&self) -> &RawHeader<'a> {
+        &self.raw_header
+    }
+    
+    #[inline]
+    pub fn get_raw_question(&self) -> &RawQuestionType<'a> {
+        &self.raw_question
+    }
 }

@@ -1,4 +1,4 @@
-use crate::RawAnswer;
+use crate::{Answer, RawAnswer};
 use std::collections::HashMap;
 
 pub fn test() {
@@ -20,6 +20,8 @@ pub fn test() {
         )
         .unwrap();
         let mut map = HashMap::new();
-        raw.init(&mut map, |_h| Some(())).unwrap()
+        raw.init(&mut map, |_h| Some(())).unwrap();
+        let answer = Answer::new(&raw).unwrap();
+        assert_eq!(answer.header.id,0xb4db)
     }
 }

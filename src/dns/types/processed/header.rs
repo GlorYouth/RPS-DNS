@@ -1,6 +1,7 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 use crate::dns::RawHeader;
 
+#[derive(Debug)]
 pub struct Header {
     pub id: u16,
 
@@ -29,8 +30,8 @@ pub struct Header {
     pub rcode: u8,
 }
 
-impl From<RawHeader<'_>> for Header {
-    fn from(header: RawHeader) -> Self {
+impl From<&RawHeader<'_>> for Header {
+    fn from(header: &RawHeader) -> Self {
         Self {
             id: header.get_id(),
             qr: header.get_qr(),

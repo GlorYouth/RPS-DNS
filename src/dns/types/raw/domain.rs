@@ -12,7 +12,7 @@ use std::str::Utf8Error;
 use crate::dns::types::raw::question::RawQuestion;
 
 const SIZE_OF_XN: usize = "xn--".len();
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub struct RawDomain<'a>(&'a [u8]);
 
 impl<'a> From<&'a [u8]> for RawDomain<'a> {
@@ -41,7 +41,7 @@ impl<'a> RawDomain<'a> {
         if reader.peek_u8() & 0b1100_0000_u8 == 0b1100_0000_u8 {
             let key = reader.read_u16();
             if map.contains_key(&key) {
-                let name = map.get(&key).unwrap();
+                let name = map.get(&key)?;
                 return Some(name.clone());
             }
             return None;
@@ -125,7 +125,14 @@ impl<'a> RawDomain<'a> {
                 }
             } else {
                 // 直接是 ASCII 字符部分
-                decoded.push_str(&String::from_utf8_lossy(part_bytes));
+                match std::str::from_utf8(part_bytes) {
+                    Ok(decoded_part) => {
+                        decoded.push_str(&decoded_part);
+                    }
+                    Err(_) => {
+                        return None;
+                    }
+                }
             }
 
             // 添加分隔符 "."
@@ -133,7 +140,7 @@ impl<'a> RawDomain<'a> {
                 decoded.push('.');
             }
         }
-        Option::from(decoded)
+        Some(decoded)
     }
 }
 
