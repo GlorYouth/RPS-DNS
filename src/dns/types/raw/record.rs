@@ -58,7 +58,7 @@ impl<'a> RawRecord<'a> {
 
     #[inline]
     pub fn get_ttl(&self) -> u32 {
-        u32::from_be_bytes(self.data[4..8].try_into().unwrap())
+        u32::from_be_bytes(self.other[4..8].try_into().unwrap())
     }
 
     #[inline]
