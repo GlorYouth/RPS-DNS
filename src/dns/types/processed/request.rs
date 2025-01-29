@@ -1,9 +1,9 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
-use smallvec::SmallVec;
-use crate::dns::types::processed::header::Header;
 use crate::dns::RawRequest;
+use crate::dns::types::processed::header::Header;
 use crate::dns::types::processed::question::Question;
+use smallvec::SmallVec;
 
 pub struct Request {
     header: Header,
@@ -26,7 +26,7 @@ impl From<&RawRequest<'_>> for Option<Request> {
         for v in raw_question {
             question.push(Question::new(v)?);
         }
-        Some(Request{
+        Some(Request {
             header: Header::from(request.get_raw_header()),
             question,
         })

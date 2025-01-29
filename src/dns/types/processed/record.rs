@@ -1,7 +1,7 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
-use crate::dns::RecordDataType;
 use crate::dns::RawRecord;
+use crate::dns::RecordDataType;
 
 #[derive(Debug)]
 pub struct Record {
@@ -14,7 +14,7 @@ pub struct Record {
 impl Record {
     #[inline]
     pub fn new(record: &RawRecord) -> Option<Record> {
-        Some(Record{
+        Some(Record {
             name: record.get_name()?,
             class: record.get_class(),
             ttl: record.get_ttl(),

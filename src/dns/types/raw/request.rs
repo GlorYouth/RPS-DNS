@@ -1,7 +1,7 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 use crate::dns::types::raw::domain::RawDomain;
 use crate::dns::types::raw::header::RawHeader;
-use crate::dns::types::raw::question::{RawQuestion};
+use crate::dns::types::raw::question::RawQuestion;
 use crate::dns::utils::SliceReader;
 use small_map::SmallMap;
 use smallvec::SmallVec;
@@ -36,16 +36,17 @@ impl<'a> RawRequest<'a> {
         check(&self.raw_header)?;
         let qdcount = self.raw_header.get_qdcount();
         for _ in 0..qdcount {
-            self.raw_question.push(RawQuestion::new(&mut self.reader,map)?)
+            self.raw_question
+                .push(RawQuestion::new(&mut self.reader, map)?)
         }
         Some(())
     }
-    
+
     #[inline]
     pub fn get_raw_header(&self) -> &RawHeader<'a> {
         &self.raw_header
     }
-    
+
     #[inline]
     pub fn get_raw_question(&self) -> &SmallVec<[RawQuestion<'a>; 5]> {
         &self.raw_question

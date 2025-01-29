@@ -1,9 +1,8 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
-use small_map::SmallMap;
 use crate::dns::types::raw::domain::RawDomain;
 use crate::dns::utils::SliceReader;
-
+use small_map::SmallMap;
 
 #[derive(Debug)]
 pub struct RawQuestion<'a> {
@@ -18,7 +17,7 @@ impl<'a> RawQuestion<'a> {
     pub fn new<'b>(
         // 'b为引用存在的周期，比'a对象存在的周期短或等于
         reader: &'b mut SliceReader<'a>,
-        map: &mut SmallMap<32,u16,RawDomain<'a>>,
+        map: &mut SmallMap<32, u16, RawDomain<'a>>,
     ) -> Option<RawQuestion<'a>> {
         let name = RawDomain::new(reader, map)?;
         let len = reader.len();

@@ -1,15 +1,15 @@
 #![cfg_attr(debug_assertions, allow(dead_code, unused_imports))]
 
+use crate::dns::types::raw::question::RawQuestion;
 use crate::dns::utils::SliceReader;
 use crate::*;
+use small_map::SmallMap;
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter, write};
 use std::ops::Add;
 use std::rc::Rc;
 use std::str::Utf8Error;
-use small_map::SmallMap;
-use crate::dns::types::raw::question::RawQuestion;
 
 const SIZE_OF_XN: usize = "xn--".len();
 #[derive(PartialEq, Debug, Copy, Clone)]
@@ -36,7 +36,7 @@ impl<'a> RawDomain<'a> {
     #[inline]
     pub fn new<'b>(
         reader: &'b mut SliceReader<'a>,
-        map: &mut SmallMap<32,u16,RawDomain<'a>>,
+        map: &mut SmallMap<32, u16, RawDomain<'a>>,
     ) -> Option<RawDomain<'a>> {
         if reader.peek_u8() & 0b1100_0000_u8 == 0b1100_0000_u8 {
             let key = reader.read_u16();

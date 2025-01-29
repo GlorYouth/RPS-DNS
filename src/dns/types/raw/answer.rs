@@ -10,10 +10,10 @@ pub struct RawAnswer<'a> {
     reader: SliceReader<'a>,
 
     raw_header: RawHeader<'a>,
-    raw_question: SmallVec<[RawQuestion<'a>;5]>,
-    answer: SmallVec<[RawRecord<'a>;10]>, //预分配，提升性能
-    authority: SmallVec<[RawRecord<'a>;5]>,
-    additional: SmallVec<[RawRecord<'a>;5]>,
+    raw_question: SmallVec<[RawQuestion<'a>; 5]>,
+    answer: SmallVec<[RawRecord<'a>; 10]>, //预分配，提升性能
+    authority: SmallVec<[RawRecord<'a>; 5]>,
+    additional: SmallVec<[RawRecord<'a>; 5]>,
 }
 
 impl<'a> RawAnswer<'a> {
@@ -34,7 +34,7 @@ impl<'a> RawAnswer<'a> {
         })
     }
 
-    pub fn init<'b,F: FnMut(&RawHeader<'a>) -> Option<()>>(
+    pub fn init<'b, F: FnMut(&RawHeader<'a>) -> Option<()>>(
         &'b mut self,
         mut map: &mut SmallMap<32, u16, RawDomain<'a>>,
         mut check: F,
@@ -46,9 +46,10 @@ impl<'a> RawAnswer<'a> {
         let arcount = self.raw_header.get_arcount();
 
         for _ in 0..qdcount {
-            self.raw_question.push(RawQuestion::new(&mut self.reader, map)?)
+            self.raw_question
+                .push(RawQuestion::new(&mut self.reader, map)?)
         }
-        
+
         for _ in 0..ancount {
             self.answer
                 .push(RawRecord::new(&mut self.reader, &mut map)?);
@@ -78,17 +79,17 @@ impl<'a> RawAnswer<'a> {
     }
 
     #[inline]
-    pub fn get_raw_answer(&self) -> &SmallVec<[RawRecord<'a>;10]> {
+    pub fn get_raw_answer(&self) -> &SmallVec<[RawRecord<'a>; 10]> {
         &self.answer
     }
 
     #[inline]
-    pub fn get_raw_authority(&self) -> &SmallVec<[RawRecord<'a>;5]> {
+    pub fn get_raw_authority(&self) -> &SmallVec<[RawRecord<'a>; 5]> {
         &self.authority
     }
 
     #[inline]
-    pub fn get_raw_additional(&self) -> &SmallVec<[RawRecord<'a>;5]> {
+    pub fn get_raw_additional(&self) -> &SmallVec<[RawRecord<'a>; 5]> {
         &self.additional
     }
 }

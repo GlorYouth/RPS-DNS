@@ -22,6 +22,6 @@ pub fn test() {
         let mut map = SmallMap::new();
         raw.init(&mut map, |_h| Some(())).unwrap();
         let answer = Answer::new(&raw).unwrap();
-        assert_eq!(answer.header.id,0xb4db)
+        assert_eq!(answer.header.id, 0xb4db)
     }
 }
