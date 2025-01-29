@@ -121,11 +121,10 @@ impl<'a> RawDomain<'a> {
                 }
             } else {
                 // 直接是 ASCII 字符部分
-                match std::str::from_utf8(part_bytes) {
-                    Ok(decoded_part) => {
-                        decoded.push_str(&decoded_part);
-                    }
-                    Err(_) => {
+                for byte in part_bytes {
+                    if byte.is_ascii() {
+                        decoded.push(*byte as char);
+                    } else {
                         return None;
                     }
                 }
