@@ -40,27 +40,27 @@ impl<'a> RawRecord<'a> {
             data: reader.read_slice(data_length),
         })
     }
-    
+
     #[inline]
     pub fn get_name(&self) -> Option<String> {
         self.name.to_string()
     }
-    
+
     #[inline]
     pub fn get_rtype(&self) -> u16 {
         u16::from_be_bytes(self.other[0..2].try_into().unwrap())
     }
-    
+
     #[inline]
     pub fn get_class(&self) -> u16 {
         u16::from_be_bytes(self.other[2..4].try_into().unwrap())
     }
-    
+
     #[inline]
     pub fn get_ttl(&self) -> u32 {
         u32::from_be_bytes(self.data[4..8].try_into().unwrap())
     }
-    
+
     #[inline]
     pub fn get_data(&self) -> Option<RecordDataType> {
         RecordDataType::new(self.get_rtype(),self.data)
@@ -79,7 +79,7 @@ impl RecordDataType {
         match rtype {
             1 => Some(RecordDataType::A(Ipv4Addr::new(data[0], data[1], data[2], data[3]))),
             5 => Some(RecordDataType::CNAME(RawDomain::from(data).to_string()?)),
-            28 => Some(RecordDataType::AAAA(Ipv6Addr::from(<&[u8] as TryInto<[u8;16]>>::try_into(data.try_into().unwrap()).unwrap()))),
+            28 => Some(RecordDataType::AAAA(Ipv6Addr::from(<&[u8] as TryInto<[u8;16]>>::try_into(data).unwrap()))),
             _ => None
         }
     }

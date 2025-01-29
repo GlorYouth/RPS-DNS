@@ -21,7 +21,7 @@ impl Answer {
         let raw_answer = value.get_raw_answer();
         let raw_authority = value.get_raw_authority();
         let raw_additional = value.get_raw_additional();
-        
+
         let mut question = SmallVec::new();
         let mut answer = SmallVec::new();
         let mut authority = SmallVec::new();
@@ -30,7 +30,7 @@ impl Answer {
         for v in raw_question {
             question.push(Question::new(v)?);
         }
-        
+
         for v in raw_answer {
             answer.push(Record::new(v)?);
         }
