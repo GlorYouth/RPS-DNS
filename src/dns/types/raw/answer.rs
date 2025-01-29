@@ -1,18 +1,19 @@
+use crate::dns::types::raw::domain::RawDomain;
 use crate::dns::types::raw::header::RawHeader;
-use crate::dns::types::raw::question::{RawQuestion, RawQuestionType};
+use crate::dns::types::raw::question::RawQuestion;
 use crate::dns::types::raw::record::RawRecord;
 use crate::dns::utils::SliceReader;
 use small_map::SmallMap;
-use crate::dns::types::raw::domain::RawDomain;
+use smallvec::SmallVec;
 
 pub struct RawAnswer<'a> {
     reader: SliceReader<'a>,
 
     raw_header: RawHeader<'a>,
-    raw_question: RawQuestionType<'a>,
-    answer: Vec<RawRecord<'a>>,
-    authority: Vec<RawRecord<'a>>,
-    additional: Vec<RawRecord<'a>>,
+    raw_question: SmallVec<[RawQuestion<'a>;5]>,
+    answer: SmallVec<[RawRecord<'a>;10]>, //预分配，提升性能
+    authority: SmallVec<[RawRecord<'a>;5]>,
+    additional: SmallVec<[RawRecord<'a>;5]>,
 }
 
 impl<'a> RawAnswer<'a> {
@@ -26,10 +27,10 @@ impl<'a> RawAnswer<'a> {
         Some(RawAnswer {
             reader,
             raw_header,
-            raw_question: RawQuestionType::None,
-            answer: Vec::with_capacity(5), //预分配，提升性能
-            authority: Vec::new(),
-            additional: Vec::new(),
+            raw_question: SmallVec::new(),
+            answer: SmallVec::new(),
+            authority: SmallVec::new(),
+            additional: SmallVec::new(),
         })
     }
 
@@ -40,23 +41,14 @@ impl<'a> RawAnswer<'a> {
     ) -> Option<()> {
         check(&self.raw_header)?;
         let qdcount = self.raw_header.get_qdcount();
-        if qdcount == 1 {
-            self.raw_question = RawQuestionType::Single(RawQuestion::new(&mut self.reader, map)?);
-        } else if qdcount > 1 {
-            if self.reader.len() < RawHeader::SIZE + RawQuestion::LEAST_SIZE * qdcount as usize {
-                return None;
-            }
-            let mut vec = Vec::with_capacity(self.raw_header.get_qdcount() as usize);
-            vec.push(RawQuestion::new(&mut self.reader, map)?);
-            self.raw_question = RawQuestionType::Multiple(vec);
-        } else {
-            return None;
-        }
         let ancount = self.raw_header.get_ancount();
         let nscount = self.raw_header.get_nscount();
         let arcount = self.raw_header.get_arcount();
 
-
+        for _ in 0..qdcount {
+            self.raw_question.push(RawQuestion::new(&mut self.reader, map)?)
+        }
+        
         for _ in 0..ancount {
             self.answer
                 .push(RawRecord::new(&mut self.reader, &mut map)?);
@@ -81,22 +73,22 @@ impl<'a> RawAnswer<'a> {
     }
 
     #[inline]
-    pub fn get_raw_question(&self) -> &RawQuestionType<'a> {
+    pub fn get_raw_question(&self) -> &SmallVec<[RawQuestion<'a>; 5]> {
         &self.raw_question
     }
 
     #[inline]
-    pub fn get_raw_answer(&self) -> &Vec<RawRecord<'a>> {
+    pub fn get_raw_answer(&self) -> &SmallVec<[RawRecord<'a>;10]> {
         &self.answer
     }
 
     #[inline]
-    pub fn get_raw_authority(&self) -> &Vec<RawRecord<'a>> {
+    pub fn get_raw_authority(&self) -> &SmallVec<[RawRecord<'a>;5]> {
         &self.authority
     }
 
     #[inline]
-    pub fn get_raw_additional(&self) -> &Vec<RawRecord<'a>> {
+    pub fn get_raw_additional(&self) -> &SmallVec<[RawRecord<'a>;5]> {
         &self.additional
     }
 }

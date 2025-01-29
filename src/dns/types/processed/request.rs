@@ -1,12 +1,13 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
+use smallvec::SmallVec;
 use crate::dns::types::processed::header::Header;
-use crate::dns::types::processed::question::QuestionType;
 use crate::dns::RawRequest;
+use crate::dns::types::processed::question::Question;
 
 pub struct Request {
     header: Header,
-    question: QuestionType
+    question: SmallVec<[Question; 5]>,
 }
 
 impl Request {
@@ -19,9 +20,15 @@ impl Request {
 impl From<&RawRequest<'_>> for Option<Request> {
     #[inline]
     fn from(request: &RawRequest) -> Option<Request> {
+        let raw_question = request.get_raw_question();
+        let mut question = SmallVec::new();
+
+        for v in raw_question {
+            question.push(Question::new(v)?);
+        }
         Some(Request{
             header: Header::from(request.get_raw_header()),
-            question: QuestionType::new(request.get_raw_question())?,
+            question,
         })
     }
 }

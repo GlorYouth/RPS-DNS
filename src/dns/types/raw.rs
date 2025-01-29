@@ -8,7 +8,6 @@ mod request;
 pub use answer::*;
 pub use header::RawHeader;
 pub use question::RawQuestion;
-pub use question::RawQuestionType;
 pub use record::RawRecord;
 pub use record::RecordDataType;
 pub use request::RawRequest;

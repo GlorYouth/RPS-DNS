@@ -4,11 +4,6 @@ use small_map::SmallMap;
 use crate::dns::types::raw::domain::RawDomain;
 use crate::dns::utils::SliceReader;
 
-pub enum RawQuestionType<'a> {
-    Single(RawQuestion<'a>),
-    Multiple(Vec<RawQuestion<'a>>),
-    None,
-}
 
 #[derive(Debug)]
 pub struct RawQuestion<'a> {

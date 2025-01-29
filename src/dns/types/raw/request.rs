@@ -1,15 +1,16 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 use crate::dns::types::raw::domain::RawDomain;
 use crate::dns::types::raw::header::RawHeader;
-use crate::dns::types::raw::question::{RawQuestion, RawQuestionType};
+use crate::dns::types::raw::question::{RawQuestion};
 use crate::dns::utils::SliceReader;
 use small_map::SmallMap;
+use smallvec::SmallVec;
 
 pub struct RawRequest<'a> {
     reader: SliceReader<'a>,
 
     raw_header: RawHeader<'a>,
-    raw_question: RawQuestionType<'a>,
+    raw_question: SmallVec<[RawQuestion<'a>; 5]>,
 }
 
 impl<'a> RawRequest<'a> {
@@ -23,7 +24,7 @@ impl<'a> RawRequest<'a> {
         Some(RawRequest {
             reader,
             raw_header,
-            raw_question: RawQuestionType::None,
+            raw_question: SmallVec::new(),
         })
     }
 
@@ -34,17 +35,8 @@ impl<'a> RawRequest<'a> {
     ) -> Option<()> {
         check(&self.raw_header)?;
         let qdcount = self.raw_header.get_qdcount();
-        if qdcount == 1 {
-            self.raw_question = RawQuestionType::Single(RawQuestion::new(&mut self.reader, map)?);
-        } else if qdcount > 1 {
-            if self.reader.len() < RawHeader::SIZE + RawQuestion::LEAST_SIZE * qdcount as usize {
-                return None;
-            }
-            let mut vec = Vec::with_capacity(self.raw_header.get_qdcount() as usize);
-            vec.push(RawQuestion::new(&mut self.reader, map)?);
-            self.raw_question = RawQuestionType::Multiple(vec);
-        } else {
-            return None;
+        for _ in 0..qdcount {
+            self.raw_question.push(RawQuestion::new(&mut self.reader,map)?)
         }
         Some(())
     }
@@ -55,7 +47,7 @@ impl<'a> RawRequest<'a> {
     }
     
     #[inline]
-    pub fn get_raw_question(&self) -> &RawQuestionType<'a> {
+    pub fn get_raw_question(&self) -> &SmallVec<[RawQuestion<'a>; 5]> {
         &self.raw_question
     }
 }
