@@ -1,5 +1,5 @@
 use crate::{Answer, RawAnswer};
-use std::collections::HashMap;
+use small_map::SmallMap;
 
 pub fn test() {
     for _ in 0..20000 {
@@ -19,7 +19,7 @@ pub fn test() {
             ][..],
         )
         .unwrap();
-        let mut map = HashMap::new();
+        let mut map = SmallMap::new();
         raw.init(&mut map, |_h| Some(())).unwrap();
         let answer = Answer::new(&raw).unwrap();
         assert_eq!(answer.header.id,0xb4db)

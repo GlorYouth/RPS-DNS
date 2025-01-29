@@ -1,9 +1,9 @@
-use crate::dns::types::raw::domain::RawDomain;
 use crate::dns::types::raw::header::RawHeader;
 use crate::dns::types::raw::question::{RawQuestion, RawQuestionType};
 use crate::dns::types::raw::record::RawRecord;
 use crate::dns::utils::SliceReader;
-use std::collections::HashMap;
+use small_map::SmallMap;
+use crate::dns::types::raw::domain::RawDomain;
 
 pub struct RawAnswer<'a> {
     reader: SliceReader<'a>,
@@ -35,7 +35,7 @@ impl<'a> RawAnswer<'a> {
 
     pub fn init<'b,F: FnMut(&RawHeader<'a>) -> Option<()>>(
         &'b mut self,
-        mut map: &'b mut HashMap<u16, RawDomain<'a>>,
+        mut map: &mut SmallMap<32, u16, RawDomain<'a>>,
         mut check: F,
     ) -> Option<()> {
         check(&self.raw_header)?;
@@ -84,17 +84,17 @@ impl<'a> RawAnswer<'a> {
     pub fn get_raw_question(&self) -> &RawQuestionType<'a> {
         &self.raw_question
     }
-    
+
     #[inline]
     pub fn get_raw_answer(&self) -> &Vec<RawRecord<'a>> {
         &self.answer
     }
-    
+
     #[inline]
     pub fn get_raw_authority(&self) -> &Vec<RawRecord<'a>> {
         &self.authority
     }
-    
+
     #[inline]
     pub fn get_raw_additional(&self) -> &Vec<RawRecord<'a>> {
         &self.additional
@@ -104,7 +104,7 @@ impl<'a> RawAnswer<'a> {
 #[cfg(test)]
 mod test {
     use crate::dns::types::raw::answer::RawAnswer;
-    use std::collections::HashMap;
+    use small_map::SmallMap;
 
     #[test]
     fn test() {
@@ -124,7 +124,7 @@ mod test {
             ][..],
         )
         .unwrap();
-        let mut map = HashMap::new();
+        let mut map = SmallMap::new();
         raw.init(&mut map, |_h| Some(())).unwrap()
     }
 }

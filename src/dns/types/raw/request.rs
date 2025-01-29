@@ -3,7 +3,8 @@ use crate::dns::types::raw::domain::RawDomain;
 use crate::dns::types::raw::header::RawHeader;
 use crate::dns::types::raw::question::{RawQuestion, RawQuestionType};
 use crate::dns::utils::SliceReader;
-use std::collections::HashMap;
+use small_map::SmallMap;
+
 pub struct RawRequest<'a> {
     reader: SliceReader<'a>,
 
@@ -28,7 +29,7 @@ impl<'a> RawRequest<'a> {
 
     pub fn init<F: FnMut(&RawHeader<'a>) -> Option<()>>(
         &mut self,
-        map: &mut HashMap<u16, RawDomain<'a>>,
+        map: &mut SmallMap<32, u16, RawDomain<'a>>,
         mut check: F,
     ) -> Option<()> {
         check(&self.raw_header)?;

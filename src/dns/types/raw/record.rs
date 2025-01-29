@@ -1,8 +1,8 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 use crate::dns::types::raw::domain::RawDomain;
 use crate::dns::utils::SliceReader;
-use std::collections::HashMap;
 use std::net::{Ipv4Addr, Ipv6Addr};
+use small_map::SmallMap;
 
 pub struct RawRecord<'a> {
     name: RawDomain<'a>,
@@ -18,7 +18,7 @@ impl<'a> RawRecord<'a> {
     pub fn new<'b>(
         // 'b为引用存在的周期，比'a对象存在的周期短或等于
         reader: &'b mut SliceReader<'a>,
-        map: &'b mut HashMap<u16, RawDomain<'a>>,
+        map: &mut SmallMap<32, u16, RawDomain<'a>>,
     ) -> Option<RawRecord<'a>> {
         let name = RawDomain::new(reader, map)?;
         let len = reader.len();
