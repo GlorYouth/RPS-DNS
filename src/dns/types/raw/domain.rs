@@ -2,7 +2,7 @@
 
 use crate::dns::utils::SliceReader;
 use small_map::SmallMap;
-use std::fmt::{Debug, Display};
+use std::fmt::{Debug};
 
 const SIZE_OF_XN: usize = "xn--".len();
 #[derive(PartialEq, Debug, Copy, Clone)]
