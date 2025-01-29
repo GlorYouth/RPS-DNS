@@ -46,14 +46,14 @@ impl<'a> RawDomain<'a> {
         let len = reader.len();
         let mut read = reader.read_u8();
         while read != 0x0_u8 {
-            if position + read as usize + 1 > len {
+            if position + read as usize > len {
                 return None; //检测出界，防止panic
             }
             reader.skip(read as usize);
             read = reader.read_u8();
         }
 
-        let name = RawDomain::from(&reader.as_mut()[position..reader.pos()]);
+        let name = RawDomain::from(&reader.as_mut()[position..reader.pos()-1]);
         map.insert((position as u16) | 0b1100_0000_0000_0000_u16, name.clone());
         Some(name)
     }
@@ -100,8 +100,7 @@ impl<'a> RawDomain<'a> {
         let mut decoded = String::with_capacity(40);
         let mut i = 0;
 
-        while i < self.0.len() - 1 {
-            //排除最后的'\0'
+        while i < self.0.len() {
             let part_length = self.0[i] as usize;
             i += 1; // 移动到部分内容
 
@@ -131,7 +130,7 @@ impl<'a> RawDomain<'a> {
             }
 
             // 添加分隔符 "."
-            if i < self.0.len() - 1 {
+            if i < self.0.len() {
                 decoded.push('.');
             }
         }
