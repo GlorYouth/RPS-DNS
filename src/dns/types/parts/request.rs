@@ -1,16 +1,16 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
-use rand::Rng;
-use crate::dns::types::parts::header::Header;
+use crate::dns::types::parts::header::RequestHeader;
 use crate::dns::types::parts::question::Question;
-use smallvec::SmallVec;
 use crate::dns::types::parts::raw::RawRequest;
 use crate::dns::utils::SliceOperator;
+use rand::Rng;
+use smallvec::SmallVec;
 
 const SUFFIX:& [u8] = "xn--".as_bytes();
 
 pub struct Request {
-    header: Header,
+    header: RequestHeader,
     question: SmallVec<[Question; 5]>,
 }
 
@@ -31,15 +31,14 @@ impl Request {
         });
 
         Request {
-            header: Header {
+            header: RequestHeader {
                 id: rng.random(),
                 qr: 0,
                 opcode: 0,
-                aa: 0,
+                tc: 0,
                 rd: 0,
-                ra: 0,
                 z: 0,
-                rcode: 0,
+                non_authenticated: 0,
             },
             question,
         }
@@ -50,7 +49,7 @@ impl Request {
         let mut operator = SliceOperator::from_slice(buffer);
         operator.write_u16(self.header.id);
         operator.skip(1);
-        operator.write_u8(self.header.ra << 7 | self.header.z << 4 | self.header.rcode);
+        operator.write_u8(self.header.z << 6 | self.header.non_authenticated << 4);
         operator.write_u16(self.question.len() as u16);
         operator.write_u32(0);
         operator.write_u16(0);
@@ -84,11 +83,10 @@ impl Request {
         }
         let len = operator.pos();
         if len > 512 {
-            buffer[2] = self.header.qr << 7 | self.header.opcode << 3 |
-                self.header.aa << 2 | 0b0000_0010 | self.header.rd;
+            panic!() //tcp传输?
         } else {
             buffer[2] = self.header.qr << 7 | self.header.opcode << 3 |
-                self.header.aa << 2 | self.header.rd;
+                self.header.tc << 1 | self.header.rd;
         }
         Some(len)
     }
@@ -104,7 +102,7 @@ impl From<&RawRequest<'_>> for Option<Request> {
             question.push(Question::new(v)?);
         }
         Some(Request {
-            header: Header::from(request.get_raw_header()),
+            header: RequestHeader::from(request.get_raw_header()),
             question,
         })
     }

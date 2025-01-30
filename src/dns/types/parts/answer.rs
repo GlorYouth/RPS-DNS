@@ -1,7 +1,7 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
 use small_map::SmallMap;
-use crate::dns::types::parts::header::Header;
+use crate::dns::types::parts::header::AnswerHeader;
 use crate::dns::types::parts::question::Question;
 use crate::dns::types::parts::record::Record;
 use smallvec::SmallVec;
@@ -9,7 +9,7 @@ use crate::dns::types::parts::raw::RawAnswer;
 
 #[derive(Debug)]
 pub struct Answer {
-    pub header: Header,
+    pub header: AnswerHeader,
     pub question: SmallVec<[Question; 5]>,
     pub answer: SmallVec<[Record; 10]>,
     pub authority: SmallVec<[Record; 5]>,
@@ -53,7 +53,7 @@ impl Answer {
         }
 
         Some(Answer {
-            header: Header::from(value.get_raw_header()),
+            header: AnswerHeader::from(value.get_raw_header()),
             question,
             answer,
             authority,
