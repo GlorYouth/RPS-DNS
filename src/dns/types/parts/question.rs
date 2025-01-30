@@ -1,5 +1,6 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
-use crate::dns::RawQuestion;
+
+use crate::dns::types::parts::raw::RawQuestion;
 
 #[derive(Debug)]
 pub struct Question {
@@ -7,6 +8,8 @@ pub struct Question {
     pub qtype: u16,
     pub qclass: u16,
 }
+
+
 
 impl Question {
     #[inline]

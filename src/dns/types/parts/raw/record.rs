@@ -1,5 +1,5 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
-use crate::dns::types::raw::domain::RawDomain;
+use crate::dns::types::base::RawDomain;
 use crate::dns::utils::SliceReader;
 use small_map::SmallMap;
 use std::net::{Ipv4Addr, Ipv6Addr};

@@ -1,7 +1,7 @@
-use crate::dns::types::raw::domain::RawDomain;
-use crate::dns::types::raw::header::RawHeader;
-use crate::dns::types::raw::question::RawQuestion;
-use crate::dns::types::raw::record::RawRecord;
+use crate::dns::types::base::RawDomain;
+use crate::dns::types::parts::raw::header::RawHeader;
+use crate::dns::types::parts::raw::question::RawQuestion;
+use crate::dns::types::parts::raw::record::RawRecord;
 use crate::dns::utils::SliceReader;
 use small_map::SmallMap;
 use smallvec::SmallVec;
@@ -96,7 +96,7 @@ impl<'a> RawAnswer<'a> {
 
 #[cfg(test)]
 mod test {
-    use crate::dns::types::raw::answer::RawAnswer;
+    use crate::dns::types::parts::raw::answer::RawAnswer;
     use small_map::SmallMap;
 
     #[test]
@@ -118,6 +118,6 @@ mod test {
         )
         .unwrap();
         let mut map = SmallMap::new();
-        raw.init(&mut map, |_h| Some(())).unwrap()
+        raw.init(&mut map, |_h| Some(())).unwrap();
     }
 }

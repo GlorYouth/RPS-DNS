@@ -1,7 +1,6 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
-use crate::dns::RawRecord;
-use crate::dns::RecordDataType;
+use crate::dns::types::parts::raw::{RawRecord, RecordDataType};
 
 #[derive(Debug)]
 pub struct Record {

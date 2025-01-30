@@ -33,11 +33,7 @@ impl<'a> RawHeader<'a> {
     pub fn get_aa(&self) -> u8 {
         (self.slice[2] & 0b0000_0100) >> 2
     }
-
-    #[inline]
-    pub fn get_tc(&self) -> u8 {
-        (self.slice[2] & 0b0000_0010) >> 1
-    }
+    
 
     #[inline]
     pub fn get_rd(&self) -> u8 {

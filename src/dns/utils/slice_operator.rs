@@ -87,6 +87,13 @@ impl<'a> SliceOperator<'a> {
     #[inline]
     pub fn write_u64(&mut self, val: u64) {
         self.slice[self.pos..self.pos + 8].copy_from_slice(&val.to_be_bytes());
+        self.pos += 8;
+    }
+    
+    #[inline]
+    pub fn write_slice(&mut self, slice: &[u8]) {
+        self.slice[self.pos..self.pos + slice.len()].copy_from_slice(slice);
+        self.pos += slice.len();
     }
 
     #[inline]

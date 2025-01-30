@@ -1,5 +1,6 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
-use crate::dns::RawHeader;
+
+use crate::dns::types::parts::raw::RawHeader;
 
 #[derive(Debug)]
 pub struct Header {
@@ -14,8 +15,6 @@ pub struct Header {
     // 如果是1，说明返回响应的那个服务器是authoritative的，也就是它“拥有”被查询的域名
     pub aa: u8,
 
-    // 如果是1，则消息超过512字节。通常这意味着DNS是通过TCP协议通信的，此时长度限制不再有效
-    pub tc: u8,
 
     // 若由请求的发送方设置为1，则说明服务器应当在查询不到域名的情况下尝试递归查询
     pub rd: u8,
@@ -37,7 +36,6 @@ impl From<&RawHeader<'_>> for Header {
             qr: header.get_qr(),
             opcode: header.get_opcode(),
             aa: header.get_aa(),
-            tc: header.get_tc(),
             rd: header.get_rd(),
             ra: header.get_ra(),
             z: header.get_z(),

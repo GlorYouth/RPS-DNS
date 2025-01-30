@@ -1,10 +1,11 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
-use crate::dns::RawAnswer;
-use crate::dns::types::processed::header::Header;
-use crate::dns::types::processed::question::Question;
-use crate::dns::types::processed::record::Record;
+use small_map::SmallMap;
+use crate::dns::types::parts::header::Header;
+use crate::dns::types::parts::question::Question;
+use crate::dns::types::parts::record::Record;
 use smallvec::SmallVec;
+use crate::dns::types::parts::raw::RawAnswer;
 
 #[derive(Debug)]
 pub struct Answer {
@@ -16,7 +17,15 @@ pub struct Answer {
 }
 
 impl Answer {
-    pub fn new(value: &RawAnswer) -> Option<Answer> {
+    pub fn new(slice: &[u8]) -> Option<Answer> {
+        let mut raw = RawAnswer::new(slice)?;
+        let mut map = SmallMap::new();
+        raw.init(&mut map, |_h| Some(()))?;
+        Some(Answer::from_raw(&raw)?)
+    }
+    
+    
+    pub fn from_raw(value: &RawAnswer) -> Option<Answer> {
         let raw_question = value.get_raw_question();
         let raw_answer = value.get_raw_answer();
         let raw_authority = value.get_raw_authority();
@@ -56,6 +65,6 @@ impl Answer {
 impl From<&RawAnswer<'_>> for Option<Answer> {
     #[inline]
     fn from(value: &RawAnswer) -> Option<Answer> {
-        Answer::new(value)
+        Answer::from_raw(value)
     }
 }

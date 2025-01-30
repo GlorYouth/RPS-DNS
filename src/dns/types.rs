@@ -1,5 +1,5 @@
-mod processed;
-mod raw;
+mod parts;
+mod base;
 
-pub use processed::*;
-pub use raw::*;
+pub use parts::*;
+pub use base::DnsType;
