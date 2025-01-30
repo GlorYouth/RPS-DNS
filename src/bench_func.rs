@@ -2,7 +2,7 @@ use crate::{Answer, RawAnswer};
 use small_map::SmallMap;
 
 pub fn test() {
-    for _ in 1..20000 {
+    for _ in 0..20000 {
         let mut raw = RawAnswer::new(
             &[
                 0xb4_u8, 0xdb, 0x81, 0x80, 0x00, 0x01, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x03,

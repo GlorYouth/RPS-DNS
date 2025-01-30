@@ -21,3 +21,6 @@ harness = false
 opt-level = 1
 [profile.dev.package."*"]
 opt-level = 3
+
+[build]
+rustflags = ["-C", "target-cpu=native"]

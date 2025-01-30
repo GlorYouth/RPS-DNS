@@ -2,9 +2,8 @@
 
 use crate::dns::utils::SliceReader;
 use small_map::SmallMap;
-use std::fmt::{Debug};
+use std::fmt::Debug;
 
-const SIZE_OF_XN: usize = "xn--".len();
 #[derive(PartialEq, Debug, Copy, Clone)]
 pub struct RawDomain<'a>(&'a [u8]);
 
@@ -38,6 +37,9 @@ impl<'a> RawDomain<'a> {
         let position = reader.pos();
         let len = reader.len();
         let mut read = reader.read_u8();
+        if read == 0x0_u8 {
+            return None; //防止无长度的域名
+        }
         while read != 0x0_u8 {
             if position + read as usize > len {
                 return None; //检测出界，防止panic
@@ -52,43 +54,46 @@ impl<'a> RawDomain<'a> {
     }
     
     pub fn to_string(&self) -> Option<String> {
-        let mut decoded = String::with_capacity(40);
-        let mut i = 0;
+        let mut string = String::with_capacity(40);
+        let mut remaining = self.0;
 
-        while i < self.0.len() {
-            let part_length = self.0[i] as usize;
-            i += 1; // 移动到部分内容
+        while !remaining.is_empty() {
+            let part_length = remaining[0] as usize;
+            remaining = &remaining[1..];
 
-            let part_bytes = self.0[i..(i + part_length)].as_ref();
-            i += part_length; // 移动到下一部分
-
+            // 检查长度有效性
+            if remaining.len() < part_length {
+                return None;
+            }
+            let part_bytes = &remaining[..part_length];
+            
+            // 处理内容
             if part_bytes.starts_with(b"xn--") {
                 // Punycode 编码的部分，解码
                 let input = std::str::from_utf8(&part_bytes[4..]).unwrap(); // 去掉 'xn--' 前缀
                 match punycode::decode(input) {
                     Ok(decoded_part) => {
-                        decoded.push_str(&decoded_part);
+                        string.push_str(&decoded_part);
                     }
                     Err(_) => {
                         return None;
                     }
                 }
             } else {
-                // 直接是 ASCII 字符部分
                 for byte in part_bytes {
                     if byte.is_ascii() {
-                        decoded.push(*byte as char);
+                        string.push(*byte as char);
                     } else {
                         return None;
                     }
                 }
             }
-
-            // 添加分隔符 "."
-            if i < self.0.len() {
-                decoded.push('.');
+            
+            if part_length != remaining.len() {
+                string.push('.');
             }
+            remaining = &remaining[part_length..];
         }
-        Some(decoded)
+        Some(string)
     }
 }
