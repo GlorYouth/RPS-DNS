@@ -1,5 +1,5 @@
 use crate::dns::types::base::RawDomain;
-use crate::dns::types::parts::raw::header::RawHeader;
+use crate::dns::types::parts::raw::header::RawAnswerHeader;
 use crate::dns::types::parts::raw::question::RawQuestion;
 use crate::dns::types::parts::raw::record::RawRecord;
 use crate::dns::utils::SliceReader;
@@ -9,7 +9,7 @@ use smallvec::SmallVec;
 pub struct RawAnswer<'a> {
     reader: SliceReader<'a>,
 
-    raw_header: RawHeader<'a>,
+    raw_header: RawAnswerHeader<'a>,
     raw_question: SmallVec<[RawQuestion<'a>; 5]>,
     answer: SmallVec<[RawRecord<'a>; 10]>, //预分配，提升性能
     authority: SmallVec<[RawRecord<'a>; 5]>,
@@ -19,11 +19,11 @@ pub struct RawAnswer<'a> {
 impl<'a> RawAnswer<'a> {
     #[inline]
     pub fn new(slice: &'a [u8]) -> Option<RawAnswer<'a>> {
-        if slice.len() < RawHeader::SIZE + RawQuestion::LEAST_SIZE {
+        if slice.len() < RawAnswerHeader::SIZE + RawQuestion::LEAST_SIZE {
             return None;
         }
         let mut reader = SliceReader::from_slice(slice);
-        let raw_header = RawHeader::new(&mut reader);
+        let raw_header = RawAnswerHeader::new(&mut reader);
         Some(RawAnswer {
             reader,
             raw_header,
@@ -34,7 +34,7 @@ impl<'a> RawAnswer<'a> {
         })
     }
 
-    pub fn init<'b, F: FnMut(&RawHeader<'a>) -> Option<()>>(
+    pub fn init<'b, F: FnMut(&RawAnswerHeader<'a>) -> Option<()>>(
         &'b mut self,
         mut map: &mut SmallMap<32, u16, RawDomain<'a>>,
         mut check: F,
@@ -69,7 +69,7 @@ impl<'a> RawAnswer<'a> {
     }
 
     #[inline]
-    pub fn get_raw_header(&self) -> &RawHeader<'a> {
+    pub fn get_raw_header(&self) -> &RawAnswerHeader<'a> {
         &self.raw_header
     }
 
