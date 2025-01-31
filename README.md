@@ -7,6 +7,10 @@ A Rust DNS light client/server dedicated to high performance and safe.
 基层的实现效率还是可以的  
 欢迎fork and commit  
 
+### Client
+#### 正在实施的RFC:
+- [ ] RFC1035  
+
 ## 待办
 - [ ] 实现header中每个flag 对应的检测/行为，需要阅读rfc
 - [ ] 实现从最底层开始的#[test]模块，争取全覆盖
@@ -17,6 +21,7 @@ A Rust DNS light client/server dedicated to high performance and safe.
 - [ ] 完善DNSClient，并配套实现Error
 
 ## 未来实现
+- 实现dns缓存
 - 支持EDNS
 - 支持DNSSEC
 - 支持https,quic,h3,tls等类型请求

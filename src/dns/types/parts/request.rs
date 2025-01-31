@@ -45,8 +45,9 @@ impl Request {
     }
 
     #[inline]
-    pub fn encode_into(self, buffer: &mut [u8]) -> Option<usize> {
+    pub fn encode_into(self, buffer: &mut [u8]) -> Option<&[u8]> {
         let mut operator = SliceOperator::from_slice(buffer);
+        operator.set_pos(2);
         operator.write_u16(self.header.id);
         operator.skip(1);
         operator.write_u8(self.header.z << 6 | self.header.non_authenticated << 4);
@@ -82,13 +83,13 @@ impl Request {
             operator.write_u16(q.qclass);
         }
         let len = operator.pos();
-        if len > 512 {
-            panic!() //tcp传输?
-        } else {
-            buffer[2] = self.header.qr << 7 | self.header.opcode << 3 |
-                self.header.tc << 1 | self.header.rd;
+        buffer[4] = self.header.qr << 7 | self.header.opcode << 3 |
+            self.header.tc << 1 | self.header.rd;
+        if len - 2 > 512 {
+            buffer[0..2].copy_from_slice(len.to_be_bytes().as_ref());
+            return Some(buffer[..len].as_ref())
         }
-        Some(len)
+        Some(buffer[2..len].as_ref())
     }
 }
 
