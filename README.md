@@ -1,4 +1,4 @@
-# RPS-DNS
+t# RPS-DNS
 A Rust DNS light client/server dedicated to high performance and safe.
 
 ## 现在阶段
@@ -7,7 +7,6 @@ A Rust DNS light client/server dedicated to high performance and safe.
 基层的实现效率还是可以的  
 欢迎fork and commit  
 
-当前主要几个分支不允许直接修改
 ### Client
 #### 正在实施的RFC:
 - [ ] RFC1035  
