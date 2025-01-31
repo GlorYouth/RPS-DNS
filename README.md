@@ -2,8 +2,10 @@
 A Rust DNS light client/server dedicated to high performance and safe.
 
 ## 现在阶段
+还处于dev阶段，无法直接用
 目前整体项目架构已经确定下来了，不会再有太大的改变了
 基层的实现效率还是可以的
+欢迎fork and commit
 
 ## 待办
 - [ ] 实现header中每个flag 对应的检测/行为，需要阅读rfc
