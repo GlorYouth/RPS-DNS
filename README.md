@@ -1,5 +1,5 @@
-# DNS
-A DNS light client/server dedicated to high performance.
+# RPS-DNS
+A Rust DNS light client/server dedicated to high performance and safe.
 
 ## 现在阶段
 目前整体项目架构已经确定下来了，不会再有太大的改变了
