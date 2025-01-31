@@ -1,0 +1,41 @@
+name: Rust
+
+on:
+  push:
+    branches: [ "performance" ]
+  pull_request:
+    branches: [ "performance" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  Run-RPS_DNS-on-Ubuntu:
+    name: Run RPS-DNS on Ubuntu
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build
+      run: cargo build --verbose
+    - name: Run tests
+      run: cargo test --verbose
+
+  Run-RPS_DNS-on-Windows:
+    name: Run RPS-DNS on Windows
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build
+      run: cargo build --verbose
+    - name: Run tests
+      run: cargo test --verbose
+
+  Run-RPS_DNS-on-Macos:
+    name: Run RPS-DNS on Macos
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build
+      run: cargo build --verbose
+    - name: Run tests
+      run: cargo test --verbose
