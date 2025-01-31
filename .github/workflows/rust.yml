@@ -16,9 +16,9 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Build
-      run: cargo build --verbose
+      run: cargo +nightly build  --verbose
     - name: Run tests
-      run: cargo test --verbose
+      run: cargo +nightly test --verbose
 
   Run-RPS_DNS-on-Windows:
     name: Run RPS-DNS on Windows
@@ -26,9 +26,9 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Build
-      run: cargo build --verbose
+      run: cargo +nightly build --verbose
     - name: Run tests
-      run: cargo test --verbose
+      run: cargo +nightly test --verbose
 
   Run-RPS_DNS-on-Macos:
     name: Run RPS-DNS on Macos
@@ -36,6 +36,6 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Build
-      run: cargo build --verbose
+      run: cargo +nightly build --verbose
     - name: Run tests
-      run: cargo test --verbose
+      run: cargo +nightly test --verbose
