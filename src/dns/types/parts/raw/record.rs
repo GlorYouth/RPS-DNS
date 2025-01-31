@@ -2,7 +2,7 @@
 use crate::dns::types::base::RawDomain;
 use crate::dns::utils::SliceReader;
 use small_map::SmallMap;
-use std::net::{Ipv4Addr, Ipv6Addr};
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 pub struct RawRecord<'a> {
     name: RawDomain<'a>,
@@ -85,6 +85,14 @@ impl RecordDataType {
                 <&[u8] as TryInto<[u8; 16]>>::try_into(data).unwrap(),
             ))),
             _ => None,
+        }
+    }
+
+    pub fn get_addr(&self) -> IpAddr {
+        match self {
+            RecordDataType::A(ipv4_addr) => IpAddr::V4(*ipv4_addr),
+            RecordDataType::AAAA(ipv6_addr) => IpAddr::V6(*ipv6_addr),
+            RecordDataType::CNAME(_) => todo!(),
         }
     }
 }
