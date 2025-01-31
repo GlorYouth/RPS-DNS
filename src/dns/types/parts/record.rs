@@ -20,6 +20,30 @@ impl Record {
             data: record.get_data()?,
         })
     }
+
+    pub fn is_a(&self) -> bool {
+        if let RecordDataType::A(_) = self.data {
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn is_aaaa(&self) -> bool {
+        if let RecordDataType::AAAA(_) = self.data {
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn is_cname(&self) -> bool {
+        if let RecordDataType::CNAME(_) = self.data {
+            true
+        } else {
+            false
+        }
+    }
 }
 
 impl From<&RawRecord<'_>> for Option<Record> {
