@@ -1,5 +1,6 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
+use log::{debug, trace};
 use crate::dns::types::base::RawDomain;
 use crate::dns::utils::SliceReader;
 use small_map::SmallMap;
@@ -19,9 +20,15 @@ impl<'a> RawQuestion<'a> {
         reader: &'b mut SliceReader<'a>,
         map: &mut SmallMap<32, u16, RawDomain<'a>>,
     ) -> Option<RawQuestion<'a>> {
+        #[cfg(debug_assertions)] {
+            trace!("准备解析Question内的name");
+        }
         let name = RawDomain::new(reader, map)?;
         let len = reader.len();
         if reader.pos() + Self::FIX_SIZE > len {
+            #[cfg(debug_assertions)] {
+                trace!("解析完name后，剩余Slice不足以存放Question的其余部分");
+            }
             return None; //检测出界，防止panic
         }
         Some(RawQuestion {

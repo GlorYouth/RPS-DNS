@@ -3,6 +3,7 @@ use crate::dns::types::base::RawDomain;
 use crate::dns::utils::SliceReader;
 use small_map::SmallMap;
 use std::net::{Ipv4Addr, Ipv6Addr};
+use log::{debug, trace};
 
 pub struct RawRecord<'a> {
     name: RawDomain<'a>,
@@ -20,10 +21,16 @@ impl<'a> RawRecord<'a> {
         reader: &'b mut SliceReader<'a>,
         map: &mut SmallMap<32, u16, RawDomain<'a>>,
     ) -> Option<RawRecord<'a>> {
+        #[cfg(debug_assertions)] {
+            trace!("准备解析Record内的name");
+        }
         let name = RawDomain::new(reader, map)?;
         let len = reader.len();
 
         if reader.pos() + Self::FIX_SIZE > len {
+            #[cfg(debug_assertions)] {
+                trace!("解析完name后，剩余Slice不足以存放Record的其余部分");
+            }
             return None;
         }
 
@@ -31,6 +38,9 @@ impl<'a> RawRecord<'a> {
         let data_length = reader.read_u16() as usize;
 
         if reader.pos() + data_length > len {
+            #[cfg(debug_assertions)] {
+                debug!("读取到Record中Data可变部分长度为{:x},需要总Slice长度为{:x},实际Slice长度{:x}",data_length,reader.pos() + data_length,len);
+            }
             return None;
         }
 

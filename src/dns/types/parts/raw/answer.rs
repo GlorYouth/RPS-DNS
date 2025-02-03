@@ -1,3 +1,4 @@
+use log::{debug, trace};
 use crate::dns::types::base::RawDomain;
 use crate::dns::types::parts::raw::header::RawAnswerHeader;
 use crate::dns::types::parts::raw::question::RawQuestion;
@@ -20,10 +21,22 @@ impl<'a> RawAnswer<'a> {
     #[inline]
     pub fn new(slice: &'a [u8]) -> Option<RawAnswer<'a>> {
         if slice.len() < RawAnswerHeader::SIZE + RawQuestion::LEAST_SIZE {
+            #[cfg(debug_assertions)] {
+                debug!("传入Slice长度不符合最低标准RawAnswer, 输入Slice长度 {}, 需要至少 {}", slice.len(), RawAnswerHeader::SIZE + RawQuestion::LEAST_SIZE);
+            }
             return None;
         }
+        #[cfg(debug_assertions)] {
+            trace!("开始生成SliceReader")
+        }
         let mut reader = SliceReader::from_slice(slice);
+        #[cfg(debug_assertions)] {
+            trace!("开始解析Header")
+        }
         let raw_header = RawAnswerHeader::new(&mut reader);
+        #[cfg(debug_assertions)] {
+            trace!("初始化RawAnswer");
+        }
         Some(RawAnswer {
             reader,
             raw_header,
@@ -39,28 +52,45 @@ impl<'a> RawAnswer<'a> {
         mut map: &mut SmallMap<32, u16, RawDomain<'a>>,
         mut check: F,
     ) -> Option<()> {
-        check(&self.raw_header)?;
+        if check(&self.raw_header).is_none() {
+            #[cfg(debug_assertions)] {
+                debug!("外置header检验失败(check函数)");
+            }
+            return None;
+        }
         let qdcount = self.raw_header.get_qdcount();
         let ancount = self.raw_header.get_ancount();
         let nscount = self.raw_header.get_nscount();
         let arcount = self.raw_header.get_arcount();
 
-        for _ in 0..qdcount {
+        for i in 0..qdcount {
+            #[cfg(debug_assertions)] {
+                trace!("正在从Slice解析第{}个RawQuestion",i);
+            }
             self.raw_question
                 .push(RawQuestion::new(&mut self.reader, map)?)
         }
 
-        for _ in 0..ancount {
+        for i in 0..ancount {
+            #[cfg(debug_assertions)] {
+                trace!("正在从Slice解析RawRecord=>第{}个answer",i);
+            }
             self.answer
                 .push(RawRecord::new(&mut self.reader, &mut map)?);
         }
 
-        for _ in 0..nscount {
+        for i in 0..nscount {
+            #[cfg(debug_assertions)] {
+                trace!("正在从Slice解析RawRecord=>第{}个authority",i);
+            }
             self.authority
                 .push(RawRecord::new(&mut self.reader, &mut map)?);
         }
 
-        for _ in 0..arcount {
+        for i in 0..arcount {
+            #[cfg(debug_assertions)] {
+                trace!("正在从Slice解析RawRecord=>第{}个additional",i);
+            }
             self.additional
                 .push(RawRecord::new(&mut self.reader, &mut map)?);
         }

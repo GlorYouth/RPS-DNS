@@ -1,21 +1,19 @@
-use crate::dns::{Answer, DnsType};
+use std::io::{Read, Write};
+use crate::dns::{init_logger, Answer, DnsType};
 use dns_core::{Request};
-use std::net::UdpSocket;
+use std::net::{TcpStream, UdpSocket};
+
 
 mod dns;
 fn main() {
-    let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
-    socket.connect("223.5.5.5:53").unwrap();
+    init_logger();
+    let mut stream = TcpStream::connect("223.5.5.5:53").unwrap();
     let mut buf = [0_u8; 1500];
-    let arr = Request::new("www.google.com".to_string(), DnsType::A.into()).encode_into(&mut buf).unwrap();
-    if arr.len() > 512 {
-        panic!("需要用tcp");
-    }
-    socket.send(arr).unwrap();
-    let number_of_bytes = socket.recv(&mut buf)
-        .expect("Didn't receive data");
-    let answer = Answer::new(&buf[..number_of_bytes]).unwrap();
-    println!("{:?}", answer);
+    stream.write_all(Request::new("www.baidu.com".to_string(), DnsType::A.into()).encode_into_tcp(&mut buf).unwrap()).unwrap();
+    stream.read(&mut buf).unwrap();
+    let len = u16::from_be_bytes([buf[0], buf[1]]);
+    let answer = Answer::new(&buf.as_slice()[2..]).unwrap();
+    println!("{:?}",answer);
     return;
 }
 

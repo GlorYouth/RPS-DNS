@@ -82,14 +82,14 @@ impl Request {
             operator.write_u16(q.qtype);
             operator.write_u16(q.qclass);
         }
-        let len = operator.pos();
+        let pos = operator.pos();
         buffer[4] = self.header.qr << 7 | self.header.opcode << 3 |
             self.header.tc << 1 | self.header.rd;
-        if len - 2 > 512 {
-            buffer[0..2].copy_from_slice(len.to_be_bytes().as_ref());
-            return Some(buffer[..len].as_ref())
+        if pos - 2 > 512 {
+            buffer[0..2].copy_from_slice(((pos - 2) as u16).to_be_bytes().as_ref());
+            return Some(buffer[..pos].as_ref())
         }
-        Some(buffer[2..len].as_ref())
+        Some(buffer[2..pos].as_ref())
     }
 
     #[inline]
@@ -130,11 +130,11 @@ impl Request {
             operator.write_u16(q.qtype);
             operator.write_u16(q.qclass);
         }
-        let len = operator.pos();
+        let pos = operator.pos();
         buffer[4] = self.header.qr << 7 | self.header.opcode << 3 |
             self.header.tc << 1 | self.header.rd;
-        buffer[0..2].copy_from_slice(len.to_be_bytes().as_ref());
-        Some(buffer[..len].as_ref())
+        buffer[0..2].copy_from_slice(((pos - 2) as u16).to_be_bytes().as_ref());
+        Some(buffer[..pos].as_ref())
     }
 }
 
