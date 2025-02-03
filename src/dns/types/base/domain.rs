@@ -86,11 +86,7 @@ impl<'a> RawDomain<'a> {
         while !remaining.is_empty() {
             let part_length = remaining[0] as usize;
             remaining = &remaining[1..];
-
-            // 检查长度有效性
-            if remaining.len() < part_length {
-                return None;
-            }
+            
             let part_bytes = &remaining[..part_length];
             
             // 处理内容
@@ -102,6 +98,9 @@ impl<'a> RawDomain<'a> {
                         string.push_str(&decoded_part);
                     }
                     Err(_) => {
+                        #[cfg(debug_assertions)] {
+                            debug!("punycode解码失败, 解码输入的为 {}", input);
+                        }
                         return None;
                     }
                 }
@@ -110,6 +109,9 @@ impl<'a> RawDomain<'a> {
                     if byte.is_ascii() {
                         string.push(*byte as char);
                     } else {
+                        #[cfg(debug_assertions)] {
+                            debug!("domain内有非ASCII字符:{},{}",*byte as char,*byte);
+                        }
                         return None;
                     }
                 }

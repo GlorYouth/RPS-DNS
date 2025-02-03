@@ -25,9 +25,12 @@ impl Answer {
         let mut raw = RawAnswer::new(slice)?;
         let mut map = SmallMap::new();
         #[cfg(debug_assertions)] {
-            trace!("从Slice解析Answer除Header的剩余部分");
+            trace!("从Slice解析RawAnswer除Header外部分");
         }
         raw.init(&mut map, |_h| Some(()))?;
+        #[cfg(debug_assertions)] {
+            trace!("开始全解析RawAnswer");
+        }
         Some(Answer::from_raw(&raw)?)
     }
     
@@ -40,6 +43,7 @@ impl Answer {
     
     
     pub fn from_raw(value: &RawAnswer) -> Option<Answer> {
+
         let raw_question = value.get_raw_question();
         let raw_answer = value.get_raw_answer();
         let raw_authority = value.get_raw_authority();
@@ -51,18 +55,30 @@ impl Answer {
         let mut additional = SmallVec::new();
 
         for v in raw_question {
+            #[cfg(debug_assertions)] {
+                trace!("开始全解析Question {}",question.len());
+            }
             question.push(Question::new(v)?);
         }
 
         for v in raw_answer {
+            #[cfg(debug_assertions)] {
+                trace!("开始全解析answer => Record {}",answer.len());
+            }
             answer.push(Record::new(v)?);
         }
 
         for v in raw_authority {
+            #[cfg(debug_assertions)] {
+                trace!("开始全解析authority => Record {}",authority.len());
+            }
             authority.push(Record::new(v)?);
         }
 
         for v in raw_additional {
+            #[cfg(debug_assertions)] {
+                trace!("开始全解析additional => Record {}",additional.len());
+            }
             additional.push(Record::new(v)?);
         }
 

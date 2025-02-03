@@ -35,7 +35,7 @@ impl<'a> RawAnswer<'a> {
         }
         let raw_header = RawAnswerHeader::new(&mut reader);
         #[cfg(debug_assertions)] {
-            trace!("初始化RawAnswer");
+            trace!("开始初始化RawAnswer");
         }
         Some(RawAnswer {
             reader,
