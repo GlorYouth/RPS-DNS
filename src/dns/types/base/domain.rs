@@ -21,7 +21,7 @@ impl RawDomain {
                 {
                     trace!("发现有Domain Pointer");
                 }
-                let offset = reader.read_u8() as usize;
+                let offset = u16::from_be_bytes([first_u8 & 0b0011_1111_u8,reader.read_u8()]) as usize;
                 #[cfg(debug_assertions)]
                 {
                     trace!("其指向字节为:{:x}", offset);
@@ -69,7 +69,7 @@ impl RawDomain {
                 {
                     trace!("发现有Domain Pointer");
                 }
-                let offset = slice[1] as usize;
+                let offset = u16::from_be_bytes([first_u8 & 0b0011_1111_u8,slice[1]]) as usize;
                 #[cfg(debug_assertions)]
                 {
                     trace!("其指向字节为:{:x}", offset);
