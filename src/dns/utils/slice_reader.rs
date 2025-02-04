@@ -2,7 +2,6 @@
 
 use std::slice::Iter;
 
-
 #[derive(Debug)]
 pub struct SliceReader<'a> {
     slice: &'a [u8],

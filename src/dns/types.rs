@@ -1,5 +1,5 @@
-mod parts;
 mod base;
+mod parts;
 
-pub use parts::*;
 pub use base::DnsType;
+pub use parts::*;
