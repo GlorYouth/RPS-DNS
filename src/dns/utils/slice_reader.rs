@@ -1,6 +1,5 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
-use log::trace;
 use std::slice::Iter;
 
 #[derive(Debug)]
@@ -98,7 +97,6 @@ impl<'a> SliceReader<'a> {
 
     #[inline]
     pub fn read_slice(&mut self, len: usize) -> &'a [u8] {
-        trace!("slice read len {}", len);
         self.pos += len;
         &self.slice[self.pos - len..self.pos]
     }

@@ -13,6 +13,7 @@ pub struct RawDomain {
 impl RawDomain {
     pub fn from_reader(reader: &mut SliceReader) -> Option<RawDomain> {
         let mut domain = SmallVec::new();
+        let mut pos = reader.pos();
         loop {
             let first_u8 = reader.read_u8();
             if first_u8 & 0b1100_0000_u8 == 0b1100_0000_u8 {
@@ -25,19 +26,16 @@ impl RawDomain {
                 {
                     trace!("其指向字节为:{:x}", offset);
                 }
-                let slice = &reader.as_ref()[offset..];
-                if let Some(pos) = slice[..].iter().position(|b| *b == 0x0) {
-                    domain.extend_from_slice(&slice[..pos]);
-                } else {
-                    #[cfg(debug_assertions)]
-                    {
-                        debug!("并没有在raw_message如下offset后找到b'0' {}", offset);
-                    }
-                    return None;
+                if reader.pos() > pos { 
+                    pos = reader.pos();
                 }
-                break;
+                reader.set_pos(offset);
+                continue;
             }
             if first_u8 == 0x0_u8 {
+                if reader.pos() > pos {
+                    pos = reader.pos();
+                }
                 break;
             }
             #[cfg(debug_assertions)]
@@ -46,6 +44,9 @@ impl RawDomain {
             }
             domain.push(first_u8);
             domain.extend_from_slice(reader.read_slice(first_u8 as usize));
+            if reader.pos() > pos {
+                pos = reader.pos();
+            }
         }
         if domain.is_empty() {
             #[cfg(debug_assertions)]
@@ -54,12 +55,13 @@ impl RawDomain {
             }
             return None; //防止无长度的域名
         }
+        reader.set_pos(pos);
         Some(RawDomain { domain })
     }
 
     pub fn from_reader_with_size(reader: &mut SliceReader, size: usize) -> Option<RawDomain> {
         let mut domain = SmallVec::new();
-        let mut slice = &reader.as_ref()[reader.pos()..reader.pos() + size];
+        let mut slice = reader.read_slice(size);
         while slice.len() > 0 {
             let first_u8 = slice[0];
             if first_u8 & 0b1100_0000_u8 == 0b1100_0000_u8 {
@@ -73,8 +75,9 @@ impl RawDomain {
                     trace!("其指向字节为:{:x}", offset);
                 }
                 let arr = &reader.as_ref()[offset..];
-                if let Some(pos) = arr[..].iter().position(|b| *b == 0x0) {
-                    domain.extend_from_slice(&arr[..pos]);
+                if let Some(pos) = arr.iter().position(|b| *b == 0x0) {
+                    slice = &arr[..pos];
+                    continue;
                 } else {
                     #[cfg(debug_assertions)]
                     {
@@ -184,6 +187,6 @@ mod tests {
         reader.set_pos(43);
         let domain = RawDomain::from_reader_with_size(reader,15).unwrap();
         assert_eq!(domain.to_string().unwrap(), "www.a.shifen.com".to_string());
-        
+        assert_eq!(reader.pos(), 43+15);
     }
 }
