@@ -1,3 +1,4 @@
-mod dns_error;
+mod logger;
 
-pub use dns_error::debug::*;
+#[cfg(debug_assertions)]
+pub use logger::debug::init_logger;

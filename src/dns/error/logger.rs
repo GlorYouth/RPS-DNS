@@ -114,7 +114,7 @@ pub mod debug {
 
 #[cfg(test)]
 mod test {
-    use crate::dns::error::{get_current_thread_logs, init_logger, logger_flush};
+    use super::debug::*;
     use log::debug;
 
     #[test]

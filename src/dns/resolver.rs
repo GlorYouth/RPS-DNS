@@ -1,8 +1,10 @@
 #![cfg_attr(debug_assertions, allow(unused))]
 
-use crate::{Answer, DnsType, Request, init_logger};
+use crate::{Answer, DnsType, Request};
 use std::io::{Read, Write};
 use std::net::{IpAddr, SocketAddr, TcpStream, UdpSocket};
+#[cfg(debug_assertions)]
+use super::error::init_logger;
 
 pub struct Resolver {
     server: Vec<SocketAddr>, //后期考虑支持https,quic,h3,tls等类型地址,相关的支持放入net包中
@@ -37,6 +39,7 @@ impl Resolver {
     }
 
     pub fn query_a_tcp(domain: String) {
+        #[cfg(debug_assertions)]
         init_logger();
         let mut stream = TcpStream::connect("223.5.5.5:53").unwrap();
         let mut buf = [0_u8; 1500];

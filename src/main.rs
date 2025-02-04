@@ -1,10 +1,13 @@
-use crate::dns::{Answer, DnsType, init_logger};
+use crate::dns::{Answer, DnsType};
 use dns_core::Request;
 use std::io::{Read, Write};
 use std::net::{TcpStream, UdpSocket};
+#[cfg(debug_assertions)]
+use crate::dns::error::init_logger;
 
 mod dns;
 fn main() {
+    #[cfg(debug_assertions)]
     init_logger();
     let mut stream = TcpStream::connect("223.5.5.5:53").unwrap();
     let mut buf = [0_u8; 1500];
