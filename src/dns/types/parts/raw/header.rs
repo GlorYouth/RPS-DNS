@@ -104,7 +104,6 @@ impl<'a> From<&'a [u8]> for RawAnswerHeader<'a> {
     }
 }
 
-
 #[derive(Debug)]
 pub struct RawRequestHeader<'a> {
     slice: &'a [u8],
@@ -132,7 +131,6 @@ impl<'a> RawRequestHeader<'a> {
     pub fn get_opcode(&self) -> u8 {
         (self.slice[2] << 1) >> 4
     }
-    
 
     #[inline]
     pub fn get_tc(&self) -> u8 {
@@ -143,7 +141,6 @@ impl<'a> RawRequestHeader<'a> {
     pub fn get_rd(&self) -> u8 {
         (self.slice[2] & 0b0000_0010) >> 2
     }
-    
 
     #[inline]
     pub fn get_z(&self) -> u8 {
@@ -189,4 +186,3 @@ impl<'a> From<&'a [u8]> for RawRequestHeader<'a> {
         RawRequestHeader { slice }
     }
 }
-

@@ -9,14 +9,11 @@ pub struct Question {
     pub qclass: u16,
 }
 
-
-
 impl Question {
     #[inline]
     pub fn new(question: &RawQuestion) -> Option<Question> {
         question.into()
     }
-    
 }
 
 impl From<&RawQuestion<'_>> for Option<Question> {

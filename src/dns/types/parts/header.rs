@@ -26,13 +26,13 @@ pub struct AnswerHeader {
 
     // 1bit 是否为反向dns查询
     pub z: u8,
-    
+
     // 1bit Dns回复是否认证
     pub answer_authenticated: u8,
 
     // 1bit 为0不允许未经身份验证的数据
     pub non_authenticated: u8,
-    
+
     // 4bit 响应状态
     pub rcode: u8,
 }
@@ -55,10 +55,8 @@ impl From<&RawAnswerHeader<'_>> for AnswerHeader {
     }
 }
 
-
 #[derive(Debug)]
 pub struct RequestHeader {
-    
     pub id: u16,
 
     // 1bit 0代表请求，1代表响应
@@ -69,7 +67,7 @@ pub struct RequestHeader {
 
     // 1bit 如果是1，说明此消息因长度大于传输信道上允许的长度而被截断/tcp传输？
     pub tc: u8,
-    
+
     // 1bit 如果是1，则指定服务器应当在查询不到域名的情况下尝试递归查询
     pub rd: u8,
 
@@ -79,7 +77,6 @@ pub struct RequestHeader {
     // 1bit 为0不允许未经身份验证的数据
     pub non_authenticated: u8,
 }
-
 
 impl From<&RawRequestHeader<'_>> for RequestHeader {
     fn from(header: &RawRequestHeader) -> Self {

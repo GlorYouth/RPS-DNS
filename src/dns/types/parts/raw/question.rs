@@ -1,8 +1,8 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
-use log::{trace};
 use crate::dns::types::base::RawDomain;
 use crate::dns::utils::SliceReader;
+use log::trace;
 
 #[derive(Debug)]
 pub struct RawQuestion<'a> {
@@ -18,13 +18,15 @@ impl<'a> RawQuestion<'a> {
         // 'b为引用存在的周期，比'a对象存在的周期短或等于
         reader: &mut SliceReader<'a>,
     ) -> Option<RawQuestion<'a>> {
-        #[cfg(debug_assertions)] {
+        #[cfg(debug_assertions)]
+        {
             trace!("准备解析Question内的name");
         }
         let name = RawDomain::from_reader(reader)?;
         let len = reader.len();
         if reader.pos() + Self::FIX_SIZE > len {
-            #[cfg(debug_assertions)] {
+            #[cfg(debug_assertions)]
+            {
                 trace!("解析完name后，剩余Slice不足以存放Question的其余部分");
             }
             return None; //检测出界，防止panic

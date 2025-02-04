@@ -15,7 +15,6 @@ impl<'a> From<&'a mut [u8]> for SliceOperator<'a> {
     }
 }
 
-
 impl<'a> SliceOperator<'a> {
     #[inline]
     pub fn pos(&self) -> usize {
@@ -65,31 +64,31 @@ impl<'a> SliceOperator<'a> {
         self.pos += 8;
         u64::from_be_bytes(self.slice[self.pos - 8..self.pos].try_into().unwrap())
     }
-    
+
     #[inline]
     pub fn write_u8(&mut self, val: u8) {
         self.slice[self.pos] = val;
         self.pos += 1;
     }
-    
+
     #[inline]
     pub fn write_u16(&mut self, val: u16) {
         self.slice[self.pos..self.pos + 2].copy_from_slice(&val.to_be_bytes());
         self.pos += 2;
     }
-    
+
     #[inline]
     pub fn write_u32(&mut self, val: u32) {
         self.slice[self.pos..self.pos + 4].copy_from_slice(&val.to_be_bytes());
         self.pos += 4;
     }
-    
+
     #[inline]
     pub fn write_u64(&mut self, val: u64) {
         self.slice[self.pos..self.pos + 8].copy_from_slice(&val.to_be_bytes());
         self.pos += 8;
     }
-    
+
     #[inline]
     pub fn write_slice(&mut self, slice: &[u8]) {
         self.slice[self.pos..self.pos + slice.len()].copy_from_slice(slice);
@@ -117,7 +116,7 @@ impl<'a> SliceOperator<'a> {
     }
 
     #[inline]
-    pub fn as_mut(&mut self) -> & mut [u8] {
+    pub fn as_mut(&mut self) -> &mut [u8] {
         self.slice
     }
 
@@ -127,7 +126,7 @@ impl<'a> SliceOperator<'a> {
     }
 
     #[inline]
-    pub fn read_slice(&mut self, len: usize) -> & [u8] {
+    pub fn read_slice(&mut self, len: usize) -> &[u8] {
         self.pos += len;
         &self.slice[self.pos - len..self.pos]
     }

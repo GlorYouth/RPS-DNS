@@ -1,7 +1,7 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
-use std::slice::Iter;
 use log::trace;
+use std::slice::Iter;
 
 #[derive(Debug)]
 pub struct SliceReader<'a> {

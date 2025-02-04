@@ -7,7 +7,7 @@ use crate::dns::utils::SliceOperator;
 use rand::Rng;
 use smallvec::SmallVec;
 
-const SUFFIX:& [u8] = "xn--".as_bytes();
+const SUFFIX: &[u8] = "xn--".as_bytes();
 
 pub struct Request {
     header: RequestHeader,
@@ -19,7 +19,7 @@ impl Request {
     pub fn from_raw(request: &RawRequest) -> Option<Request> {
         request.into()
     }
-    
+
     #[inline]
     pub fn new(domain: String, qtype: u16) -> Request {
         let mut rng = rand::rng();
@@ -55,39 +55,39 @@ impl Request {
         operator.write_u32(0);
         operator.write_u16(0);
         for q in self.question {
-            let mut vec = q.qname.split('.').try_fold(SmallVec::new(), |mut v: SmallVec<[u8;10]>, str| {
-                if str.is_ascii() {
-                    v.push(str.len() as u8);
-                    v.extend_from_slice(str.as_bytes());
-                }
-                 else {
-                     match punycode::encode(str) {
-                         Ok(s) => {
-                             let mut len = SUFFIX.len() as u8;
-                             let bytes = s.as_bytes();
-                             len += bytes.len() as u8;
-                             v.push(len);
-                             v.extend_from_slice(SUFFIX);
-                             v.extend_from_slice(bytes);
-                         }
-                         Err(_) => {
-                             return None
-                         }
-                     }
-                 }
-                Some(v)
-            })?;
+            let mut vec = q.qname.split('.').try_fold(
+                SmallVec::new(),
+                |mut v: SmallVec<[u8; 10]>, str| {
+                    if str.is_ascii() {
+                        v.push(str.len() as u8);
+                        v.extend_from_slice(str.as_bytes());
+                    } else {
+                        match punycode::encode(str) {
+                            Ok(s) => {
+                                let mut len = SUFFIX.len() as u8;
+                                let bytes = s.as_bytes();
+                                len += bytes.len() as u8;
+                                v.push(len);
+                                v.extend_from_slice(SUFFIX);
+                                v.extend_from_slice(bytes);
+                            }
+                            Err(_) => return None,
+                        }
+                    }
+                    Some(v)
+                },
+            )?;
             vec.push(0x0);
             operator.write_slice(&vec);
             operator.write_u16(q.qtype);
             operator.write_u16(q.qclass);
         }
         let pos = operator.pos();
-        buffer[4] = self.header.qr << 7 | self.header.opcode << 3 |
-            self.header.tc << 1 | self.header.rd;
+        buffer[4] =
+            self.header.qr << 7 | self.header.opcode << 3 | self.header.tc << 1 | self.header.rd;
         if pos - 2 > 512 {
             buffer[0..2].copy_from_slice(((pos - 2) as u16).to_be_bytes().as_ref());
-            return Some(buffer[..pos].as_ref())
+            return Some(buffer[..pos].as_ref());
         }
         Some(buffer[2..pos].as_ref())
     }
@@ -103,36 +103,36 @@ impl Request {
         operator.write_u32(0);
         operator.write_u16(0);
         for q in self.question {
-            let mut vec = q.qname.split('.').try_fold(SmallVec::new(), |mut v: SmallVec<[u8;10]>, str| {
-                if str.is_ascii() {
-                    v.push(str.len() as u8);
-                    v.extend_from_slice(str.as_bytes());
-                }
-                else {
-                    match punycode::encode(str) {
-                        Ok(s) => {
-                            let mut len = SUFFIX.len() as u8;
-                            let bytes = s.as_bytes();
-                            len += bytes.len() as u8;
-                            v.push(len);
-                            v.extend_from_slice(SUFFIX);
-                            v.extend_from_slice(bytes);
-                        }
-                        Err(_) => {
-                            return None
+            let mut vec = q.qname.split('.').try_fold(
+                SmallVec::new(),
+                |mut v: SmallVec<[u8; 10]>, str| {
+                    if str.is_ascii() {
+                        v.push(str.len() as u8);
+                        v.extend_from_slice(str.as_bytes());
+                    } else {
+                        match punycode::encode(str) {
+                            Ok(s) => {
+                                let mut len = SUFFIX.len() as u8;
+                                let bytes = s.as_bytes();
+                                len += bytes.len() as u8;
+                                v.push(len);
+                                v.extend_from_slice(SUFFIX);
+                                v.extend_from_slice(bytes);
+                            }
+                            Err(_) => return None,
                         }
                     }
-                }
-                Some(v)
-            })?;
+                    Some(v)
+                },
+            )?;
             vec.push(0x0);
             operator.write_slice(&vec);
             operator.write_u16(q.qtype);
             operator.write_u16(q.qclass);
         }
         let pos = operator.pos();
-        buffer[4] = self.header.qr << 7 | self.header.opcode << 3 |
-            self.header.tc << 1 | self.header.rd;
+        buffer[4] =
+            self.header.qr << 7 | self.header.opcode << 3 | self.header.tc << 1 | self.header.rd;
         buffer[0..2].copy_from_slice(((pos - 2) as u16).to_be_bytes().as_ref());
         Some(buffer[..pos].as_ref())
     }
@@ -152,5 +152,4 @@ impl From<&RawRequest<'_>> for Option<Request> {
             question,
         })
     }
-    
 }

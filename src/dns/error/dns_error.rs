@@ -1,12 +1,11 @@
 #[cfg_attr(debug_assertions, allow(dead_code))]
 #[cfg(debug_assertions)]
 pub mod debug {
+    use ahash::RandomState;
     use chrono::Local;
     use log::{Level, Record};
     use std::cell::RefCell;
     use std::thread;
-    use ahash::RandomState;
-    
 
     thread_local! {
         static THREAD_LOGGER: RefCell<ThreadLogger> = RefCell::new(ThreadLogger::new());
@@ -46,7 +45,7 @@ pub mod debug {
     }
 
     pub struct GlobalLogger;
-    
+
     impl GlobalLogger {
         pub fn new() -> GlobalLogger {
             // 设置 env_logger 的格式包含线程ID
@@ -65,13 +64,16 @@ pub mod debug {
             THREAD_LOGGER.with(|logger| {
                 logger.borrow_mut().log(record);
                 // 使用 env_logger 打印日志（确保已初始化）;
-                println!("{}", format!(
-                    "[{}] [{} {:X}]  {}",
-                    record.level(),
-                    Local::now().format("%Y-%m-%d %H:%M:%S"),
-                    logger.borrow().thread_id,
-                    record.args()
-                ));
+                println!(
+                    "{}",
+                    format!(
+                        "[{}] [{} {:X}]  {}",
+                        record.level(),
+                        Local::now().format("%Y-%m-%d %H:%M:%S"),
+                        logger.borrow().thread_id,
+                        record.args()
+                    )
+                );
             });
         }
 
@@ -87,29 +89,33 @@ pub mod debug {
         log::set_logger(Box::leak(Box::from(GlobalLogger::new()))).unwrap();
         log::set_max_level(log::LevelFilter::Trace);
     }
-    
+
     pub fn logger_flush() {
         log::logger().flush();
     }
 
     pub fn get_current_thread_logs() -> Vec<String> {
         THREAD_LOGGER.with(|logger| {
-            logger.borrow().logs.iter().map(|entry| {
-                format!(
-                    "[{}] {}",
-                    entry.timestamp.format("%Y-%m-%d %H:%M:%S"),
-                    entry.message
-                )
-            }).collect()
+            logger
+                .borrow()
+                .logs
+                .iter()
+                .map(|entry| {
+                    format!(
+                        "[{}] {}",
+                        entry.timestamp.format("%Y-%m-%d %H:%M:%S"),
+                        entry.message
+                    )
+                })
+                .collect()
         })
     }
-
 }
 
 #[cfg(test)]
 mod test {
+    use crate::dns::error::{get_current_thread_logs, init_logger, logger_flush};
     use log::debug;
-    use crate::dns::error::{logger_flush, init_logger, get_current_thread_logs};
 
     #[test]
     fn test() {

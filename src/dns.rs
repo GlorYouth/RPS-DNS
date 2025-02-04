@@ -1,8 +1,8 @@
-mod types;
-mod utils;
+mod error;
 mod net;
 mod resolver;
-mod error;
+mod types;
+mod utils;
 
-pub use types::*;
 pub use error::*;
+pub use types::*;

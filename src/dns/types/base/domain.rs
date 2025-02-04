@@ -1,37 +1,37 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
 use crate::dns::utils::SliceReader;
-use std::fmt::Debug;
 use log::{debug, trace};
 use smallvec::SmallVec;
+use std::fmt::Debug;
 
 #[derive(PartialEq, Debug)]
-pub struct RawDomain{
-    domain: SmallVec<[u8;30]>, //不包含最后的0x0
+pub struct RawDomain {
+    domain: SmallVec<[u8; 30]>, //不包含最后的0x0
 }
 
 impl RawDomain {
-    
-    pub fn from_reader(
-        reader: &mut SliceReader,
-    ) -> Option<RawDomain> {
+    pub fn from_reader(reader: &mut SliceReader) -> Option<RawDomain> {
         let mut domain = SmallVec::new();
         loop {
             let first_u8 = reader.read_u8();
             if first_u8 & 0b1100_0000_u8 == 0b1100_0000_u8 {
-                #[cfg(debug_assertions)] {
+                #[cfg(debug_assertions)]
+                {
                     trace!("发现有Domain Pointer");
                 }
                 let offset = reader.read_u8() as usize;
-                #[cfg(debug_assertions)] {
-                    trace!("其指向字节为:{:x}",offset);
+                #[cfg(debug_assertions)]
+                {
+                    trace!("其指向字节为:{:x}", offset);
                 }
                 let slice = &reader.as_ref()[offset..];
                 if let Some(pos) = slice[..].iter().position(|b| *b == 0x0) {
                     domain.extend_from_slice(&slice[..pos]);
                 } else {
-                    #[cfg(debug_assertions)] {
-                        debug!("并没有在raw_message如下offset后找到b'0' {}",offset);
+                    #[cfg(debug_assertions)]
+                    {
+                        debug!("并没有在raw_message如下offset后找到b'0' {}", offset);
                     }
                     return None;
                 }
@@ -40,65 +40,68 @@ impl RawDomain {
             if first_u8 == 0x0_u8 {
                 break;
             }
-            #[cfg(debug_assertions)] {
+            #[cfg(debug_assertions)]
+            {
                 trace!("发现是普通的域名");
             }
             domain.push(first_u8);
             domain.extend_from_slice(reader.read_slice(first_u8 as usize));
         }
         if domain.is_empty() {
-            #[cfg(debug_assertions)] {
+            #[cfg(debug_assertions)]
+            {
                 debug!("DomainName没有长度");
             }
             return None; //防止无长度的域名
         }
-        Some(RawDomain {
-            domain
-        })
+        Some(RawDomain { domain })
     }
-    
+
     pub fn from_reader_with_size(reader: &mut SliceReader, size: usize) -> Option<RawDomain> {
         let mut domain = SmallVec::new();
-        let mut slice = &reader.as_ref()[reader.pos()..reader.pos()+size];
+        let mut slice = &reader.as_ref()[reader.pos()..reader.pos() + size];
         while slice.len() > 0 {
             let first_u8 = slice[0];
             if first_u8 & 0b1100_0000_u8 == 0b1100_0000_u8 {
-                #[cfg(debug_assertions)] {
+                #[cfg(debug_assertions)]
+                {
                     trace!("发现有Domain Pointer");
                 }
                 let offset = slice[1] as usize;
-                #[cfg(debug_assertions)] {
-                    trace!("其指向字节为:{:x}",offset);
+                #[cfg(debug_assertions)]
+                {
+                    trace!("其指向字节为:{:x}", offset);
                 }
                 let arr = &reader.as_ref()[offset..];
                 if let Some(pos) = arr[..].iter().position(|b| *b == 0x0) {
                     domain.extend_from_slice(&arr[..pos]);
                 } else {
-                    #[cfg(debug_assertions)] {
-                        debug!("并没有raw_message如下offset后找到b'0' {}",offset);
+                    #[cfg(debug_assertions)]
+                    {
+                        debug!("并没有raw_message如下offset后找到b'0' {}", offset);
                     }
                     return None;
                 }
                 break;
             }
-            #[cfg(debug_assertions)] {
+            #[cfg(debug_assertions)]
+            {
                 trace!("发现是普通的域名");
             }
-            domain.extend_from_slice(slice[0..(first_u8 as usize)+1].as_ref());
-            slice = &slice[(first_u8 as usize)+1..];
+            domain.extend_from_slice(slice[0..(first_u8 as usize) + 1].as_ref());
+            slice = &slice[(first_u8 as usize) + 1..];
         }
-        
+
         if domain.is_empty() {
-            #[cfg(debug_assertions)] {
+            #[cfg(debug_assertions)]
+            {
                 debug!("DomainName没有长度");
             }
             return None; //防止无长度的域名
         }
-        Some(RawDomain {
-            domain
-        })
+        Some(RawDomain { domain })
     }
-    
+
     pub fn to_string(&self) -> Option<String> {
         let mut string = String::with_capacity(40);
         let mut remaining = self.domain.as_slice();
@@ -106,9 +109,9 @@ impl RawDomain {
         while !remaining.is_empty() {
             let part_length = remaining[0] as usize;
             remaining = &remaining[1..];
-            
+
             let part_bytes = &remaining[..part_length];
-            
+
             // 处理内容
             if part_bytes.starts_with(b"xn--") {
                 // Punycode 编码的部分，解码
@@ -118,7 +121,8 @@ impl RawDomain {
                         string.push_str(&decoded_part);
                     }
                     Err(_) => {
-                        #[cfg(debug_assertions)] {
+                        #[cfg(debug_assertions)]
+                        {
                             debug!("punycode解码失败, 解码输入的为 {}", input);
                         }
                         return None;
@@ -129,14 +133,15 @@ impl RawDomain {
                     if byte.is_ascii() {
                         string.push(*byte as char);
                     } else {
-                        #[cfg(debug_assertions)] {
-                            debug!("domain内有非ASCII字符:{},{}",*byte as char,*byte);
+                        #[cfg(debug_assertions)]
+                        {
+                            debug!("domain内有非ASCII字符:{},{}", *byte as char, *byte);
                         }
                         return None;
                     }
                 }
             }
-            
+
             if part_length != remaining.len() {
                 string.push('.');
             }
@@ -144,7 +149,6 @@ impl RawDomain {
         }
         Some(string)
     }
-    
 }
 
 #[cfg(test)]
@@ -153,10 +157,33 @@ mod tests {
 
     #[test]
     fn test_from_reader() {
-        let reader = &mut SliceReader::from_slice(
-            &[3,119,119,119,5,98,97,105,100,117,3,99,111,109,0]
-        );
+        let reader = &mut SliceReader::from_slice(&[
+            3, 119, 119, 119, 5, 98, 97, 105, 100, 117, 3, 99, 111, 109, 0,
+        ]);
         let domain = RawDomain::from_reader(reader);
-        assert_eq!(domain.unwrap().to_string().unwrap(), "www.baidu.com".to_string());
+        assert_eq!(
+            domain.unwrap().to_string().unwrap(),
+            "www.baidu.com".to_string()
+        );
+        let reader = &mut SliceReader::from_slice(&[
+            0xb9, 0xde, 0x80, 0x80, 0x00, 0x01, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x03, 0x77,
+            0x77, 0x77, 0x05, 0x62, 0x61, 0x69, 0x64, 0x75, 0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00,
+            0x01, 0x00, 0x01, 0xc0, 0x0c, 0x00, 0x05, 0x00, 0x01, 0x00, 0x00, 0x00, 0x1d, 0x00,
+            0x0f, 0x03, 0x77, 0x77, 0x77, 0x01, 0x61, 0x06, 0x73, 0x68, 0x69, 0x66, 0x65, 0x6e,
+            0xc0, 0x16, 0xc0, 0x2b, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x1d, 0x00, 0x04,
+            0xb7, 0x02, 0xac, 0xb9, 0xc0, 0x2b, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x1d,
+            0x00, 0x04, 0xb7, 0x02, 0xac, 0x2a,
+        ]);
+
+        reader.set_pos(31);
+        let domain = RawDomain::from_reader(reader);
+        assert_eq!(
+            domain.unwrap().to_string().unwrap(),
+            "www.baidu.com".to_string()
+        );
+        reader.set_pos(43);
+        let domain = RawDomain::from_reader_with_size(reader,15).unwrap();
+        assert_eq!(domain.to_string().unwrap(), "www.a.shifen.com".to_string());
+        
     }
 }
