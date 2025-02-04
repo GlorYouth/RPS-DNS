@@ -1,87 +1,107 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
 use crate::dns::utils::SliceReader;
-use small_map::SmallMap;
 use std::fmt::Debug;
 use log::{debug, trace};
+use smallvec::SmallVec;
 
-#[derive(PartialEq, Debug, Copy, Clone)]
-pub struct RawDomain<'a>(&'a [u8]);
-
-impl<'a> From<&'a [u8]> for RawDomain<'a> {
-    #[inline]
-    fn from(slice: &'a [u8]) -> RawDomain<'a> {
-        Self(slice)
-    }
+#[derive(PartialEq, Debug)]
+pub struct RawDomain{
+    domain: SmallVec<[u8;30]>, //不包含最后的0x0
 }
 
-impl<'a> RawDomain<'a> {
-    #[inline]
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    #[inline]
-    pub fn clone(&self) -> RawDomain<'a> {
-        RawDomain(self.0)
-    }
-
-    #[inline]
-    pub fn new<'b>(
-        reader: &'b mut SliceReader<'a>,
-        map: &mut SmallMap<32, u16, RawDomain<'a>>,
-    ) -> Option<RawDomain<'a>> {
-        if reader.peek_u8() & 0b1100_0000_u8 == 0b1100_0000_u8 {
+impl RawDomain {
+    
+    pub fn from_reader(
+        reader: &mut SliceReader,
+    ) -> Option<RawDomain> {
+        let mut domain = SmallVec::new();
+        loop {
+            let first_u8 = reader.read_u8();
+            if first_u8 & 0b1100_0000_u8 == 0b1100_0000_u8 {
+                #[cfg(debug_assertions)] {
+                    trace!("发现有Domain Pointer");
+                }
+                let offset = reader.read_u8() as usize;
+                #[cfg(debug_assertions)] {
+                    trace!("其指向字节为:{:x}",offset);
+                }
+                let slice = &reader.as_ref()[offset..];
+                if let Some(pos) = slice[..].iter().position(|b| *b == 0x0) {
+                    domain.extend_from_slice(&slice[..pos]);
+                } else {
+                    #[cfg(debug_assertions)] {
+                        debug!("并没有在raw_message如下offset后找到b'0' {}",offset);
+                    }
+                    return None;
+                }
+                break;
+            }
+            if first_u8 == 0x0_u8 {
+                break;
+            }
             #[cfg(debug_assertions)] {
-                trace!("发现是Domain Pointer");
+                trace!("发现是普通的域名");
             }
-            let key = reader.read_u16();
-            #[cfg(debug_assertions)] {
-                trace!("其指向字节为:{:x}",key);
-            }
-            
-            if let Some(value) = map.get(&key) {
-                return Some(value.clone());
-            }
-            #[cfg(debug_assertions)] {
-                debug!("在Map中并未找到key");
-            }
-            return None;
+            domain.push(first_u8);
+            domain.extend_from_slice(reader.read_slice(first_u8 as usize));
         }
-        #[cfg(debug_assertions)] {
-            trace!("发现是普通的域名");
-        }
-        let position = reader.pos();
-        let len = reader.len();
-        let mut read = reader.read_u8();
-        if read == 0x0_u8 {
+        if domain.is_empty() {
             #[cfg(debug_assertions)] {
                 debug!("DomainName没有长度");
             }
             return None; //防止无长度的域名
         }
-        while read != 0x0_u8 {
-            if position + read as usize > len {
+        Some(RawDomain {
+            domain
+        })
+    }
+    
+    pub fn from_reader_with_size(reader: &mut SliceReader, size: usize) -> Option<RawDomain> {
+        let mut domain = SmallVec::new();
+        let mut slice = &reader.as_ref()[reader.pos()..reader.pos()+size];
+        while slice.len() > 0 {
+            let first_u8 = slice[0];
+            if first_u8 & 0b1100_0000_u8 == 0b1100_0000_u8 {
                 #[cfg(debug_assertions)] {
-                    debug!("在依次读取域名的片段时出界");
+                    trace!("发现有Domain Pointer");
                 }
-                return None; //检测出界，防止panic
+                let offset = slice[1] as usize;
+                #[cfg(debug_assertions)] {
+                    trace!("其指向字节为:{:x}",offset);
+                }
+                let arr = &reader.as_ref()[offset..];
+                if let Some(pos) = arr[..].iter().position(|b| *b == 0x0) {
+                    domain.extend_from_slice(&arr[..pos]);
+                } else {
+                    #[cfg(debug_assertions)] {
+                        debug!("并没有raw_message如下offset后找到b'0' {}",offset);
+                    }
+                    return None;
+                }
+                break;
             }
-            reader.skip(read as usize);
-            read = reader.read_u8();
+            #[cfg(debug_assertions)] {
+                trace!("发现是普通的域名");
+            }
+            domain.extend_from_slice(slice[0..(first_u8 as usize)+1].as_ref());
+            slice = &slice[(first_u8 as usize)+1..];
         }
-
-        let name = RawDomain::from(&reader.as_mut()[position..reader.pos()-1]);
-        map.insert((position as u16) | 0b1100_0000_0000_0000_u16, name.clone());
-        #[cfg(debug_assertions)] {
-            trace!("DomainName读取完成，将信息{:x}插入Map",(position as u16) | 0b1100_0000_0000_0000_u16);
+        
+        if domain.is_empty() {
+            #[cfg(debug_assertions)] {
+                debug!("DomainName没有长度");
+            }
+            return None; //防止无长度的域名
         }
-        Some(name)
+        Some(RawDomain {
+            domain
+        })
     }
     
     pub fn to_string(&self) -> Option<String> {
         let mut string = String::with_capacity(40);
-        let mut remaining = self.0;
+        let mut remaining = self.domain.as_slice();
 
         while !remaining.is_empty() {
             let part_length = remaining[0] as usize;
@@ -123,5 +143,20 @@ impl<'a> RawDomain<'a> {
             remaining = &remaining[part_length..];
         }
         Some(string)
+    }
+    
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_from_reader() {
+        let reader = &mut SliceReader::from_slice(
+            &[3,119,119,119,5,98,97,105,100,117,3,99,111,109,0]
+        );
+        let domain = RawDomain::from_reader(reader);
+        assert_eq!(domain.unwrap().to_string().unwrap(), "www.baidu.com".to_string());
     }
 }

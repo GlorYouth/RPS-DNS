@@ -1,7 +1,6 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
 use log::trace;
-use small_map::SmallMap;
 use crate::dns::types::parts::header::AnswerHeader;
 use crate::dns::types::parts::question::Question;
 use crate::dns::types::parts::record::Record;
@@ -23,11 +22,10 @@ impl Answer {
             trace!("开始从Slice解析RawAnswer");
         }
         let mut raw = RawAnswer::new(slice)?;
-        let mut map = SmallMap::new();
         #[cfg(debug_assertions)] {
             trace!("从Slice解析RawAnswer除Header外部分");
         }
-        raw.init(&mut map, |_h| Some(()))?;
+        raw.init(|_h| Some(()))?;
         #[cfg(debug_assertions)] {
             trace!("开始全解析RawAnswer");
         }
@@ -36,8 +34,7 @@ impl Answer {
     
     pub fn from_slice(slice: &[u8]) -> Option<Answer> {
         let mut raw = RawAnswer::new(slice)?;
-        let mut map = SmallMap::new();
-        raw.init(&mut map, |_h| Some(()))?;
+        raw.init(|_h| Some(()))?;
         Some(Answer::from_raw(&raw)?)
     }
     

@@ -1,11 +1,9 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
-use crate::dns::types::base::RawDomain;
 use crate::dns::types::parts::raw::header::RawAnswerHeader;
 use crate::dns::types::parts::raw::question::RawQuestion;
-use crate::dns::utils::SliceReader;
-use small_map::SmallMap;
-use smallvec::SmallVec;
 use crate::dns::types::parts::raw::RawRequestHeader;
+use crate::dns::utils::SliceReader;
+use smallvec::SmallVec;
 
 pub struct RawRequest<'a> {
     reader: SliceReader<'a>,
@@ -31,14 +29,13 @@ impl<'a> RawRequest<'a> {
 
     pub fn init<F: FnMut(&RawRequestHeader<'a>) -> Option<()>>(
         &mut self,
-        map: &mut SmallMap<32, u16, RawDomain<'a>>,
         mut check: F,
     ) -> Option<()> {
         check(&self.raw_header)?;
         let qdcount = self.raw_header.get_qdcount();
         for _ in 0..qdcount {
             self.raw_question
-                .push(RawQuestion::new(&mut self.reader, map)?)
+                .push(RawQuestion::new(&mut self.reader)?)
         }
         Some(())
     }

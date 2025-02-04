@@ -2,7 +2,7 @@
 
 use std::io::{Read, Write};
 use std::net::{IpAddr, SocketAddr, TcpStream, UdpSocket};
-use crate::{Answer, DnsType, Request};
+use crate::{init_logger, Answer, DnsType, Request};
 
 pub struct Resolver {
     server: Vec<SocketAddr>, //后期考虑支持https,quic,h3,tls等类型地址,相关的支持放入net包中
@@ -39,12 +39,13 @@ impl Resolver {
     }
 
     pub fn query_a_tcp(domain: String) {
-        let mut stream = TcpStream::connect("223.5.5.5").unwrap();
+        init_logger();
+        let mut stream = TcpStream::connect("223.5.5.5:53").unwrap();
         let mut buf = [0_u8; 1500];
-        stream.write_all(Request::new(domain, DnsType::A.into()).encode_into(&mut buf).unwrap()).unwrap();
-        let mut buffer = Vec::new();
-        stream.read_to_end(&mut buffer).unwrap();
-        let answer = Answer::new(buffer.as_slice()).unwrap();
+        stream.write_all(Request::new("www.baidu.com".to_string(), DnsType::A.into()).encode_into_tcp(&mut buf).unwrap()).unwrap();
+        stream.read(&mut buf).unwrap();
+        let len = u16::from_be_bytes([buf[0], buf[1]]);
+        let answer = Answer::new(&buf.as_slice()[2..]).unwrap();
         println!("{:?}",answer);
     }
 

@@ -1,10 +1,8 @@
 use log::{debug, trace};
-use crate::dns::types::base::RawDomain;
 use crate::dns::types::parts::raw::header::RawAnswerHeader;
 use crate::dns::types::parts::raw::question::RawQuestion;
 use crate::dns::types::parts::raw::record::RawRecord;
 use crate::dns::utils::SliceReader;
-use small_map::SmallMap;
 use smallvec::SmallVec;
 
 pub struct RawAnswer<'a> {
@@ -49,7 +47,6 @@ impl<'a> RawAnswer<'a> {
 
     pub fn init<'b, F: FnMut(&RawAnswerHeader<'a>) -> Option<()>>(
         &'b mut self,
-        mut map: &mut SmallMap<32, u16, RawDomain<'a>>,
         mut check: F,
     ) -> Option<()> {
         if check(&self.raw_header).is_none() {
@@ -68,7 +65,7 @@ impl<'a> RawAnswer<'a> {
                 trace!("正在从Slice解析第{}个RawQuestion",i);
             }
             self.raw_question
-                .push(RawQuestion::new(&mut self.reader, map)?)
+                .push(RawQuestion::new(&mut self.reader)?)
         }
 
         for i in 0..ancount {
@@ -76,7 +73,7 @@ impl<'a> RawAnswer<'a> {
                 trace!("正在从Slice解析RawRecord=>第{}个answer",i);
             }
             self.answer
-                .push(RawRecord::new(&mut self.reader, &mut map)?);
+                .push(RawRecord::new(&mut self.reader)?);
         }
 
         for i in 0..nscount {
@@ -84,7 +81,7 @@ impl<'a> RawAnswer<'a> {
                 trace!("正在从Slice解析RawRecord=>第{}个authority",i);
             }
             self.authority
-                .push(RawRecord::new(&mut self.reader, &mut map)?);
+                .push(RawRecord::new(&mut self.reader)?);
         }
 
         for i in 0..arcount {
@@ -92,7 +89,7 @@ impl<'a> RawAnswer<'a> {
                 trace!("正在从Slice解析RawRecord=>第{}个additional",i);
             }
             self.additional
-                .push(RawRecord::new(&mut self.reader, &mut map)?);
+                .push(RawRecord::new(&mut self.reader)?);
         }
 
         Some(())
@@ -127,7 +124,6 @@ impl<'a> RawAnswer<'a> {
 #[cfg(test)]
 mod test {
     use crate::dns::types::parts::raw::answer::RawAnswer;
-    use small_map::SmallMap;
 
     #[test]
     fn test() {
@@ -147,7 +143,6 @@ mod test {
             ][..],
         )
         .unwrap();
-        let mut map = SmallMap::new();
-        raw.init(&mut map, |_h| Some(())).unwrap();
+        raw.init(|_h| Some(())).unwrap();
     }
 }

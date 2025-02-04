@@ -1,13 +1,12 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
-use log::{debug, trace};
+use log::{trace};
 use crate::dns::types::base::RawDomain;
 use crate::dns::utils::SliceReader;
-use small_map::SmallMap;
 
 #[derive(Debug)]
 pub struct RawQuestion<'a> {
-    name: RawDomain<'a>,
+    name: RawDomain,
     other: &'a [u8],
 }
 
@@ -15,15 +14,14 @@ impl<'a> RawQuestion<'a> {
     pub const FIX_SIZE: usize = 4;
     pub const LEAST_SIZE: usize = Self::FIX_SIZE + 2;
 
-    pub fn new<'b>(
+    pub fn new(
         // 'b为引用存在的周期，比'a对象存在的周期短或等于
-        reader: &'b mut SliceReader<'a>,
-        map: &mut SmallMap<32, u16, RawDomain<'a>>,
+        reader: &mut SliceReader<'a>,
     ) -> Option<RawQuestion<'a>> {
         #[cfg(debug_assertions)] {
             trace!("准备解析Question内的name");
         }
-        let name = RawDomain::new(reader, map)?;
+        let name = RawDomain::from_reader(reader)?;
         let len = reader.len();
         if reader.pos() + Self::FIX_SIZE > len {
             #[cfg(debug_assertions)] {
