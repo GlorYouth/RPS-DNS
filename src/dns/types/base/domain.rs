@@ -102,6 +102,7 @@ impl RawDomain {
             }
             return None; //防止无长度的域名
         }
+        reader.skip(size);
         Some(RawDomain { domain })
     }
 
