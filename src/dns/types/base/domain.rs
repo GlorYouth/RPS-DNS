@@ -85,7 +85,6 @@ impl RawDomain {
                     }
                     return None;
                 }
-                break;
             }
             #[cfg(debug_assertions)]
             {
@@ -168,6 +167,7 @@ mod tests {
             domain.unwrap().to_string().unwrap(),
             "www.baidu.com".to_string()
         );
+        assert_eq!(reader.pos(), reader.as_ref().len());
         let reader = &mut SliceReader::from_slice(&[
             0xb9, 0xde, 0x80, 0x80, 0x00, 0x01, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x03, 0x77,
             0x77, 0x77, 0x05, 0x62, 0x61, 0x69, 0x64, 0x75, 0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00,
@@ -184,6 +184,7 @@ mod tests {
             domain.unwrap().to_string().unwrap(),
             "www.baidu.com".to_string()
         );
+        assert_eq!(reader.pos(), 33);
         reader.set_pos(43);
         let domain = RawDomain::from_reader_with_size(reader,15).unwrap();
         assert_eq!(domain.to_string().unwrap(), "www.a.shifen.com".to_string());
