@@ -99,6 +99,7 @@ impl RawDomain {
             }
             return None; //防止无长度的域名
         }
+        reader.skip(size);
         Some(RawDomain { domain })
     }
 
@@ -184,6 +185,6 @@ mod tests {
         reader.set_pos(43);
         let domain = RawDomain::from_reader_with_size(reader,15).unwrap();
         assert_eq!(domain.to_string().unwrap(), "www.a.shifen.com".to_string());
-        
+        assert_eq!(reader.pos(), 43+15);
     }
 }
