@@ -1,5 +1,6 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
+use crate::Request;
 use crate::dns::types::parts::header::ResponseHeader;
 use crate::dns::types::parts::question::Question;
 use crate::dns::types::parts::raw::RawResponse;
@@ -28,7 +29,7 @@ impl Response {
         {
             trace!("从Slice解析RawResponse除Header外部分");
         }
-        raw.init(|_h| Some(()))?;
+        raw.init_without_check()?;
         #[cfg(debug_assertions)]
         {
             trace!("开始全解析RawResponse");
@@ -99,5 +100,83 @@ impl From<&RawResponse<'_>> for Option<Response> {
     #[inline]
     fn from(value: &RawResponse) -> Option<Response> {
         Response::from_raw(value)
+    }
+}
+
+pub struct ResponseCheck<'a> {
+    request: &'a Request,
+}
+
+impl<'a> ResponseCheck<'a> {
+    #[inline]
+    pub fn new(request: &'a Request) -> Self {
+        Self { request }
+    }
+
+    #[inline]
+    pub fn check_into_response(self, response_slice: &[u8]) -> Option<Response> {
+        #[cfg(debug_assertions)]
+        {
+            trace!("开始从Slice解析RawResponse");
+        }
+        let mut raw = RawResponse::new(response_slice)?;
+        #[cfg(debug_assertions)]
+        {
+            trace!("从Slice解析RawResponse除Header外部分");
+        }
+        raw.init(|header| {
+            if header.get_id() != self.request.header.id {
+                #[cfg(debug_assertions)]
+                {
+                    trace!(
+                        "请求id和响应id不同,分别为{},{}",
+                        header.get_id(),
+                        self.request.header.id
+                    );
+                }
+                return None;
+            }
+            if header.get_response() != 0x1 {
+                #[cfg(debug_assertions)]
+                {
+                    trace!("响应的response flag非0x1");
+                }
+                return None;
+            }
+            if header.get_opcode() != self.request.header.opcode {
+                #[cfg(debug_assertions)]
+                {
+                    trace!("请求和响应的opcode不同,分别为{},{}", header.get_opcode(), self.request.header.opcode);
+                }
+                return None;
+            }
+            if header.get_rec_desired() != self.request.header.rec_desired {
+                #[cfg(debug_assertions)]
+                {
+                    trace!("请求和响应的rec_desired不同,分别为{},{}", header.get_rec_desired(), self.request.header.rec_desired);
+                }
+                return None;
+            }
+            if header.get_rcode() != 0x0 {
+                #[cfg(debug_assertions)]
+                {
+                    trace!("响应的opcode不为0x0,而是{}", header.get_rcode());
+                }
+                return None;
+            }
+            if header.get_questions() != self.request.question.len() as u16 {
+                #[cfg(debug_assertions)]
+                {
+                    trace!("响应的opcode不为0x0,而是{}", header.get_rcode());
+                }
+            }
+            // todo tc authenticated .etc
+            Some(())
+        })?;
+        #[cfg(debug_assertions)]
+        {
+            trace!("开始全解析RawResponse");
+        }
+        Some(Response::from_raw(&raw)?)
     }
 }

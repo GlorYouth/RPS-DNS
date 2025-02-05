@@ -22,12 +22,13 @@ impl RawDomain {
                 {
                     trace!("发现有Domain Pointer");
                 }
-                let offset = u16::from_be_bytes([first_u8 & 0b0011_1111_u8,reader.read_u8()]) as usize;
+                let offset =
+                    u16::from_be_bytes([first_u8 & 0b0011_1111_u8, reader.read_u8()]) as usize;
                 #[cfg(debug_assertions)]
                 {
                     trace!("其指向字节为:{:x}", offset);
                 }
-                if reader.pos() > pos { 
+                if reader.pos() > pos {
                     pos = reader.pos();
                 }
                 reader.set_pos(offset);
@@ -41,7 +42,7 @@ impl RawDomain {
             }
             #[cfg(debug_assertions)]
             {
-                trace!("普通的Tags,内含{}个ASCII",first_u8);
+                trace!("普通的Tags,内含{}个ASCII", first_u8);
             }
             domain.push(first_u8);
             domain.extend_from_slice(reader.read_slice(first_u8 as usize));
@@ -70,7 +71,7 @@ impl RawDomain {
                 {
                     trace!("发现有Domain Pointer");
                 }
-                let offset = u16::from_be_bytes([first_u8 & 0b0011_1111_u8,slice[1]]) as usize;
+                let offset = u16::from_be_bytes([first_u8 & 0b0011_1111_u8, slice[1]]) as usize;
                 #[cfg(debug_assertions)]
                 {
                     trace!("其指向字节为:{:x}", offset);
@@ -92,7 +93,7 @@ impl RawDomain {
             }
             #[cfg(debug_assertions)]
             {
-                trace!("普通的Tags,内含{}个ASCII",slice[0]);
+                trace!("普通的Tags,内含{}个ASCII", slice[0]);
             }
             domain.extend_from_slice(slice[0..(first_u8 as usize) + 1].as_ref());
             slice = &slice[(first_u8 as usize) + 1..];
@@ -190,8 +191,8 @@ mod tests {
         );
         assert_eq!(reader.pos(), 33);
         reader.set_pos(43);
-        let domain = RawDomain::from_reader_with_size(reader,15).unwrap();
+        let domain = RawDomain::from_reader_with_size(reader, 15).unwrap();
         assert_eq!(domain.to_string().unwrap(), "www.a.shifen.com".to_string());
-        assert_eq!(reader.pos(), 43+15);
+        assert_eq!(reader.pos(), 43 + 15);
     }
 }

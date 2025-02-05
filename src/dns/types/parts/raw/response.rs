@@ -54,23 +54,13 @@ impl<'a> RawResponse<'a> {
         })
     }
 
-    pub fn init<'b, F: FnMut(&RawResponseHeader<'a>) -> Option<()>>(
-        &'b mut self,
-        mut check: F,
-    ) -> Option<()> {
-        if check(&self.raw_header).is_none() {
-            #[cfg(debug_assertions)]
-            {
-                debug!("外置header检验失败(check函数)");
-            }
-            return None;
-        }
-        let qdcount = self.raw_header.get_questions();
-        let ancount = self.raw_header.get_answer_rrs();
-        let nscount = self.raw_header.get_authority_rrs();
-        let arcount = self.raw_header.get_additional_rrs();
+    pub fn init_without_check(&mut self) -> Option<()> {
+        let questions = self.raw_header.get_questions();
+        let answer_rrs = self.raw_header.get_answer_rrs();
+        let authority_rrs = self.raw_header.get_authority_rrs();
+        let additional_rrs = self.raw_header.get_additional_rrs();
 
-        for _i in 0..qdcount {
+        for _i in 0..questions {
             #[cfg(debug_assertions)]
             {
                 trace!("正在从Slice解析第{}个RawQuestion", _i);
@@ -78,7 +68,7 @@ impl<'a> RawResponse<'a> {
             self.raw_question.push(RawQuestion::new(&mut self.reader)?)
         }
 
-        for _i in 0..ancount {
+        for _i in 0..answer_rrs {
             #[cfg(debug_assertions)]
             {
                 trace!("正在从Slice解析RawRecord=>第{}个response", _i);
@@ -86,7 +76,7 @@ impl<'a> RawResponse<'a> {
             self.response.push(RawRecord::new(&mut self.reader)?);
         }
 
-        for _i in 0..nscount {
+        for _i in 0..authority_rrs {
             #[cfg(debug_assertions)]
             {
                 trace!("正在从Slice解析RawRecord=>第{}个authority", _i);
@@ -94,7 +84,7 @@ impl<'a> RawResponse<'a> {
             self.authority.push(RawRecord::new(&mut self.reader)?);
         }
 
-        for _i in 0..arcount {
+        for _i in 0..additional_rrs {
             #[cfg(debug_assertions)]
             {
                 trace!("正在从Slice解析RawRecord=>第{}个additional", _i);
@@ -103,6 +93,25 @@ impl<'a> RawResponse<'a> {
         }
 
         Some(())
+    }
+
+    #[inline]
+    pub fn init<'b, F: FnMut(&RawResponseHeader<'a>) -> Option<()>>(
+        &'b mut self,
+        mut check: F,
+    ) -> Option<()> {
+        #[cfg(debug_assertions)]
+        {
+            trace!("开始检查header部分");
+        }
+        if check(&self.raw_header).is_none() {
+            #[cfg(debug_assertions)]
+            {
+                debug!("header检验失败");
+            }
+            return None;
+        }
+        self.init_without_check()
     }
 
     #[inline]

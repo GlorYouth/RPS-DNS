@@ -1,10 +1,10 @@
 #![cfg_attr(debug_assertions, allow(unused))]
 
-use crate::{Response, DnsType, Request};
-use std::io::{Read, Write};
-use std::net::{IpAddr, SocketAddr, TcpStream, UdpSocket};
 #[cfg(debug_assertions)]
 use super::error::init_logger;
+use crate::{DnsType, Request, ResponseCheck};
+use std::io::{Read, Write};
+use std::net::{IpAddr, SocketAddr, TcpStream, UdpSocket};
 
 pub struct Resolver {
     server: Vec<SocketAddr>, //后期考虑支持https,quic,h3,tls等类型地址,相关的支持放入net包中
@@ -26,14 +26,13 @@ impl Resolver {
         socket.connect("223.5.5.5:53").unwrap();
         let mut buf = [0_u8; 1500];
         let arr = Request::new(domain, DnsType::A.into())
-            .encode_into(&mut buf)
+            .encode_to_udp(&mut buf)
             .unwrap();
         if arr.len() > 512 {
             panic!("需要用tcp");
         }
         socket.send(arr).unwrap();
         let number_of_bytes = socket.recv(&mut buf).expect("Didn't receive data");
-        let response = Response::new(&buf[..number_of_bytes]).unwrap();
         todo!()
         // todo get_response
     }
@@ -46,14 +45,13 @@ impl Resolver {
         stream
             .write_all(
                 Request::new("www.baidu.com".to_string(), DnsType::A.into())
-                    .encode_into_tcp(&mut buf)
+                    .encode_to_tcp(&mut buf)
                     .unwrap(),
             )
             .unwrap();
         stream.read(&mut buf).unwrap();
         let len = u16::from_be_bytes([buf[0], buf[1]]);
-        let response = Response::new(&buf.as_slice()[2..]).unwrap();
-        println!("{:?}", response);
+        todo!();
     }
 
     pub fn query_aaaa(domain: String) -> IpAddr {
@@ -62,13 +60,12 @@ impl Resolver {
         stream
             .write_all(
                 Request::new(domain, DnsType::A.into())
-                    .encode_into(&mut buf)
+                    .encode_to_udp(&mut buf)
                     .unwrap(),
             )
             .unwrap();
         let mut buffer = Vec::new();
         stream.read_to_end(&mut buffer).unwrap();
-        let response = Response::new(buffer.as_slice()).unwrap();
         todo!()
         // todo get_response
     }

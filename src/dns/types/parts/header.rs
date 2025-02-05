@@ -1,7 +1,6 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
-use crate::dns::types::parts::raw::{RawResponseHeader, RawRequestHeader};
-
+use crate::dns::types::parts::raw::{RawRequestHeader, RawResponseHeader};
 
 #[derive(Debug)]
 pub struct RequestHeader {
@@ -92,4 +91,3 @@ impl From<&RawResponseHeader<'_>> for ResponseHeader {
         }
     }
 }
-
