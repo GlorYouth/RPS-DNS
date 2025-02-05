@@ -1,6 +1,7 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 use crate::dns::types::base::RawDomain;
 use crate::dns::utils::SliceReader;
+#[cfg(debug_assertions)]
 use log::{debug, trace};
 use std::net::{Ipv4Addr, Ipv6Addr};
 

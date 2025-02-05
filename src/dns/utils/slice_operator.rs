@@ -15,6 +15,7 @@ impl<'a> From<&'a mut [u8]> for SliceOperator<'a> {
     }
 }
 
+#[allow(unused)]
 impl<'a> SliceOperator<'a> {
     #[inline]
     pub fn pos(&self) -> usize {

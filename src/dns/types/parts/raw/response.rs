@@ -2,6 +2,7 @@ use crate::dns::types::parts::raw::header::RawResponseHeader;
 use crate::dns::types::parts::raw::question::RawQuestion;
 use crate::dns::types::parts::raw::record::RawRecord;
 use crate::dns::utils::SliceReader;
+#[cfg(debug_assertions)]
 use log::{debug, trace};
 use smallvec::SmallVec;
 
@@ -69,34 +70,34 @@ impl<'a> RawResponse<'a> {
         let nscount = self.raw_header.get_authority_rrs();
         let arcount = self.raw_header.get_additional_rrs();
 
-        for i in 0..qdcount {
+        for _i in 0..qdcount {
             #[cfg(debug_assertions)]
             {
-                trace!("正在从Slice解析第{}个RawQuestion", i);
+                trace!("正在从Slice解析第{}个RawQuestion", _i);
             }
             self.raw_question.push(RawQuestion::new(&mut self.reader)?)
         }
 
-        for i in 0..ancount {
+        for _i in 0..ancount {
             #[cfg(debug_assertions)]
             {
-                trace!("正在从Slice解析RawRecord=>第{}个response", i);
+                trace!("正在从Slice解析RawRecord=>第{}个response", _i);
             }
             self.response.push(RawRecord::new(&mut self.reader)?);
         }
 
-        for i in 0..nscount {
+        for _i in 0..nscount {
             #[cfg(debug_assertions)]
             {
-                trace!("正在从Slice解析RawRecord=>第{}个authority", i);
+                trace!("正在从Slice解析RawRecord=>第{}个authority", _i);
             }
             self.authority.push(RawRecord::new(&mut self.reader)?);
         }
 
-        for i in 0..arcount {
+        for _i in 0..arcount {
             #[cfg(debug_assertions)]
             {
-                trace!("正在从Slice解析RawRecord=>第{}个additional", i);
+                trace!("正在从Slice解析RawRecord=>第{}个additional", _i);
             }
             self.additional.push(RawRecord::new(&mut self.reader)?);
         }

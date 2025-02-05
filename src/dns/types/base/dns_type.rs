@@ -1,5 +1,6 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
+#[allow(unused)]
 pub enum DnsType {
     A,
     CNAME,

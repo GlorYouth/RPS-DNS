@@ -4,6 +4,7 @@ use crate::dns::types::parts::header::ResponseHeader;
 use crate::dns::types::parts::question::Question;
 use crate::dns::types::parts::raw::RawResponse;
 use crate::dns::types::parts::record::Record;
+#[cfg(debug_assertions)]
 use log::trace;
 use smallvec::SmallVec;
 

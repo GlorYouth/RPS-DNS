@@ -1,6 +1,7 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
 use crate::dns::utils::SliceReader;
+#[cfg(debug_assertions)]
 use log::{debug, trace};
 use smallvec::SmallVec;
 use std::fmt::Debug;
