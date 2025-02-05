@@ -6,7 +6,7 @@ use dns_core::{DnsType, Request};
 fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("fib 20", |b| {
         b.iter(|| {
-            test()
+            test_decode_from();
         })
     });
 }
