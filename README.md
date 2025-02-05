@@ -12,12 +12,14 @@ A Rust DNS light client/server dedicated to high performance and safe.
 - [ ] RFC1035  
 
 ## 待办
-- [ ] 将Option尽可能转化为Error
+- [x] ~~将Option尽可能转化为Error~~ 使用Log代替Error
+- [ ] 完成Server Address Parser部分,目前已实验性支持tcp和udp部分
 - [ ] 实现header中每个flag 对应的检测/行为，需要阅读rfc
 - [ ] 实现从最底层开始的#[test]模块，争取全覆盖
 - [ ] 写代码注释，可以交给AI
+- [ ] 将整体的代码实现从dev阶段逐步转成stable阶段
 - [ ] 完善各种DNS类型，目前只实现了A AAAA CNAME，而且实现还不完全吧，类型参考[维基百科](https://en.wikipedia.org/wiki/List_of_DNS_record_types) ，一定要实现的是PTR类型，NS可以看情况实现
-- [ ] 解决不了解SmallMap和其长期未维护带来的不确定性
+- [x] ~~解决不了解SmallMap和其长期未维护带来的不确定性~~ 最新实现将SmallMap取代了
 - [ ] 完成UDP仅限512字节以内的问题，到底是切片还是换成TCP
 - [ ] 完善DNSClient，并配套实现Error
 

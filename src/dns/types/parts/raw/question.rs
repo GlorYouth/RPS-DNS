@@ -2,6 +2,7 @@
 
 use crate::dns::types::base::RawDomain;
 use crate::dns::utils::SliceReader;
+#[cfg(debug_assertions)]
 use log::trace;
 
 #[derive(Debug)]
