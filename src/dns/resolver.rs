@@ -1,6 +1,6 @@
 #![cfg_attr(debug_assertions, allow(unused))]
 
-use crate::{Answer, DnsType, Request};
+use crate::{Response, DnsType, Request};
 use std::io::{Read, Write};
 use std::net::{IpAddr, SocketAddr, TcpStream, UdpSocket};
 #[cfg(debug_assertions)]
@@ -33,9 +33,9 @@ impl Resolver {
         }
         socket.send(arr).unwrap();
         let number_of_bytes = socket.recv(&mut buf).expect("Didn't receive data");
-        let answer = Answer::new(&buf[..number_of_bytes]).unwrap();
+        let response = Response::new(&buf[..number_of_bytes]).unwrap();
         todo!()
-        // todo get_answer
+        // todo get_response
     }
 
     pub fn query_a_tcp(domain: String) {
@@ -52,8 +52,8 @@ impl Resolver {
             .unwrap();
         stream.read(&mut buf).unwrap();
         let len = u16::from_be_bytes([buf[0], buf[1]]);
-        let answer = Answer::new(&buf.as_slice()[2..]).unwrap();
-        println!("{:?}", answer);
+        let response = Response::new(&buf.as_slice()[2..]).unwrap();
+        println!("{:?}", response);
     }
 
     pub fn query_aaaa(domain: String) -> IpAddr {
@@ -68,8 +68,8 @@ impl Resolver {
             .unwrap();
         let mut buffer = Vec::new();
         stream.read_to_end(&mut buffer).unwrap();
-        let answer = Answer::new(buffer.as_slice()).unwrap();
+        let response = Response::new(buffer.as_slice()).unwrap();
         todo!()
-        // todo get_answer
+        // todo get_response
     }
 }

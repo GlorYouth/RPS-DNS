@@ -40,7 +40,7 @@ impl RawDomain {
             }
             #[cfg(debug_assertions)]
             {
-                trace!("发现是普通的域名");
+                trace!("普通的Tags,内含{}个ASCII",first_u8);
             }
             domain.push(first_u8);
             domain.extend_from_slice(reader.read_slice(first_u8 as usize));
@@ -86,9 +86,12 @@ impl RawDomain {
                     return None;
                 }
             }
+            if first_u8 == 0x0_u8 {
+                break;
+            }
             #[cfg(debug_assertions)]
             {
-                trace!("发现是普通的域名");
+                trace!("普通的Tags,内含{}个ASCII",slice[0]);
             }
             domain.extend_from_slice(slice[0..(first_u8 as usize) + 1].as_ref());
             slice = &slice[(first_u8 as usize) + 1..];

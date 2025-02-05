@@ -1,30 +1,30 @@
-use crate::dns::types::parts::raw::header::RawAnswerHeader;
+use crate::dns::types::parts::raw::header::RawResponseHeader;
 use crate::dns::types::parts::raw::question::RawQuestion;
 use crate::dns::types::parts::raw::record::RawRecord;
 use crate::dns::utils::SliceReader;
 use log::{debug, trace};
 use smallvec::SmallVec;
 
-pub struct RawAnswer<'a> {
+pub struct RawResponse<'a> {
     reader: SliceReader<'a>,
 
-    raw_header: RawAnswerHeader<'a>,
+    raw_header: RawResponseHeader<'a>,
     raw_question: SmallVec<[RawQuestion<'a>; 5]>,
-    answer: SmallVec<[RawRecord<'a>; 10]>, //预分配，提升性能
+    response: SmallVec<[RawRecord<'a>; 10]>, //预分配，提升性能
     authority: SmallVec<[RawRecord<'a>; 5]>,
     additional: SmallVec<[RawRecord<'a>; 5]>,
 }
 
-impl<'a> RawAnswer<'a> {
+impl<'a> RawResponse<'a> {
     #[inline]
-    pub fn new(slice: &'a [u8]) -> Option<RawAnswer<'a>> {
-        if slice.len() < RawAnswerHeader::SIZE + RawQuestion::LEAST_SIZE {
+    pub fn new(slice: &'a [u8]) -> Option<RawResponse<'a>> {
+        if slice.len() < RawResponseHeader::SIZE + RawQuestion::LEAST_SIZE {
             #[cfg(debug_assertions)]
             {
                 debug!(
-                    "传入Slice长度不符合最低标准RawAnswer, 输入Slice长度 {}, 需要至少 {}",
+                    "传入Slice长度不符合最低标准RawResponse, 输入Slice长度 {}, 需要至少 {}",
                     slice.len(),
-                    RawAnswerHeader::SIZE + RawQuestion::LEAST_SIZE
+                    RawResponseHeader::SIZE + RawQuestion::LEAST_SIZE
                 );
             }
             return None;
@@ -38,22 +38,22 @@ impl<'a> RawAnswer<'a> {
         {
             trace!("开始解析Header")
         }
-        let raw_header = RawAnswerHeader::new(&mut reader);
+        let raw_header = RawResponseHeader::new(&mut reader);
         #[cfg(debug_assertions)]
         {
-            trace!("开始初始化RawAnswer");
+            trace!("开始初始化RawResponse");
         }
-        Some(RawAnswer {
+        Some(RawResponse {
             reader,
             raw_header,
             raw_question: SmallVec::new(),
-            answer: SmallVec::new(),
+            response: SmallVec::new(),
             authority: SmallVec::new(),
             additional: SmallVec::new(),
         })
     }
 
-    pub fn init<'b, F: FnMut(&RawAnswerHeader<'a>) -> Option<()>>(
+    pub fn init<'b, F: FnMut(&RawResponseHeader<'a>) -> Option<()>>(
         &'b mut self,
         mut check: F,
     ) -> Option<()> {
@@ -64,10 +64,10 @@ impl<'a> RawAnswer<'a> {
             }
             return None;
         }
-        let qdcount = self.raw_header.get_qdcount();
-        let ancount = self.raw_header.get_ancount();
-        let nscount = self.raw_header.get_nscount();
-        let arcount = self.raw_header.get_arcount();
+        let qdcount = self.raw_header.get_questions();
+        let ancount = self.raw_header.get_answer_rrs();
+        let nscount = self.raw_header.get_authority_rrs();
+        let arcount = self.raw_header.get_additional_rrs();
 
         for i in 0..qdcount {
             #[cfg(debug_assertions)]
@@ -80,9 +80,9 @@ impl<'a> RawAnswer<'a> {
         for i in 0..ancount {
             #[cfg(debug_assertions)]
             {
-                trace!("正在从Slice解析RawRecord=>第{}个answer", i);
+                trace!("正在从Slice解析RawRecord=>第{}个response", i);
             }
-            self.answer.push(RawRecord::new(&mut self.reader)?);
+            self.response.push(RawRecord::new(&mut self.reader)?);
         }
 
         for i in 0..nscount {
@@ -105,7 +105,7 @@ impl<'a> RawAnswer<'a> {
     }
 
     #[inline]
-    pub fn get_raw_header(&self) -> &RawAnswerHeader<'a> {
+    pub fn get_raw_header(&self) -> &RawResponseHeader<'a> {
         &self.raw_header
     }
 
@@ -115,8 +115,8 @@ impl<'a> RawAnswer<'a> {
     }
 
     #[inline]
-    pub fn get_raw_answer(&self) -> &SmallVec<[RawRecord<'a>; 10]> {
-        &self.answer
+    pub fn get_raw_response(&self) -> &SmallVec<[RawRecord<'a>; 10]> {
+        &self.response
     }
 
     #[inline]
@@ -132,11 +132,11 @@ impl<'a> RawAnswer<'a> {
 
 #[cfg(test)]
 mod test {
-    use crate::dns::types::parts::raw::answer::RawAnswer;
+    use crate::dns::types::parts::raw::response::RawResponse;
 
     #[test]
     fn test() {
-        let mut raw = RawAnswer::new(
+        let mut raw = RawResponse::new(
             &[
                 0xb4_u8, 0xdb, 0x81, 0x80, 0x00, 0x01, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x03,
                 0x64, 0x6e, 0x73, 0x06, 0x77, 0x65, 0x69, 0x78, 0x69, 0x6e, 0x02, 0x71, 0x71, 0x03,

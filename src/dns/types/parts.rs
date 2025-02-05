@@ -1,9 +1,9 @@
-mod answer;
+mod response;
 mod header;
 mod question;
 mod raw;
 mod record;
 mod request;
 
-pub use answer::Answer;
+pub use response::Response;
 pub use request::Request;

@@ -33,12 +33,12 @@ impl Request {
         Request {
             header: RequestHeader {
                 id: rng.random(),
-                qr: 0,
+                response: 0,
                 opcode: 0,
-                tc: 0,
-                rd: 0,
+                truncated: 0,
+                rec_desired: 0,
                 z: 0,
-                non_authenticated: 0,
+                check_disable: 0,
             },
             question,
         }
@@ -50,7 +50,7 @@ impl Request {
         operator.set_pos(2);
         operator.write_u16(self.header.id);
         operator.skip(1);
-        operator.write_u8(self.header.z << 6 | self.header.non_authenticated << 4);
+        operator.write_u8(self.header.z << 6 | self.header.check_disable << 4);
         operator.write_u16(self.question.len() as u16);
         operator.write_u32(0);
         operator.write_u16(0);
@@ -84,7 +84,7 @@ impl Request {
         }
         let pos = operator.pos();
         buffer[4] =
-            self.header.qr << 7 | self.header.opcode << 3 | self.header.tc << 1 | self.header.rd;
+            self.header.response << 7 | self.header.opcode << 3 | self.header.truncated << 1 | self.header.rec_desired;
         if pos - 2 > 512 {
             buffer[0..2].copy_from_slice(((pos - 2) as u16).to_be_bytes().as_ref());
             return Some(buffer[..pos].as_ref());
@@ -98,7 +98,7 @@ impl Request {
         operator.set_pos(2);
         operator.write_u16(self.header.id);
         operator.skip(1);
-        operator.write_u8(self.header.z << 6 | self.header.non_authenticated << 4);
+        operator.write_u8(self.header.z << 6 | self.header.check_disable << 4);
         operator.write_u16(self.question.len() as u16);
         operator.write_u32(0);
         operator.write_u16(0);
@@ -132,7 +132,7 @@ impl Request {
         }
         let pos = operator.pos();
         buffer[4] =
-            self.header.qr << 7 | self.header.opcode << 3 | self.header.tc << 1 | self.header.rd;
+            self.header.response << 7 | self.header.opcode << 3 | self.header.truncated << 1 | self.header.rec_desired;
         buffer[0..2].copy_from_slice(((pos - 2) as u16).to_be_bytes().as_ref());
         Some(buffer[..pos].as_ref())
     }

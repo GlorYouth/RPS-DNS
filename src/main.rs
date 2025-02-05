@@ -1,9 +1,9 @@
-use crate::dns::{Answer, DnsType};
-use dns_core::Request;
-use std::io::{Read, Write};
-use std::net::{TcpStream, UdpSocket};
 #[cfg(debug_assertions)]
 use crate::dns::error::init_logger;
+use crate::dns::{DnsType, Response};
+use dns_core::Request;
+use std::io::{Read, Write};
+use std::net::TcpStream;
 
 mod dns;
 fn main() {
@@ -20,7 +20,7 @@ fn main() {
         .unwrap();
     stream.read(&mut buf).unwrap();
     let len = u16::from_be_bytes([buf[0], buf[1]]);
-    let answer = Answer::new(&buf.as_slice()[2..(len + 2) as usize]).unwrap();
-    println!("{:?}", answer);
+    let response = Response::new(&buf.as_slice()[2..(len + 2) as usize]).unwrap();
+    println!("{:#?}", response);
     return;
 }
