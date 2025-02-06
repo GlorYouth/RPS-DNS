@@ -177,7 +177,7 @@ mod tests {
     #[test]
     fn test_query_a() {
         init_logger();
-        let server = vec!["223.5.5.5".to_string()];
+        let server = vec!["94.140.14.140".to_string()];
         let resolver = Resolver::new(server).unwrap();
         let result = resolver
             .query_a("www.baidu.com".to_string())
@@ -189,7 +189,7 @@ mod tests {
     #[test]
     fn test_query_aaaa() {
         init_logger();
-        let server = vec!["223.5.5.5".to_string()];
+        let server = vec!["94.140.14.140".to_string()];
         let resolver = Resolver::new(server).unwrap();
         let result = resolver
             .query_aaaa("www.baidu.com".to_string())
@@ -201,7 +201,7 @@ mod tests {
     #[test]
     fn test_query_cname() {
         init_logger();
-        let server = vec!["223.5.5.5".to_string()];
+        let server = vec!["9.9.9.9".to_string()];
         let resolver = Resolver::new(server).unwrap();
         let result = resolver
             .query_cname("www.baidu.com".to_string())

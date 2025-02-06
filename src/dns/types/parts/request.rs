@@ -37,7 +37,7 @@ impl Request {
                 response: 0,
                 opcode: 0,
                 truncated: 0,
-                rec_desired: 0,
+                rec_desired: 1,
                 z: 0,
                 check_disable: 0,
             },
