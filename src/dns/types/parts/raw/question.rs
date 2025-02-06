@@ -15,10 +15,7 @@ impl<'a> RawQuestion<'a> {
     pub const FIX_SIZE: usize = 4;
     pub const LEAST_SIZE: usize = Self::FIX_SIZE + 2;
 
-    pub fn new(
-        // 'b为引用存在的周期，比'a对象存在的周期短或等于
-        reader: &mut SliceReader<'a>,
-    ) -> Option<RawQuestion<'a>> {
+    pub fn new(reader: &mut SliceReader<'a>) -> Option<RawQuestion<'a>> {
         #[cfg(debug_assertions)]
         {
             trace!("准备解析Question内的name");

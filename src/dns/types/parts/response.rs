@@ -38,9 +38,9 @@ impl Response {
         Some(Response::from_raw(&raw)?)
     }
 
-    pub fn from_slice(slice: &[u8]) -> Option<Response> {
+    pub fn from_slice_uncheck(slice: &[u8]) -> Option<Response> {
         let mut raw = RawResponse::new(slice)?;
-        raw.init(|_h| Some(()))?;
+        raw.init_without_check()?;
         Some(Response::from_raw(&raw)?)
     }
 

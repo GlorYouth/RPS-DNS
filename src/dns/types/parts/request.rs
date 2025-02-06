@@ -47,19 +47,23 @@ impl Request {
 
     pub fn encode_to_udp<'b>(&self, buffer: &'b mut [u8]) -> Option<&'b [u8]> {
         let mut operator = SliceOperator::from_slice(buffer);
+
+        // 前两个Bytes
         operator.set_pos(2);
         operator.write_u16(self.header.id);
-        operator.skip(1);
+
+        operator.write_u8(
+            self.header.response << 7
+                | self.header.opcode << 3
+                | self.header.truncated << 1
+                | self.header.rec_desired,
+        );
         operator.write_u8(self.header.z << 6 | self.header.check_disable << 4);
         operator.write_u16(self.question.len() as u16);
         operator.write_u32(0);
         operator.write_u16(0);
         self.encode_question(&mut operator);
         let pos = operator.pos();
-        buffer[4] = self.header.response << 7
-            | self.header.opcode << 3
-            | self.header.truncated << 1
-            | self.header.rec_desired;
         if pos - 2 > 512 {
             //自动返回tcp的slice
             buffer[0..2].copy_from_slice(((pos - 2) as u16).to_be_bytes().as_ref());
@@ -72,17 +76,18 @@ impl Request {
         let mut operator = SliceOperator::from_slice(buffer);
         operator.set_pos(2);
         operator.write_u16(self.header.id);
-        operator.skip(1);
+        operator.write_u8(
+            self.header.response << 7
+                | self.header.opcode << 3
+                | self.header.truncated << 1
+                | self.header.rec_desired,
+        );
         operator.write_u8(self.header.z << 6 | self.header.check_disable << 4);
         operator.write_u16(self.question.len() as u16);
         operator.write_u32(0);
         operator.write_u16(0);
         self.encode_question(&mut operator);
         let pos = operator.pos();
-        buffer[4] = self.header.response << 7
-            | self.header.opcode << 3
-            | self.header.truncated << 1
-            | self.header.rec_desired;
         buffer[0..2].copy_from_slice(((pos - 2) as u16).to_be_bytes().as_ref());
         Some(buffer[..pos].as_ref())
     }

@@ -17,10 +17,7 @@ impl<'a> RawRecord<'a> {
     pub const FIX_SIZE: usize = 10;
     pub const LEAST_SIZE: usize = 12;
 
-    pub fn new(
-        // 'b为引用存在的周期，比'a对象存在的周期短或等于
-        reader: &mut SliceReader<'a>,
-    ) -> Option<RawRecord<'a>> {
+    pub fn new(reader: &mut SliceReader<'a>) -> Option<RawRecord<'a>> {
         #[cfg(debug_assertions)]
         {
             trace!("准备解析Record内的name");

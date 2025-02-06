@@ -21,7 +21,7 @@ pub fn test_decode_from() {
         0x2b, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x1d, 0x00, 0x04, 0xb7, 0x02, 0xac, 0x2a,
     ];
     for _ in 0..20000 {
-        let response = Response::from_slice(arr).unwrap();
+        let response = Response::from_slice_uncheck(arr).unwrap();
         assert_eq!(response.header.id, 0xb9de);
     }
 }
