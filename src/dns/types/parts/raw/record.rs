@@ -93,7 +93,7 @@ enum RawRecordDataType<'a> {
     Other(&'a [u8]),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum RecordDataType {
     A(Ipv4Addr),
     AAAA(Ipv6Addr),

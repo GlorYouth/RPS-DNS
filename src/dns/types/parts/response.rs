@@ -8,7 +8,6 @@ use crate::dns::types::parts::record::Record;
 #[cfg(debug_assertions)]
 use log::trace;
 use smallvec::SmallVec;
-use std::net::{Ipv4Addr, Ipv6Addr};
 
 #[derive(Debug)]
 pub struct Response {
@@ -95,29 +94,19 @@ impl Response {
             additional,
         })
     }
+    
+    pub fn get_record(&self, rtype: u16) -> Option<RecordDataType> {
+        let predicate: fn(&RecordDataType) -> bool = match rtype {
+            1 => |data| matches!(data, RecordDataType::A(_)),
+            5 => |data| matches!(data, RecordDataType::CNAME(_)),
+            28 => |data| matches!(data, RecordDataType::AAAA(_)),
+            _ => return None,
+        };
 
-    pub fn get_a_record(&self) -> Option<Ipv4Addr> {
-        for answer in &self.answer {
-            match answer.data {
-                RecordDataType::A(addr) => {
-                    return Some(addr); //这里隐式clone了一下
-                }
-                _ => {}
-            }
-        }
-        None
-    }
-
-    pub fn get_aaaa_record(&self) -> Option<Ipv6Addr> {
-        for answer in &self.answer {
-            match answer.data {
-                RecordDataType::AAAA(addr) => {
-                    return Some(addr); //这里隐式clone了一下
-                }
-                _ => {}
-            }
-        }
-        None
+        self.answer
+            .iter()
+            .find(|answer| predicate(&answer.data))
+            .map(|answer| answer.data.clone())
     }
 }
 
