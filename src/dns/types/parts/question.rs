@@ -1,10 +1,11 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
 use crate::dns::types::parts::raw::RawQuestion;
+use std::rc::Rc;
 
 #[derive(Debug)]
 pub struct Question {
-    pub qname: String,
+    pub qname: Rc<String>,
     pub qtype: u16,
     pub qclass: u16,
 }
@@ -20,7 +21,7 @@ impl From<&RawQuestion<'_>> for Option<Question> {
     #[inline]
     fn from(question: &RawQuestion) -> Option<Question> {
         Some(Question {
-            qname: question.get_name()?,
+            qname: Rc::from(question.get_name()?),
             qtype: question.get_qtype(),
             qclass: question.get_qclass(),
         })

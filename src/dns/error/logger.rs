@@ -86,7 +86,7 @@ pub mod debug {
 
     pub fn init_logger() {
         // 设置全局 logger
-        log::set_logger(Box::leak(Box::from(GlobalLogger::new()))).unwrap();
+        if log::set_logger(Box::leak(Box::from(GlobalLogger::new()))).is_ok() {};
         log::set_max_level(log::LevelFilter::Trace);
     }
 

@@ -1,9 +1,9 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
-use crate::Request;
+use crate::dns::Request;
 use crate::dns::types::parts::header::ResponseHeader;
 use crate::dns::types::parts::question::Question;
-use crate::dns::types::parts::raw::RawResponse;
+use crate::dns::types::parts::raw::{RawResponse, RecordDataType};
 use crate::dns::types::parts::record::Record;
 #[cfg(debug_assertions)]
 use log::trace;
@@ -13,7 +13,7 @@ use smallvec::SmallVec;
 pub struct Response {
     pub header: ResponseHeader,
     pub question: SmallVec<[Question; 5]>,
-    pub response: SmallVec<[Record; 10]>,
+    pub answer: SmallVec<[Record; 10]>,
     pub authority: SmallVec<[Record; 5]>,
     pub additional: SmallVec<[Record; 5]>,
 }
@@ -37,20 +37,20 @@ impl Response {
         Some(Response::from_raw(&raw)?)
     }
 
-    pub fn from_slice(slice: &[u8]) -> Option<Response> {
+    pub fn from_slice_uncheck(slice: &[u8]) -> Option<Response> {
         let mut raw = RawResponse::new(slice)?;
-        raw.init(|_h| Some(()))?;
+        raw.init_without_check()?;
         Some(Response::from_raw(&raw)?)
     }
 
     pub fn from_raw(value: &RawResponse) -> Option<Response> {
         let raw_question = value.get_raw_question();
-        let raw_response = value.get_raw_response();
+        let raw_answer = value.get_raw_answer();
         let raw_authority = value.get_raw_authority();
         let raw_additional = value.get_raw_additional();
 
         let mut question = SmallVec::new();
-        let mut response = SmallVec::new();
+        let mut answer = SmallVec::new();
         let mut authority = SmallVec::new();
         let mut additional = SmallVec::new();
 
@@ -62,12 +62,12 @@ impl Response {
             question.push(Question::new(v)?);
         }
 
-        for v in raw_response {
+        for v in raw_answer {
             #[cfg(debug_assertions)]
             {
-                trace!("开始全解析response => Record {}", response.len());
+                trace!("开始全解析answer => Record {}", answer.len());
             }
-            response.push(Record::new(v)?);
+            answer.push(Record::new(v)?);
         }
 
         for v in raw_authority {
@@ -89,10 +89,24 @@ impl Response {
         Some(Response {
             header: ResponseHeader::from(value.get_raw_header()),
             question,
-            response,
+            answer,
             authority,
             additional,
         })
+    }
+
+    pub fn get_record(&self, rtype: u16) -> Option<RecordDataType> {
+        let predicate: fn(&RecordDataType) -> bool = match rtype {
+            1 => |data| matches!(data, RecordDataType::A(_)),
+            5 => |data| matches!(data, RecordDataType::CNAME(_)),
+            28 => |data| matches!(data, RecordDataType::AAAA(_)),
+            _ => return None,
+        };
+
+        self.answer
+            .iter()
+            .find(|answer| predicate(&answer.data))
+            .map(|answer| answer.data.clone())
     }
 }
 
@@ -146,14 +160,22 @@ impl<'a> ResponseCheck<'a> {
             if header.get_opcode() != self.request.header.opcode {
                 #[cfg(debug_assertions)]
                 {
-                    trace!("请求和响应的opcode不同,分别为{},{}", header.get_opcode(), self.request.header.opcode);
+                    trace!(
+                        "请求和响应的opcode不同,分别为{},{}",
+                        header.get_opcode(),
+                        self.request.header.opcode
+                    );
                 }
                 return None;
             }
             if header.get_rec_desired() != self.request.header.rec_desired {
                 #[cfg(debug_assertions)]
                 {
-                    trace!("请求和响应的rec_desired不同,分别为{},{}", header.get_rec_desired(), self.request.header.rec_desired);
+                    trace!(
+                        "请求和响应的rec_desired不同,分别为{},{}",
+                        header.get_rec_desired(),
+                        self.request.header.rec_desired
+                    );
                 }
                 return None;
             }

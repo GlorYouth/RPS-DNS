@@ -5,6 +5,8 @@ use crate::dns::types::parts::raw::question::RawQuestion;
 use crate::dns::utils::SliceReader;
 use smallvec::SmallVec;
 
+// now it is unused, at least for client or just call it resolver
+
 pub struct RawRequest<'a> {
     reader: SliceReader<'a>,
 

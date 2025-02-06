@@ -89,6 +89,7 @@ impl RawDomain {
                 }
             }
             if first_u8 == 0x0_u8 {
+                //有概率最后一个为0x0,看不同server是如何实现的，这里是为了效率加了判断
                 break;
             }
             #[cfg(debug_assertions)]
