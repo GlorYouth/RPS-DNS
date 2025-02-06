@@ -8,7 +8,7 @@ use crate::dns::types::parts::record::Record;
 #[cfg(debug_assertions)]
 use log::trace;
 use smallvec::SmallVec;
-use std::net::Ipv4Addr;
+use std::net::{Ipv4Addr, Ipv6Addr};
 
 #[derive(Debug)]
 pub struct Response {
@@ -100,6 +100,18 @@ impl Response {
         for answer in &self.answer {
             match answer.data {
                 RecordDataType::A(addr) => {
+                    return Some(addr); //这里隐式clone了一下
+                }
+                _ => {}
+            }
+        }
+        None
+    }
+
+    pub fn get_aaaa_record(&self) -> Option<Ipv6Addr> {
+        for answer in &self.answer {
+            match answer.data {
+                RecordDataType::AAAA(addr) => {
                     return Some(addr); //这里隐式clone了一下
                 }
                 _ => {}
