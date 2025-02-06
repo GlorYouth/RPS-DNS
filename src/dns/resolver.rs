@@ -1,20 +1,19 @@
 #![cfg_attr(debug_assertions, allow(unused_variables, dead_code))]
 
-use std::fmt::{Debug, Display, Formatter};
+use crate::dns::RecordDataType;
 use crate::dns::error::Error;
 use crate::dns::net::NetQuery;
 use crate::dns::utils::ServerType;
 use crate::dns::{DnsType, Request};
+use log::debug;
 use smallvec::SmallVec;
+use std::fmt::{Debug, Display, Formatter};
 use std::net::{AddrParseError, Ipv4Addr, Ipv6Addr, TcpStream, UdpSocket};
 use std::rc::Rc;
-use log::{debug};
-use crate::dns::RecordDataType;
 
 pub struct Resolver {
     server: SmallVec<[ServerType; 5]>,
 }
-
 
 impl Resolver {
     pub fn new(mut server: Vec<String>) -> Result<Resolver, AddrParseError> {
@@ -32,20 +31,20 @@ impl Resolver {
     //详见smart_dns
     #[inline]
     pub fn query_a(&self, domain: String) -> QueryResult {
-        self.query(domain,DnsType::A.into())
+        self.query(domain, DnsType::A.into())
     }
-    
+
     #[inline]
     pub fn query_aaaa(&self, domain: String) -> QueryResult {
-        self.query(domain,DnsType::AAAA.into())
+        self.query(domain, DnsType::AAAA.into())
     }
-    
+
     #[inline]
     pub fn query_cname(&self, domain: String) -> QueryResult {
-        self.query(domain,DnsType::CNAME.into())
+        self.query(domain, DnsType::CNAME.into())
     }
-    
-    fn query(&self, domain:String, qtype: u16) -> QueryResult  {
+
+    fn query(&self, domain: String, qtype: u16) -> QueryResult {
         let domain = Rc::new(domain);
         let mut error_vec = SmallVec::new();
         let buf = [0_u8; 1500];
@@ -56,9 +55,7 @@ impl Resolver {
                     if let Ok(stream) = TcpStream::connect(addr) {
                         let request = Request::new(domain.clone(), qtype);
                         match NetQuery::query_tcp(stream, request, buf) {
-                            Ok(response) => {
-                                response.get_record(qtype).into()
-                            }
+                            Ok(response) => response.get_record(qtype).into(),
                             Err(e) => {
                                 error_vec.push(e);
                                 continue;
@@ -76,16 +73,13 @@ impl Resolver {
                         if let Ok(addr) = socket.connect(addr) {
                             let request = Request::new(domain.clone(), qtype);
                             match NetQuery::query_udp(socket, request, buf) {
-                                Ok(response) => {
-                                    response.get_record(qtype).into()
-                                }
+                                Ok(response) => response.get_record(qtype).into(),
                                 Err(e) => {
                                     error_vec.push(e);
                                     continue;
                                 }
                             }
-                        }
-                        else {
+                        } else {
                             #[cfg(debug_assertions)]
                             debug!("连接到对应的udp server失败");
                             error_vec.push(Error::from(QueryError::ConnectUdpAddrError));
@@ -120,7 +114,7 @@ impl QueryResult {
             None
         }
     }
-    
+
     #[inline]
     fn get_aaaa_record(&self) -> Option<Ipv6Addr> {
         if let Some(RecordDataType::AAAA(addr)) = &self.record {
@@ -129,7 +123,7 @@ impl QueryResult {
             None
         }
     }
-    
+
     #[inline]
     fn get_cname_record(&self) -> Option<String> {
         if let Some(RecordDataType::CNAME(name)) = &self.record {
@@ -167,15 +161,9 @@ pub enum QueryError {
 impl Debug for QueryError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            QueryError::BindUdpAddrError => {
-                f.write_str("QueryError::BindUdpAddrError")
-            }
-            QueryError::ConnectUdpAddrError => {
-                f.write_str("QueryError::ConnectUdpAddrError")
-            }
-            QueryError::ConnectTcpAddrError => {
-                f.write_str("QueryError::ConnectTcpAddrError")
-            }
+            QueryError::BindUdpAddrError => f.write_str("QueryError::BindUdpAddrError"),
+            QueryError::ConnectUdpAddrError => f.write_str("QueryError::ConnectUdpAddrError"),
+            QueryError::ConnectTcpAddrError => f.write_str("QueryError::ConnectTcpAddrError"),
         }
     }
 }
@@ -183,44 +171,39 @@ impl Debug for QueryError {
 impl Display for QueryError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            QueryError::BindUdpAddrError => {
-                f.write_str("BindUdpAddrError")
-            }
-            QueryError::ConnectUdpAddrError => {
-                f.write_str("ConnectUdpAddrError")
-            }
-            QueryError::ConnectTcpAddrError => {
-                f.write_str("ConnectTcpAddrError")
-            }
+            QueryError::BindUdpAddrError => f.write_str("BindUdpAddrError"),
+            QueryError::ConnectUdpAddrError => f.write_str("ConnectUdpAddrError"),
+            QueryError::ConnectTcpAddrError => f.write_str("ConnectTcpAddrError"),
         }
     }
 }
 
-
 #[cfg(test)]
 mod tests {
-    use crate::dns::resolver::Resolver;
     use crate::dns::error::init_logger;
+    use crate::dns::resolver::Resolver;
 
     #[test]
     fn test_query_a() {
         init_logger();
-        let server = vec![
-            "223.5.5.5".to_string(),
-        ];
+        let server = vec!["223.5.5.5".to_string()];
         let resolver = Resolver::new(server).unwrap();
-        let result = resolver.query_a("www.baidu.com".to_string()).get_a_record().unwrap();
+        let result = resolver
+            .query_a("www.baidu.com".to_string())
+            .get_a_record()
+            .unwrap();
         println!("{:?}", result);
     }
-    
+
     #[test]
     fn test_query_aaaa() {
         init_logger();
-        let server = vec![
-            "223.5.5.5".to_string(),
-        ];
+        let server = vec!["223.5.5.5".to_string()];
         let resolver = Resolver::new(server).unwrap();
-        let result = resolver.query_aaaa("www.baidu.com".to_string()).get_aaaa_record().unwrap();
+        let result = resolver
+            .query_aaaa("www.baidu.com".to_string())
+            .get_aaaa_record()
+            .unwrap();
         println!("{:?}", result);
     }
 }

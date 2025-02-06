@@ -1,6 +1,6 @@
+use crate::dns::resolver::QueryError;
 use std::fmt::{Debug, Display, Formatter};
 use std::net::AddrParseError;
-use crate::dns::resolver::QueryError;
 
 pub enum Error {
     AddrParseError(AddrParseError),

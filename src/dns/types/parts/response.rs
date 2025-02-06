@@ -94,7 +94,7 @@ impl Response {
             additional,
         })
     }
-    
+
     pub fn get_record(&self, rtype: u16) -> Option<RecordDataType> {
         let predicate: fn(&RecordDataType) -> bool = match rtype {
             1 => |data| matches!(data, RecordDataType::A(_)),
