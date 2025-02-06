@@ -6,6 +6,7 @@ use crate::dns::types::parts::raw::RawRequest;
 use crate::dns::utils::SliceOperator;
 use rand::Rng;
 use smallvec::SmallVec;
+use std::rc::Rc;
 
 const SUFFIX: &[u8] = "xn--".as_bytes();
 
@@ -21,7 +22,7 @@ impl Request {
     }
 
     #[inline]
-    pub fn new(domain: String, qtype: u16) -> Request {
+    pub fn new(domain: Rc<String>, qtype: u16) -> Request {
         let mut rng = rand::rng();
         let mut question = SmallVec::new();
         question.push(Question {
@@ -60,6 +61,7 @@ impl Request {
             | self.header.truncated << 1
             | self.header.rec_desired;
         if pos - 2 > 512 {
+            //自动返回tcp的slice
             buffer[0..2].copy_from_slice(((pos - 2) as u16).to_be_bytes().as_ref());
             return Some(buffer[..pos].as_ref());
         }

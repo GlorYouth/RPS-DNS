@@ -11,7 +11,7 @@ pub struct RawResponse<'a> {
 
     raw_header: RawResponseHeader<'a>,
     raw_question: SmallVec<[RawQuestion<'a>; 5]>,
-    response: SmallVec<[RawRecord<'a>; 10]>, //预分配，提升性能
+    answer: SmallVec<[RawRecord<'a>; 10]>, //预分配，提升性能
     authority: SmallVec<[RawRecord<'a>; 5]>,
     additional: SmallVec<[RawRecord<'a>; 5]>,
 }
@@ -48,7 +48,7 @@ impl<'a> RawResponse<'a> {
             reader,
             raw_header,
             raw_question: SmallVec::new(),
-            response: SmallVec::new(),
+            answer: SmallVec::new(),
             authority: SmallVec::new(),
             additional: SmallVec::new(),
         })
@@ -73,7 +73,7 @@ impl<'a> RawResponse<'a> {
             {
                 trace!("正在从Slice解析RawRecord=>第{}个response", _i);
             }
-            self.response.push(RawRecord::new(&mut self.reader)?);
+            self.answer.push(RawRecord::new(&mut self.reader)?);
         }
 
         for _i in 0..authority_rrs {
@@ -125,8 +125,8 @@ impl<'a> RawResponse<'a> {
     }
 
     #[inline]
-    pub fn get_raw_response(&self) -> &SmallVec<[RawRecord<'a>; 10]> {
-        &self.response
+    pub fn get_raw_answer(&self) -> &SmallVec<[RawRecord<'a>; 10]> {
+        &self.answer
     }
 
     #[inline]
