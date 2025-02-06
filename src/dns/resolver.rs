@@ -1,6 +1,7 @@
 #![cfg_attr(debug_assertions, allow(unused_variables, dead_code))]
 
 use crate::dns::RecordDataType;
+use crate::dns::Response;
 use crate::dns::error::Error;
 use crate::dns::net::NetQuery;
 use crate::dns::utils::ServerType;
@@ -55,7 +56,7 @@ impl Resolver {
                     if let Ok(stream) = TcpStream::connect(addr) {
                         let request = Request::new(domain.clone(), qtype);
                         match NetQuery::query_tcp(stream, request, buf) {
-                            Ok(response) => response.get_record(qtype).into(),
+                            Ok(response) => response.into(),
                             Err(e) => {
                                 error_vec.push(e);
                                 continue;
@@ -73,7 +74,7 @@ impl Resolver {
                         if let Ok(addr) = socket.connect(addr) {
                             let request = Request::new(domain.clone(), qtype);
                             match NetQuery::query_udp(socket, request, buf) {
-                                Ok(response) => response.get_record(qtype).into(),
+                                Ok(response) => response.into(),
                                 Err(e) => {
                                     error_vec.push(e);
                                     continue;
@@ -101,43 +102,58 @@ impl Resolver {
 type ErrorVec = SmallVec<[Error; 3]>;
 
 pub struct QueryResult {
-    record: Option<RecordDataType>,
+    response: Option<Response>,
     error: ErrorVec,
 }
 
 impl QueryResult {
     #[inline]
     fn get_a_record(&self) -> Option<Ipv4Addr> {
-        if let Some(RecordDataType::A(addr)) = &self.record {
-            Some(addr.clone())
-        } else {
-            None
-        }
+        self.response
+            .as_ref()
+            .and_then(|res| res.get_record(DnsType::A.into())) // 尝试获取 A 记录
+            .and_then(|record| {
+                if let RecordDataType::A(addr) = record {
+                    Some(addr)
+                } else {
+                    None
+                }
+            })
     }
 
     #[inline]
     fn get_aaaa_record(&self) -> Option<Ipv6Addr> {
-        if let Some(RecordDataType::AAAA(addr)) = &self.record {
-            Some(addr.clone())
-        } else {
-            None
-        }
+        self.response
+            .as_ref()
+            .and_then(|res| res.get_record(DnsType::AAAA.into())) // 尝试获取 A 记录
+            .and_then(|record| {
+                if let RecordDataType::AAAA(addr) = record {
+                    Some(addr)
+                } else {
+                    None
+                }
+            })
     }
 
     #[inline]
     fn get_cname_record(&self) -> Option<String> {
-        if let Some(RecordDataType::CNAME(name)) = &self.record {
-            Some(name.clone())
-        } else {
-            None
-        }
+        self.response
+            .as_ref()
+            .and_then(|res| res.get_record(DnsType::CNAME.into()))
+            .and_then(|record| {
+                if let RecordDataType::CNAME(name) = record {
+                    Some(name)
+                } else {
+                    None
+                }
+            })
     }
 }
 
-impl From<Option<RecordDataType>> for QueryResult {
-    fn from(value: Option<RecordDataType>) -> Self {
+impl From<Response> for QueryResult {
+    fn from(value: Response) -> Self {
         Self {
-            record: value,
+            response: Some(value),
             error: Default::default(),
         }
     }
@@ -146,7 +162,7 @@ impl From<Option<RecordDataType>> for QueryResult {
 impl From<ErrorVec> for QueryResult {
     fn from(value: ErrorVec) -> Self {
         Self {
-            record: None,
+            response: None,
             error: value,
         }
     }
@@ -203,6 +219,18 @@ mod tests {
         let result = resolver
             .query_aaaa("www.baidu.com".to_string())
             .get_aaaa_record()
+            .unwrap();
+        println!("{:?}", result);
+    }
+
+    #[test]
+    fn test_query_cname() {
+        init_logger();
+        let server = vec!["223.5.5.5".to_string()];
+        let resolver = Resolver::new(server).unwrap();
+        let result = resolver
+            .query_cname("www.baidu.com".to_string())
+            .get_cname_record()
             .unwrap();
         println!("{:?}", result);
     }
