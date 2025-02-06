@@ -1,10 +1,10 @@
-use crate::dns::resolver::QueryError;
+use crate::dns::net::NetQueryError;
 use std::fmt::{Debug, Display, Formatter};
 use std::net::AddrParseError;
 
 pub enum Error {
     AddrParseError(AddrParseError),
-    QueryError(QueryError),
+    QueryError(NetQueryError),
 }
 
 impl From<AddrParseError> for Error {
@@ -13,8 +13,8 @@ impl From<AddrParseError> for Error {
     }
 }
 
-impl From<QueryError> for Error {
-    fn from(error: QueryError) -> Self {
+impl From<NetQueryError> for Error {
+    fn from(error: NetQueryError) -> Self {
         Error::QueryError(error)
     }
 }

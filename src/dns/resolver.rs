@@ -3,9 +3,10 @@
 use crate::dns::RecordDataType;
 use crate::dns::Response;
 use crate::dns::error::Error;
-use crate::dns::net::NetQuery;
+use crate::dns::net::{NetQuery, NetQueryError};
 use crate::dns::utils::ServerType;
 use crate::dns::{DnsType, Request};
+#[cfg(debug_assertions)]
 use log::debug;
 use smallvec::SmallVec;
 use std::fmt::{Debug, Display, Formatter};
@@ -58,14 +59,14 @@ impl Resolver {
                         match NetQuery::query_tcp(stream, request, buf) {
                             Ok(response) => response.into(),
                             Err(e) => {
-                                error_vec.push(e);
+                                error_vec.push(e.into());
                                 continue;
                             }
                         }
                     } else {
                         #[cfg(debug_assertions)]
                         debug!("连接到对应的tcp server失败");
-                        error_vec.push(Error::from(QueryError::ConnectTcpAddrError));
+                        error_vec.push(Error::from(NetQueryError::ConnectTcpAddrError));
                         continue; //连接到server失败, 则尝试备用server
                     }
                 }
@@ -76,20 +77,20 @@ impl Resolver {
                             match NetQuery::query_udp(socket, request, buf) {
                                 Ok(response) => response.into(),
                                 Err(e) => {
-                                    error_vec.push(e);
+                                    error_vec.push(e.into());
                                     continue;
                                 }
                             }
                         } else {
                             #[cfg(debug_assertions)]
                             debug!("连接到对应的udp server失败");
-                            error_vec.push(Error::from(QueryError::ConnectUdpAddrError));
+                            error_vec.push(Error::from(NetQueryError::ConnectUdpAddrError));
                             continue;
                         }
                     } else {
                         #[cfg(debug_assertions)]
                         debug!("监听udp端口失败");
-                        error_vec.push(Error::from(QueryError::BindUdpAddrError));
+                        error_vec.push(Error::from(NetQueryError::BindUdpAddrError));
                         continue; //监听udp失败，尝试备用
                     }
                 }
@@ -150,10 +151,10 @@ impl QueryResult {
     }
 }
 
-impl From<Response> for QueryResult {
-    fn from(value: Response) -> Self {
+impl From<Option<Response>> for QueryResult {
+    fn from(value: Option<Response>) -> Self {
         Self {
-            response: Some(value),
+            response: value,
             error: Default::default(),
         }
     }
@@ -164,32 +165,6 @@ impl From<ErrorVec> for QueryResult {
         Self {
             response: None,
             error: value,
-        }
-    }
-}
-
-pub enum QueryError {
-    BindUdpAddrError,
-    ConnectUdpAddrError,
-    ConnectTcpAddrError,
-}
-
-impl Debug for QueryError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            QueryError::BindUdpAddrError => f.write_str("QueryError::BindUdpAddrError"),
-            QueryError::ConnectUdpAddrError => f.write_str("QueryError::ConnectUdpAddrError"),
-            QueryError::ConnectTcpAddrError => f.write_str("QueryError::ConnectTcpAddrError"),
-        }
-    }
-}
-
-impl Display for QueryError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            QueryError::BindUdpAddrError => f.write_str("BindUdpAddrError"),
-            QueryError::ConnectUdpAddrError => f.write_str("ConnectUdpAddrError"),
-            QueryError::ConnectTcpAddrError => f.write_str("ConnectTcpAddrError"),
         }
     }
 }

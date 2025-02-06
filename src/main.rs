@@ -15,9 +15,7 @@ fn main() {
     let mut stream = TcpStream::connect("223.5.5.5:53").unwrap();
     let mut buf = [0_u8; 1500];
     let request = Request::new(Rc::from("www.baidu.com".to_string()), DnsType::A.into());
-    stream
-        .write_all(request.encode_to_tcp(&mut buf).unwrap())
-        .unwrap();
+    stream.write_all(request.encode_to_tcp(&mut buf)).unwrap();
     stream.read(&mut buf).unwrap();
     let len = u16::from_be_bytes([buf[0], buf[1]]);
     let response = ResponseCheck::new(&request)

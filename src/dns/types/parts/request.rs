@@ -45,7 +45,7 @@ impl Request {
         }
     }
 
-    pub fn encode_to_udp<'b>(&self, buffer: &'b mut [u8]) -> Option<&'b [u8]> {
+    pub fn encode_to_udp<'b>(&self, buffer: &'b mut [u8]) -> &'b [u8] {
         let mut operator = SliceOperator::from_slice(buffer);
 
         // 前两个Bytes
@@ -67,12 +67,12 @@ impl Request {
         if pos - 2 > 512 {
             //自动返回tcp的slice
             buffer[0..2].copy_from_slice(((pos - 2) as u16).to_be_bytes().as_ref());
-            return Some(buffer[..pos].as_ref());
+            return buffer[..pos].as_ref();
         }
-        Some(buffer[2..pos].as_ref())
+        buffer[2..pos].as_ref()
     }
 
-    pub fn encode_to_tcp<'b>(&self, buffer: &'b mut [u8]) -> Option<&'b [u8]> {
+    pub fn encode_to_tcp<'b>(&self, buffer: &'b mut [u8]) -> &'b [u8] {
         let mut operator = SliceOperator::from_slice(buffer);
         operator.set_pos(2);
         operator.write_u16(self.header.id);
@@ -89,7 +89,7 @@ impl Request {
         self.encode_question(&mut operator);
         let pos = operator.pos();
         buffer[0..2].copy_from_slice(((pos - 2) as u16).to_be_bytes().as_ref());
-        Some(buffer[..pos].as_ref())
+        buffer[..pos].as_ref()
     }
 
     fn encode_question(&self, operator: &mut SliceOperator) -> Option<()> {
