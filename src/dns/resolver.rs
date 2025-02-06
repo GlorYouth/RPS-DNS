@@ -9,7 +9,6 @@ use crate::dns::{DnsType, Request};
 #[cfg(debug_assertions)]
 use log::debug;
 use smallvec::SmallVec;
-use std::fmt::{Debug, Display, Formatter};
 use std::net::{AddrParseError, Ipv4Addr, Ipv6Addr, TcpStream, UdpSocket};
 use std::rc::Rc;
 
@@ -192,7 +191,7 @@ mod tests {
         let server = vec!["94.140.14.140".to_string()];
         let resolver = Resolver::new(server).unwrap();
         let result = resolver
-            .query_aaaa("www.baidu.com".to_string())
+            .query_aaaa("www.google.com".to_string())
             .get_aaaa_record()
             .unwrap();
         println!("{:?}", result);
