@@ -37,7 +37,7 @@ impl Display for RequestHeader {
             2 => "server status request",
             _ => "reserved for future use",
         };
-        writeln!(f, "\t\tFlags: {:#06X} {}", self.get_flags(), opcode)?;
+        writeln!(f, "\tFlags: {:#06X} {}", self.get_flags(), opcode)?;
 
         let response = match self.response {
             0 => "query",
@@ -46,13 +46,13 @@ impl Display for RequestHeader {
         };
         writeln!(
             f,
-            "\t\t\t{} => Response: Message is a {}",
+            "\t\t{} => Response: Message is a {}",
             format_flag(self.response, 0, 1),
             response
         )?;
         writeln!(
             f,
-            "\t\t\t{} => Opcode: {} ({})",
+            "\t\t{} => Opcode: {} ({})",
             format_flag(self.opcode, 1, 4),
             opcode,
             self.opcode
@@ -64,7 +64,7 @@ impl Display for RequestHeader {
         };
         writeln!(
             f,
-            "\t\t\t{} => Truncated: Message is {}",
+            "\t\t{} => Truncated: Message is {}",
             format_flag(self.truncated, 6, 1),
             truncated
         )?;
@@ -75,13 +75,13 @@ impl Display for RequestHeader {
         };
         writeln!(
             f,
-            "\t\t\t{} => Recursion Desired: {} query recursively",
+            "\t\t{} => Recursion Desired: {} query recursively",
             format_flag(self.rec_desired, 7, 1),
             rec_desired
         )?;
         writeln!(
             f,
-            "\t\t\t{} => Z: reserved ({})",
+            "\t\t{} => Z: reserved ({})",
             format_flag(self.z, 9, 1),
             self.z
         )?;
@@ -92,7 +92,7 @@ impl Display for RequestHeader {
         };
         writeln!(
             f,
-            "\t\t\t{} => Non-authenticated data: {}",
+            "\t\t{} => Non-authenticated data: {}",
             format_flag(self.check_disable, 11, 1),
             check_disable
         )

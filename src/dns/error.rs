@@ -3,4 +3,5 @@ mod logger;
 
 pub use error::Error;
 #[cfg(debug_assertions)]
-pub use logger::debug::init_logger;
+#[allow(unused)]
+pub use logger::debug::{get_current_thread_logs, init_logger, logger_flush};

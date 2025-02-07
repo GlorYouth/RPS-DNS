@@ -20,9 +20,8 @@ Client/Server还遥遥无期(还没准备dev呢)
 - [ ] 写代码注释，可以交给AI  
 - [ ] 将整体的代码实现从alpn阶段逐步转成stable阶段  
 - [ ] 完善各种DNS类型，目前只实现了A AAAA CNAME，先把RFC1035内有的实现了，类型参考[维基百科](https://en.wikipedia.org/wiki/List_of_DNS_record_types) 
-- [ ] 完善Log,例如存储log到本地,定期清空Vec,将log与Error协调起来
+- [ ] 完善Log,例如存储log到本地,定期清空Vec,~~将log与Error协调起来~~ 暂时不用了
 - [ ] 实现性能向的Resolver  
-- [ ] 实现从Windows本地的dns_cache读取
 
 ## 未来实现
 - 实现dns缓存

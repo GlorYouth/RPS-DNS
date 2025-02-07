@@ -5,6 +5,7 @@ use crate::dns::types::parts::question::Question;
 use crate::dns::types::parts::raw::RawRequest;
 use crate::dns::utils::SliceOperator;
 use smallvec::SmallVec;
+use std::fmt::{Display, Formatter};
 use std::rc::Rc;
 
 const SUFFIX: &[u8] = "xn--".as_bytes();
@@ -116,5 +117,32 @@ impl From<&RawRequest<'_>> for Option<Request> {
             header: RequestHeader::from(request.get_raw_header()),
             question,
         })
+    }
+}
+
+impl Display for Request {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(&self.header, f)?;
+        writeln!(f, "\tQuestions: {}", self.question.len())?;
+        writeln!(f, "\tAnswer RRs: 0")?;
+        writeln!(f, "\tAuthority RRs: 0")?;
+        writeln!(f, "\tAdditional RRs: 0")?;
+        writeln!(f, "Queries:")?;
+        for q in &self.question {
+            Display::fmt(&q, f)?;
+        }
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::Request;
+    use std::rc::Rc;
+
+    #[test]
+    fn test_fmt() {
+        let request = Request::new(Rc::new(String::from("www.google.com")), 1);
+        println!("{}", request);
     }
 }

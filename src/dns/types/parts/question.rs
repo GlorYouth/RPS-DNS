@@ -1,6 +1,8 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
+use crate::DnsType;
 use crate::dns::types::parts::raw::RawQuestion;
+use std::fmt::Display;
 use std::rc::Rc;
 
 #[derive(Debug)]
@@ -25,5 +27,33 @@ impl From<&RawQuestion<'_>> for Option<Question> {
             qtype: question.get_qtype(),
             qclass: question.get_qclass(),
         })
+    }
+}
+
+impl Display for Question {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        write!(fmt, "\t{}: type ", self.qname)?;
+        if let Some(qtype) = DnsType::from_u16(self.qtype) {
+            Display::fmt(&qtype, fmt)?;
+        } else {
+            write!(fmt, "Unsupported Type")?;
+        }
+        let qclass = match self.qclass {
+            1 => "IN",
+            2 => "CS",
+            3 => "CH",
+            4 => "HS",
+            _ => "code error",
+        };
+        writeln!(fmt, ", class {}", qclass)?;
+        writeln!(fmt, "\t\tName: {}", self.qname)?;
+        write!(fmt, "\t\tType: ")?;
+        if let Some(qtype) = DnsType::from_u16(self.qtype) {
+            Display::fmt(&qtype, fmt)?;
+        } else {
+            write!(fmt, "Unsupported Type")?;
+        }
+        writeln!(fmt, " ({})", self.qtype)?;
+        write!(fmt, "\t\tClass: {} ({:#06X})", qclass, self.qclass)
     }
 }
