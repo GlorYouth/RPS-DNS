@@ -31,3 +31,52 @@ Client/Server还遥遥无期(还没准备dev呢)
 - 实现基于tokio的DNSServer
 - 实现递归查询
 - 支持私人DNS
+
+## 目录树
+```
+RPS-DNS
+├─ Cargo.toml
+├─ LICENSE
+├─ README.md
+├─ src
+│  ├─ bench_func.rs
+│  ├─ dns.rs
+│  ├─ lib.rs
+│  ├─ main.rs
+│  └─ dns
+│     ├─ error.rs
+│     ├─ net.rs
+│     ├─ resolver.rs
+│     ├─ types.rs
+│     ├─ utils.rs
+│     ├─ utils
+│     │  ├─ server_type.rs
+│     │  ├─ slice_operator.rs
+│     │  └─ slice_reader.rs
+│     ├─ types
+│     │  ├─ base.rs
+│     │  ├─ parts.rs
+│     │  ├─ parts
+│     │  │  ├─ header.rs
+│     │  │  ├─ question.rs
+│     │  │  ├─ raw.rs
+│     │  │  ├─ record.rs
+│     │  │  ├─ request.rs
+│     │  │  ├─ response.rs
+│     │  │  └─ raw
+│     │  │     ├─ header.rs
+│     │  │     ├─ question.rs
+│     │  │     ├─ record.rs
+│     │  │     ├─ request.rs
+│     │  │     └─ response.rs
+│     │  └─ base
+│     │     ├─ dns_type.rs
+│     │     └─ domain.rs
+│     ├─ net
+│     │  └─ query.rs
+│     └─ error
+│        ├─ error.rs
+│        └─ logger.rs
+└─ benches
+└─ benchmark.rs
+```
