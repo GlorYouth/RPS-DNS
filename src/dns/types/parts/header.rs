@@ -1,28 +1,179 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
 use crate::dns::types::parts::raw::{RawRequestHeader, RawResponseHeader};
+use rand::{Rng, rng};
+use std::fmt::Display;
 
 #[derive(Debug)]
 pub struct RequestHeader {
-    pub id: u16,
+    id: u16,
 
     // 1bit 0代表请求，1代表响应
-    pub response: u8,
+    response: u8,
 
     // 4bit 指定此消息中的查询类型
-    pub opcode: u8,
+    opcode: u8,
 
     // 1bit 如果是1，说明此消息因长度大于传输信道上允许的长度而被截断/tcp传输？
-    pub truncated: u8,
+    truncated: u8,
 
     // 1bit 如果是1，则指定服务器应当在查询不到域名的情况下尝试递归查询
-    pub rec_desired: u8,
+    rec_desired: u8,
 
     // 1bit 是否为反向dns查询
-    pub z: u8,
+    z: u8,
 
     // 1bit 为0不允许未经身份验证的数据
-    pub check_disable: u8,
+    check_disable: u8,
+}
+
+impl Display for RequestHeader {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        writeln!(f, "Header: ")?;
+        writeln!(f, "\tTransaction ID: {:#06X}", self.id)?;
+        let opcode = match self.opcode {
+            0 => "Standard query",
+            1 => "Inverse query",
+            2 => "server status request",
+            _ => "reserved for future use",
+        };
+        writeln!(f, "\t\tFlags: {:#06X} {}", self.get_flags(), opcode)?;
+
+        let response = match self.response {
+            0 => "query",
+            1 => "response",
+            _ => "code error",
+        };
+        writeln!(
+            f,
+            "\t\t\t{} => Response: Message is a {}",
+            format_flag(self.response, 0, 1),
+            response
+        )?;
+        writeln!(
+            f,
+            "\t\t\t{} => Opcode: {} ({})",
+            format_flag(self.opcode, 1, 4),
+            opcode,
+            self.opcode
+        )?;
+        let truncated = match self.truncated {
+            0 => "not truncated",
+            1 => "truncated",
+            _ => "code error",
+        };
+        writeln!(
+            f,
+            "\t\t\t{} => Truncated: Message is {}",
+            format_flag(self.truncated, 6, 1),
+            truncated
+        )?;
+        let rec_desired = match self.rec_desired {
+            0 => "Do",
+            1 => "Don't",
+            _ => "code error",
+        };
+        writeln!(
+            f,
+            "\t\t\t{} => Recursion Desired: {} query recursively",
+            format_flag(self.rec_desired, 7, 1),
+            rec_desired
+        )?;
+        writeln!(
+            f,
+            "\t\t\t{} => Z: reserved ({})",
+            format_flag(self.z, 9, 1),
+            self.z
+        )?;
+        let check_disable = match self.check_disable {
+            0 => "Unacceptable",
+            1 => "Acceptable",
+            _ => "code error",
+        };
+        writeln!(
+            f,
+            "\t\t\t{} => Non-authenticated data: {}",
+            format_flag(self.check_disable, 11, 1),
+            check_disable
+        )
+    }
+}
+
+impl Default for RequestHeader {
+    fn default() -> Self {
+        RequestHeader {
+            id: rng().random(),
+            response: 0,
+            opcode: 0,
+            truncated: 0,
+            rec_desired: 1,
+            z: 0,
+            check_disable: 0,
+        }
+    }
+}
+
+impl RequestHeader {
+    #[inline]
+    pub fn get_id(&self) -> u16 {
+        self.id
+    }
+
+    #[inline]
+    pub fn get_flags_first_u8(&self) -> u8 {
+        self.response << 7 | self.opcode << 3 | self.truncated << 1 | self.rec_desired
+    }
+
+    #[inline]
+    pub fn get_flags_second_u8(&self) -> u8 {
+        self.z << 6 | self.check_disable << 4
+    }
+
+    #[inline]
+    pub fn get_flags(&self) -> u16 {
+        (self.get_flags_first_u8() as u16) << 8 | (self.get_flags_second_u8() as u16)
+    }
+
+    #[inline]
+    pub fn get_response(&self) -> u8 {
+        self.response
+    }
+
+    #[inline]
+    pub fn get_z(&self) -> u8 {
+        self.z
+    }
+
+    #[inline]
+    pub fn get_check_disable(&self) -> u8 {
+        self.check_disable
+    }
+
+    #[inline]
+    pub fn get_opcode(&self) -> u8 {
+        self.opcode
+    }
+
+    #[inline]
+    pub fn get_rec_desired(&self) -> u8 {
+        self.rec_desired
+    }
+}
+
+#[inline]
+fn format_flag(value: u8, position: u8, length: u8) -> String {
+    assert!(position + length <= 16, "Position and length exceed range.");
+
+    let mut s = String::from(".... .... .... ....");
+    let bits_str = format!("{:0width$b}", value, width = length as usize);
+    let chars = bits_str.chars();
+
+    for (k, bit) in chars.enumerate() {
+        let char_index = (position as usize + k) + (position as usize + k) / 4;
+        s.replace_range(char_index..=char_index, &bit.to_string());
+    }
+
+    s
 }
 
 impl From<&RawRequestHeader<'_>> for RequestHeader {
@@ -89,5 +240,32 @@ impl From<&RawResponseHeader<'_>> for ResponseHeader {
             check_disable: header.get_check_disable(),
             rcode: header.get_rcode(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::dns::types::parts::header::{RequestHeader, format_flag};
+
+    #[test]
+    fn test_fmt() {
+        let header = RequestHeader {
+            id: 0xad,
+            response: 0,
+            opcode: 0,
+            truncated: 0,
+            rec_desired: 1,
+            z: 0,
+            check_disable: 0,
+        };
+        println!("{:}", header);
+    }
+
+    #[test]
+    fn test_format_flag() {
+        assert_eq!(format_flag(0x5, 3, 4), "...0 101. .... ....");
+        assert_eq!(format_flag(0x1, 0, 1), "1... .... .... ....");
+        assert_eq!(format_flag(0b0110, 2, 3), "..11 0... .... ....");
+        assert_eq!(format_flag(0b1111, 0, 16), "0000 0000 0000 1111");
     }
 }

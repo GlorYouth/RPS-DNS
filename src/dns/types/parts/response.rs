@@ -139,13 +139,13 @@ impl<'a> ResponseCheck<'a> {
             trace!("从Slice解析RawResponse除Header外部分");
         }
         raw.init(|header| {
-            if header.get_id() != self.request.header.id {
+            if header.get_id() != self.request.header.get_id() {
                 #[cfg(debug_assertions)]
                 {
                     trace!(
                         "请求id和响应id不同,分别为{},{}",
                         header.get_id(),
-                        self.request.header.id
+                        self.request.header.get_id()
                     );
                 }
                 return None;
@@ -157,24 +157,24 @@ impl<'a> ResponseCheck<'a> {
                 }
                 return None;
             }
-            if header.get_opcode() != self.request.header.opcode {
+            if header.get_opcode() != self.request.header.get_opcode() {
                 #[cfg(debug_assertions)]
                 {
                     trace!(
                         "请求和响应的opcode不同,分别为{},{}",
                         header.get_opcode(),
-                        self.request.header.opcode
+                        self.request.header.get_opcode()
                     );
                 }
                 return None;
             }
-            if header.get_rec_desired() != self.request.header.rec_desired {
+            if header.get_rec_desired() != self.request.header.get_rec_desired() {
                 #[cfg(debug_assertions)]
                 {
                     trace!(
                         "请求和响应的rec_desired不同,分别为{},{}",
                         header.get_rec_desired(),
-                        self.request.header.rec_desired
+                        self.request.header.get_rec_desired()
                     );
                 }
                 return None;
