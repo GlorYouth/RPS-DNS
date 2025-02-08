@@ -14,7 +14,7 @@ Client/Server还遥遥无期(还没准备dev呢)
 - [ ] RFC1035  
 
 ## 待办
-- [ ] 实现所有类型的fmt输出(Display&Debug)
+- [x] 实现所有类型的fmt输出(Display)
 - [ ] 解决剩下少数flag，例如TC  
 - [ ] 实现从Windows Hosts/Linux Hosts读取本地记录,以及读取本地缓存
 - [ ] 写代码注释，可以交给AI  
