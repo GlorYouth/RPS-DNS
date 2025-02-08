@@ -1,7 +1,7 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
 use crate::DnsType;
-use crate::dns::types::parts::raw::RawQuestion;
+use crate::dns::types::parts::raw::{DnsClass, RawQuestion};
 use std::fmt::Display;
 use std::rc::Rc;
 
@@ -38,13 +38,7 @@ impl Display for Question {
         } else {
             write!(fmt, "Unsupported Type")?;
         }
-        let qclass = match self.qclass {
-            1 => "IN",
-            2 => "CS",
-            3 => "CH",
-            4 => "HS",
-            _ => "code error",
-        };
+        let qclass = DnsClass::get_str(self.qclass);
         writeln!(fmt, ", class {}", qclass)?;
         writeln!(fmt, "\t\tName: {}", self.qname)?;
         write!(fmt, "\t\tType: ")?;
@@ -54,6 +48,6 @@ impl Display for Question {
             write!(fmt, "Unsupported Type")?;
         }
         writeln!(fmt, " ({})", self.qtype)?;
-        write!(fmt, "\t\tClass: {} ({:#06X})", qclass, self.qclass)
+        writeln!(fmt, "\t\tClass: {} ({:#06X})", qclass, self.qclass)
     }
 }

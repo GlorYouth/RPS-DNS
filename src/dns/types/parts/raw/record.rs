@@ -1,4 +1,5 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
+use crate::DnsType;
 use crate::dns::types::base::RawDomain;
 use crate::dns::utils::SliceReader;
 #[cfg(debug_assertions)]
@@ -97,62 +98,54 @@ enum RawRecordDataType<'a> {
 pub enum RecordDataType {
     A(Ipv4Addr),
     AAAA(Ipv6Addr),
-    CNAME(String),
+    CNAME((String, usize)),
 }
 
 impl RecordDataType {
     fn new(rtype: u16, data: &RawRecordDataType) -> Option<RecordDataType> {
-        match rtype {
-            1 => {
-                let data = match data {
-                    RawRecordDataType::Other(d) => d,
-                    _ => {
-                        #[cfg(debug_assertions)]
-                        {
-                            debug!("RecordDataType::new代码异常");
-                        }
-                        return None;
-                    }
-                };
-                Some(RecordDataType::A(Ipv4Addr::new(
-                    data[0], data[1], data[2], data[3],
-                )))
+        match (rtype, data) {
+            (1, RawRecordDataType::Other(d)) if d.len() >= 4 => {
+                Some(RecordDataType::A(Ipv4Addr::new(d[0], d[1], d[2], d[3])))
             }
-            5 => {
-                let data = match data {
-                    RawRecordDataType::Domain(d) => d,
-                    _ => {
-                        #[cfg(debug_assertions)]
-                        {
-                            debug!("RecordDataType::new代码异常");
-                        }
-                        return None;
-                    }
-                };
-                Some(RecordDataType::CNAME(data.to_string()?))
+
+            (5, RawRecordDataType::Domain(d)) => {
+                let len = d.raw_len();
+                Some(RecordDataType::CNAME((d.to_string()?, len)))
             }
-            28 => {
-                let data = match data {
-                    RawRecordDataType::Other(d) => d,
-                    _ => {
-                        #[cfg(debug_assertions)]
-                        {
-                            debug!("RecordDataType::new代码异常");
-                        }
-                        return None;
-                    }
-                };
-                Some(RecordDataType::AAAA(Ipv6Addr::from(
-                    <&[u8] as TryInto<[u8; 16]>>::try_into(data).unwrap(),
-                )))
-            }
+
+            (28, RawRecordDataType::Other(d)) if d.len() >= 16 => Some(RecordDataType::AAAA(
+                Ipv6Addr::from(<&[u8] as TryInto<[u8; 16]>>::try_into(d).ok()?),
+            )),
+
             _ => {
                 #[cfg(debug_assertions)]
-                {
-                    debug!("RecordDataType未实现类型: {}", rtype);
-                }
+                debug!("RecordDataType未实现类型或数据格式错误: {}", rtype);
                 None
             }
+        }
+    }
+
+    pub fn len(&self) -> usize {
+        match self {
+            RecordDataType::A(_) => 4,
+            RecordDataType::AAAA(_) => 16,
+            RecordDataType::CNAME(str) => str.1,
+        }
+    }
+
+    pub fn get_rtype(&self) -> u16 {
+        match self {
+            RecordDataType::A(_) => 1,
+            RecordDataType::AAAA(_) => 28,
+            RecordDataType::CNAME(_) => 5,
+        }
+    }
+
+    pub fn get_dns_type(&self) -> DnsType {
+        match self {
+            RecordDataType::A(_) => DnsType::A,
+            RecordDataType::AAAA(_) => DnsType::AAAA,
+            RecordDataType::CNAME(_) => DnsType::CNAME,
         }
     }
 }

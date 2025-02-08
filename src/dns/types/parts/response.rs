@@ -1,5 +1,6 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
+use crate::dns::RecordFmtType;
 use crate::dns::Request;
 use crate::dns::types::parts::header::ResponseHeader;
 use crate::dns::types::parts::question::Question;
@@ -8,6 +9,7 @@ use crate::dns::types::parts::record::Record;
 #[cfg(debug_assertions)]
 use log::trace;
 use smallvec::SmallVec;
+use std::fmt::Display;
 
 #[derive(Debug)]
 pub struct Response {
@@ -107,6 +109,35 @@ impl Response {
             .iter()
             .find(|answer| predicate(&answer.data))
             .map(|answer| answer.data.clone())
+    }
+}
+
+impl Display for Response {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        Display::fmt(&self.header, fmt)?;
+        writeln!(fmt, "\tQuestions: {}", self.question.len())?;
+        writeln!(fmt, "\tAnswer RRs: {}", self.answer.len())?;
+        writeln!(fmt, "\tAuthority RRs: {}", self.authority.len())?;
+        writeln!(fmt, "\tAdditional RRs: {}", self.additional.len())?;
+        writeln!(fmt, "Queries:")?;
+        for q in &self.question {
+            Display::fmt(&q, fmt)?;
+        }
+        let iter = self
+            .answer
+            .iter()
+            .chain(self.authority.iter())
+            .chain(self.additional.iter());
+        let mut iter = iter
+            .filter(|r| matches!(r.get_fmt_type(), RecordFmtType::Answers))
+            .peekable();
+
+        if iter.peek().is_some() {
+            writeln!(fmt, "Answers:")?;
+        }
+
+        iter.try_for_each(|x| Display::fmt(&x, fmt))?;
+        Ok(())
     }
 }
 

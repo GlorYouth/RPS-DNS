@@ -50,6 +50,7 @@ impl Display for RequestHeader {
             format_flag(self.response, 0, 1),
             response
         )?;
+
         writeln!(
             f,
             "\t\t{} => Opcode: {} ({})",
@@ -57,6 +58,7 @@ impl Display for RequestHeader {
             opcode,
             self.opcode
         )?;
+
         let truncated = match self.truncated {
             0 => "not truncated",
             1 => "truncated",
@@ -68,6 +70,7 @@ impl Display for RequestHeader {
             format_flag(self.truncated, 6, 1),
             truncated
         )?;
+
         let rec_desired = match self.rec_desired {
             0 => "Do",
             1 => "Don't",
@@ -79,12 +82,14 @@ impl Display for RequestHeader {
             format_flag(self.rec_desired, 7, 1),
             rec_desired
         )?;
+
         writeln!(
             f,
             "\t\t{} => Z: reserved ({})",
             format_flag(self.z, 9, 1),
             self.z
         )?;
+
         let check_disable = match self.check_disable {
             0 => "Unacceptable",
             1 => "Acceptable",
@@ -240,6 +245,161 @@ impl From<&RawResponseHeader<'_>> for ResponseHeader {
             check_disable: header.get_check_disable(),
             rcode: header.get_rcode(),
         }
+    }
+}
+
+impl ResponseHeader {
+    #[inline]
+    fn get_flags_first_u8(&self) -> u8 {
+        self.response << 7
+            | self.opcode << 3
+            | self.authoritative << 2
+            | self.truncated << 1
+            | self.rec_desired
+    }
+
+    #[inline]
+    fn get_flags_second_u8(&self) -> u8 {
+        self.rec_avail << 7
+            | self.z << 6
+            | self.authenticated << 5
+            | self.check_disable << 4
+            | self.opcode
+    }
+
+    #[inline]
+    fn get_flags(&self) -> u16 {
+        (self.get_flags_first_u8() as u16) << 8 | (self.get_flags_second_u8() as u16)
+    }
+}
+
+impl Display for ResponseHeader {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        writeln!(f, "Header: ")?;
+        writeln!(f, "\tTransaction ID: {:#06X}", self.id)?;
+        let opcode = match self.opcode {
+            0 => "Standard query",
+            1 => "Inverse query",
+            2 => "server status request",
+            _ => "reserved for future use",
+        };
+        writeln!(f, "\tFlags: {:#06X} {}", self.get_flags(), opcode)?;
+
+        let response = match self.response {
+            0 => "query",
+            1 => "response",
+            _ => "code error",
+        };
+        writeln!(
+            f,
+            "\t\t{} => Response: Message is a {}",
+            format_flag(self.response, 0, 1),
+            response
+        )?;
+
+        writeln!(
+            f,
+            "\t\t{} => Opcode: {} ({})",
+            format_flag(self.opcode, 1, 4),
+            opcode,
+            self.opcode
+        )?;
+
+        let authoritative = match self.authoritative {
+            0 => "Server is not an authoritative server for domain",
+            1 => "Server is an authoritative server for domain",
+            _ => "code error",
+        };
+        writeln!(
+            f,
+            "\t\t{} => Authoritative: {}",
+            format_flag(self.authenticated, 5, 1),
+            authoritative
+        )?;
+
+        let truncated = match self.truncated {
+            0 => "not truncated",
+            1 => "truncated",
+            _ => "code error",
+        };
+        writeln!(
+            f,
+            "\t\t{} => Truncated: Message is {}",
+            format_flag(self.truncated, 6, 1),
+            truncated
+        )?;
+
+        let rec_desired = match self.rec_desired {
+            0 => "Do",
+            1 => "Don't",
+            _ => "code error",
+        };
+        writeln!(
+            f,
+            "\t\t{} => Recursion Desired: {} query recursively",
+            format_flag(self.rec_desired, 7, 1),
+            rec_desired
+        )?;
+
+        let rec_avail = match self.rec_avail {
+            0 => "Server can do recursive queries",
+            1 => "Server cannot do recursive queries",
+            _ => "code error",
+        };
+        writeln!(
+            f,
+            "\t\t{} => Recursion Available: {}",
+            format_flag(self.rec_avail, 8, 1),
+            rec_avail
+        )?;
+
+        writeln!(
+            f,
+            "\t\t{} => Z: reserved ({})",
+            format_flag(self.z, 9, 1),
+            self.z
+        )?;
+
+        let authenticated = match self.authenticated {
+            0 => "Answer/Authority portion was not authenticated by the server",
+            1 => "Answer/Authority portion was authenticated by the server",
+            _ => "code error",
+        };
+        writeln!(
+            f,
+            "\t\t{} => Answer authenticated: {}",
+            format_flag(self.authenticated, 10, 1),
+            authenticated
+        )?;
+
+        let check_disable = match self.check_disable {
+            0 => "Unacceptable",
+            1 => "Acceptable",
+            _ => "code error",
+        };
+        writeln!(
+            f,
+            "\t\t{} => Non-authenticated data: {}",
+            format_flag(self.check_disable, 11, 1),
+            check_disable
+        )?;
+
+        let rcode = match self.rcode {
+            0 => "No error",
+            1 => "Format error",
+            2 => "Server failure",
+            3 => "Name error",
+            4 => "Not implemented",
+            5 => "Refused",
+            _ => "Reserved",
+        };
+        writeln!(
+            f,
+            "\t\t{} => Reply code: {} ({})",
+            format_flag(self.rcode, 12, 4),
+            rcode,
+            self.rcode
+        )
     }
 }
 

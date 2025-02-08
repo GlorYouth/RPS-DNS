@@ -96,7 +96,7 @@ pub mod debug {
         // 设置全局 logger
         if log::set_logger(Box::leak(Box::from(GlobalLogger::new()))).is_ok() {
             std::panic::set_hook(Box::new(|info| {
-                eprintln!("Test panicked: {:?}", info);
+                eprintln!("Test panicked: {}", info.to_string());
 
                 // 获取当前线程的日志并打印
                 let logs = get_current_thread_logs();
@@ -125,8 +125,10 @@ pub mod debug {
                 .iter()
                 .map(|entry| {
                     format!(
-                        "[{}] {}",
-                        entry.timestamp.format("%Y-%m-%d %H:%M:%S"),
+                        "[{}] [{} {:X}]  {}",
+                        entry.level,
+                        Local::now().format("%Y-%m-%d %H:%M:%S"),
+                        logger.borrow().thread_id,
                         entry.message
                     )
                 })
