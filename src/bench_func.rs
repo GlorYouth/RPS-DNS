@@ -1,10 +1,10 @@
-use crate::{DnsType, Request, Response};
+use crate::{DnsTypeNum, Request, Response};
 use std::rc::Rc;
 
 pub fn test_encode_into() {
     let mut buf = [0_u8; 1500];
     for _ in 0..20000 {
-        let arr = Request::new(Rc::from("www.google.com".to_string()), DnsType::A.into())
+        let arr = Request::new(Rc::from("www.google.com".to_string()), DnsTypeNum::A)
             .encode_to_udp(&mut buf);
         assert_eq!(arr.len(), 32);
     }

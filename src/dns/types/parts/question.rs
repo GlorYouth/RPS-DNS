@@ -1,6 +1,6 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
-use crate::DnsType;
+use crate::dns::types::base::DnsType;
 use crate::dns::types::parts::raw::{DnsClass, RawQuestion};
 use std::fmt::Display;
 use std::rc::Rc;

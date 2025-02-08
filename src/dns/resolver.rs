@@ -5,7 +5,7 @@ use crate::dns::Response;
 use crate::dns::error::Error;
 use crate::dns::net::{NetQuery, NetQueryError};
 use crate::dns::utils::ServerType;
-use crate::dns::{DnsType, Request};
+use crate::dns::{DnsTypeNum, Request};
 #[cfg(debug_assertions)]
 use log::debug;
 use smallvec::SmallVec;
@@ -33,17 +33,17 @@ impl Resolver {
     //详见smart_dns
     #[inline]
     pub fn query_a(&self, domain: String) -> QueryResult {
-        self.query(domain, DnsType::A.into())
+        self.query(domain, DnsTypeNum::A)
     }
 
     #[inline]
     pub fn query_aaaa(&self, domain: String) -> QueryResult {
-        self.query(domain, DnsType::AAAA.into())
+        self.query(domain, DnsTypeNum::AAAA)
     }
 
     #[inline]
     pub fn query_cname(&self, domain: String) -> QueryResult {
-        self.query(domain, DnsType::CNAME.into())
+        self.query(domain, DnsTypeNum::CNAME)
     }
 
     fn query(&self, domain: String, qtype: u16) -> QueryResult {
@@ -112,7 +112,7 @@ impl QueryResult {
     fn get_a_record(&self) -> Option<Ipv4Addr> {
         self.response
             .as_ref()
-            .and_then(|res| res.get_record(DnsType::A.into())) // 尝试获取 A 记录
+            .and_then(|res| res.get_record(DnsTypeNum::A)) // 尝试获取 A 记录
             .and_then(|record| {
                 if let RecordDataType::A(addr) = record {
                     Some(addr)
@@ -126,7 +126,7 @@ impl QueryResult {
     fn get_aaaa_record(&self) -> Option<Ipv6Addr> {
         self.response
             .as_ref()
-            .and_then(|res| res.get_record(DnsType::AAAA.into())) // 尝试获取 A 记录
+            .and_then(|res| res.get_record(DnsTypeNum::AAAA)) // 尝试获取 A 记录
             .and_then(|record| {
                 if let RecordDataType::AAAA(addr) = record {
                     Some(addr)
@@ -140,7 +140,7 @@ impl QueryResult {
     fn get_cname_record(&self) -> Option<String> {
         self.response
             .as_ref()
-            .and_then(|res| res.get_record(DnsType::CNAME.into()))
+            .and_then(|res| res.get_record(DnsTypeNum::CNAME))
             .and_then(|record| {
                 if let RecordDataType::CNAME(name) = record {
                     Some(name.0)

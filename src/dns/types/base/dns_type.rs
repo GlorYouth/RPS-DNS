@@ -12,9 +12,9 @@ pub enum DnsType {
 impl Into<u16> for DnsType {
     fn into(self) -> u16 {
         match self {
-            DnsType::A => 1,
-            DnsType::CNAME => 5,
-            DnsType::AAAA => 28,
+            DnsType::A => DnsTypeNum::A,
+            DnsType::CNAME => DnsTypeNum::CNAME,
+            DnsType::AAAA => DnsTypeNum::AAAA,
         }
     }
 }
@@ -22,9 +22,9 @@ impl Into<u16> for DnsType {
 impl DnsType {
     pub(crate) fn from_u16(dns_type: u16) -> Option<DnsType> {
         match dns_type {
-            1 => Some(DnsType::A),
-            5 => Some(DnsType::CNAME),
-            28 => Some(DnsType::AAAA),
+            DnsTypeNum::A => Some(DnsType::A),
+            DnsTypeNum::CNAME => Some(DnsType::CNAME),
+            DnsTypeNum::AAAA => Some(DnsType::AAAA),
             _ => None,
         }
     }
@@ -45,4 +45,12 @@ impl Display for DnsType {
         }
         Ok(())
     }
+}
+
+pub struct DnsTypeNum;
+
+impl DnsTypeNum {
+    pub const A: u16 = 1;
+    pub const CNAME: u16 = 5;
+    pub const AAAA: u16 = 28;
 }

@@ -2,6 +2,7 @@
 
 use crate::dns::types::parts::raw::{DnsClass, DnsTTL, RawRecord, RecordDataType};
 use std::fmt::Display;
+use crate::DnsTypeNum;
 
 #[derive(Debug)]
 pub struct Record {
@@ -58,17 +59,17 @@ impl Display for Record {
 
         match &self.data {
             RecordDataType::A(addr) => {
-                writeln!(f, "\t\tType: A (1)")?;
+                writeln!(f, "\t\tType: A ({})",DnsTypeNum::A)?;
                 write_other(self, f)?;
                 writeln!(f, "\t\tA: {}", addr)
             }
             RecordDataType::AAAA(addr) => {
-                writeln!(f, "\t\tType: AAAA (28)")?;
+                writeln!(f, "\t\tType: AAAA ({})",DnsTypeNum::AAAA)?;
                 write_other(self, f)?;
                 writeln!(f, "\t\tAAAA: {}", addr)
             }
             RecordDataType::CNAME(str) => {
-                writeln!(f, "\t\tType: CNAME (5)")?;
+                writeln!(f, "\t\tType: CNAME ({})",DnsTypeNum::CNAME)?;
                 write_other(self, f)?;
                 writeln!(f, "\t\tCNAME: {}", str.0)
             }

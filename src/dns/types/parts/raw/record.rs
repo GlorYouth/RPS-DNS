@@ -1,10 +1,11 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
-use crate::DnsType;
+use crate::dns::types::base::DnsType;
 use crate::dns::types::base::RawDomain;
 use crate::dns::utils::SliceReader;
 #[cfg(debug_assertions)]
 use log::{debug, trace};
 use std::net::{Ipv4Addr, Ipv6Addr};
+use crate::DnsTypeNum;
 
 pub struct RawRecord<'a> {
     name: RawDomain,
@@ -104,16 +105,16 @@ pub enum RecordDataType {
 impl RecordDataType {
     fn new(rtype: u16, data: &RawRecordDataType) -> Option<RecordDataType> {
         match (rtype, data) {
-            (1, RawRecordDataType::Other(d)) if d.len() >= 4 => {
+            (DnsTypeNum::A, RawRecordDataType::Other(d)) if d.len() >= 4 => {
                 Some(RecordDataType::A(Ipv4Addr::new(d[0], d[1], d[2], d[3])))
             }
 
-            (5, RawRecordDataType::Domain(d)) => {
+            (DnsTypeNum::CNAME, RawRecordDataType::Domain(d)) => {
                 let len = d.raw_len();
                 Some(RecordDataType::CNAME((d.to_string()?, len)))
             }
 
-            (28, RawRecordDataType::Other(d)) if d.len() >= 16 => Some(RecordDataType::AAAA(
+            (DnsTypeNum::AAAA, RawRecordDataType::Other(d)) if d.len() >= 16 => Some(RecordDataType::AAAA(
                 Ipv6Addr::from(<&[u8] as TryInto<[u8; 16]>>::try_into(d).ok()?),
             )),
 
@@ -135,9 +136,9 @@ impl RecordDataType {
 
     pub fn get_rtype(&self) -> u16 {
         match self {
-            RecordDataType::A(_) => 1,
-            RecordDataType::AAAA(_) => 28,
-            RecordDataType::CNAME(_) => 5,
+            RecordDataType::A(_) => DnsTypeNum::A,
+            RecordDataType::AAAA(_) => DnsTypeNum::AAAA,
+            RecordDataType::CNAME(_) => DnsTypeNum::CNAME,
         }
     }
 

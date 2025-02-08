@@ -1,7 +1,7 @@
 #![allow(unused_imports)]
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use dns_core::bench_func::*;
-use dns_core::{DnsType, Request};
+use dns_core::{Request};
 
 fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("fib 20", |b| {
