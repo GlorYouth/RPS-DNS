@@ -49,7 +49,7 @@ impl DnsTTL {
                 ttl %= value;
             }
         }
-        if parts.is_empty() { 
+        if parts.is_empty() {
             return "0 second".to_string();
         }
 

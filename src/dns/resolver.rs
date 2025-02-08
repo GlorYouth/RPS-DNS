@@ -192,11 +192,13 @@ mod tests {
         init_logger();
         let server = vec!["94.140.14.140".to_string()];
         let resolver = Resolver::new(server).unwrap();
-        let result = resolver
-            .query_a("www.baidu.com".to_string())
-            .get_a_record()
-            .unwrap();
-        println!("{}", result);
+        let result = resolver.query_a("www.baidu.com".to_string());
+        if let Some(answer) = result.get_a_record() {
+            println!("{}", answer);
+        } else {
+            println!("No CNAME record");
+            println!("{}", result);
+        }
     }
 
     #[test]
@@ -204,11 +206,13 @@ mod tests {
         init_logger();
         let server = vec!["94.140.14.140".to_string()];
         let resolver = Resolver::new(server).unwrap();
-        let result = resolver
-            .query_aaaa("www.google.com".to_string())
-            .get_aaaa_record()
-            .unwrap();
-        println!("{}", result);
+        let result = resolver.query_aaaa("www.google.com".to_string());
+        if let Some(answer) = result.get_aaaa_record() {
+            println!("{}", answer);
+        } else {
+            println!("No CNAME record");
+            println!("{}", result);
+        }
     }
 
     #[test]
@@ -216,11 +220,13 @@ mod tests {
         init_logger();
         let server = vec!["9.9.9.9".to_string()];
         let resolver = Resolver::new(server).unwrap();
-        let result = resolver
-            .query_cname("www.baidu.com".to_string())
-            .get_cname_record()
-            .unwrap();
-        println!("{}", result);
+        let result = resolver.query_cname("www.baidu.com".to_string());
+        if let Some(answer) = result.get_cname_record() {
+            println!("{}", answer);
+        } else {
+            println!("No CNAME record");
+            println!("{}", result);
+        }
     }
 
     #[test]

@@ -220,7 +220,11 @@ impl<'a> ResponseCheck<'a> {
             if header.get_questions() != self.request.question.len() as u16 {
                 #[cfg(debug_assertions)]
                 {
-                    trace!("响应的opcode不为0x0,而是{}", header.get_rcode());
+                    trace!(
+                        "请求与响应的question数不同,分别为{},{}",
+                        self.request.question.len(),
+                        header.get_questions()
+                    );
                 }
             }
             // todo tc authenticated .etc
