@@ -1,8 +1,10 @@
 # RPS-DNS
-A Rust DNS light client/server dedicated to high performance and safe.
+A Rust DNS light client/server dedicated to high performance and safe.  
+Currently, we are developing Resolver. Client and Server just in the future plan.
 
 ## 现在阶段
-还处于dev阶段，无法直接用  
+Resolver还处于alpn阶段，勉强可以直接用  
+Client/Server还遥遥无期(还没准备dev呢)
 目前整体项目架构已经确定下来了，不会再有太大的改变了  
 基层的实现效率还是可以的  
 欢迎fork and commit  
@@ -12,16 +14,14 @@ A Rust DNS light client/server dedicated to high performance and safe.
 - [ ] RFC1035  
 
 ## 待办
-- [x] ~~将Option尽可能转化为Error~~ 使用Log代替Error
-- [x] 完成Server Address Parser部分,目前已实验性支持tcp和udp部分
-- [x] ~~实现header中每个flag 对应的检测/行为，需要阅读rfc~~ 剩下少数flag仍未知
-- [x] ~~实现从最底层开始的#[test]模块，争取全覆盖~~ 看了下基本上暂时不需要实现了，已实现必要的部分
-- [ ] 写代码注释，可以交给AI
-- [ ] 将整体的代码实现从~~dev阶段~~ 目前处于alpn阶段 逐步转成stable阶段
-- [ ] 完善各种DNS类型，目前只实现了A AAAA CNAME，~~而且实现还不完全吧~~ 完全实现了，类型参考[维基百科](https://en.wikipedia.org/wiki/List_of_DNS_record_types) ，一定要实现的是PTR类型，NS可以看情况实现
-- [x] ~~解决不了解SmallMap和其长期未维护带来的不确定性~~ 最新实现将SmallMap取代了
-- [x] ~~完成UDP仅限512字节以内的问题，到底是切片还是换成TCP~~ 转成需要解决TC Flag问题
-- [ ] 完善DNSClient ~~，并配套实现Error~~ 已完成
+- [ ] 实现所有类型的fmt输出(Display&Debug)
+- [ ] 解决剩下少数flag，例如TC  
+- [ ] 实现从Windows Hosts/Linux Hosts读取本地记录,以及读取本地缓存
+- [ ] 写代码注释，可以交给AI  
+- [ ] 将整体的代码实现从alpn阶段逐步转成stable阶段  
+- [ ] 完善各种DNS类型，目前只实现了A AAAA CNAME，先把RFC1035内有的实现了，类型参考[维基百科](https://en.wikipedia.org/wiki/List_of_DNS_record_types) 
+- [ ] 完善Log,例如存储log到本地,定期清空Vec,~~将log与Error协调起来~~ 暂时不用了
+- [ ] 实现性能向的Resolver  
 
 ## 未来实现
 - 实现dns缓存
@@ -33,3 +33,52 @@ A Rust DNS light client/server dedicated to high performance and safe.
 - 实现基于tokio的DNSServer
 - 实现递归查询
 - 支持私人DNS
+
+## 目录树
+```
+RPS-DNS
+├─ Cargo.toml
+├─ LICENSE
+├─ README.md
+├─ src
+│  ├─ bench_func.rs
+│  ├─ dns.rs
+│  ├─ lib.rs
+│  ├─ main.rs
+│  └─ dns
+│     ├─ error.rs
+│     ├─ net.rs
+│     ├─ resolver.rs
+│     ├─ types.rs
+│     ├─ utils.rs
+│     ├─ utils
+│     │  ├─ server_type.rs
+│     │  ├─ slice_operator.rs
+│     │  └─ slice_reader.rs
+│     ├─ types
+│     │  ├─ base.rs
+│     │  ├─ parts.rs
+│     │  ├─ parts
+│     │  │  ├─ header.rs
+│     │  │  ├─ question.rs
+│     │  │  ├─ raw.rs
+│     │  │  ├─ record.rs
+│     │  │  ├─ request.rs
+│     │  │  ├─ response.rs
+│     │  │  └─ raw
+│     │  │     ├─ header.rs
+│     │  │     ├─ question.rs
+│     │  │     ├─ record.rs
+│     │  │     ├─ request.rs
+│     │  │     └─ response.rs
+│     │  └─ base
+│     │     ├─ dns_type.rs
+│     │     └─ domain.rs
+│     ├─ net
+│     │  └─ query.rs
+│     └─ error
+│        ├─ error.rs
+│        └─ logger.rs
+└─ benches
+└─ benchmark.rs
+```

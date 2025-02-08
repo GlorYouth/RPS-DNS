@@ -9,6 +9,7 @@ use std::fmt::Debug;
 #[derive(PartialEq, Debug)]
 pub struct RawDomain {
     domain: SmallVec<[u8; 30]>, //不包含最后的0x0
+    raw_len: usize,
 }
 
 impl RawDomain {
@@ -58,7 +59,11 @@ impl RawDomain {
             return None; //防止无长度的域名
         }
         reader.set_pos(pos);
-        Some(RawDomain { domain })
+        let len = domain.len();
+        Some(RawDomain {
+            domain,
+            raw_len: len + 1,
+        })
     }
 
     pub fn from_reader_with_size(reader: &mut SliceReader, size: usize) -> Option<RawDomain> {
@@ -107,7 +112,10 @@ impl RawDomain {
             }
             return None; //防止无长度的域名
         }
-        Some(RawDomain { domain })
+        Some(RawDomain {
+            domain,
+            raw_len: size,
+        })
     }
 
     pub fn to_string(&self) -> Option<String> {
@@ -156,6 +164,10 @@ impl RawDomain {
             remaining = &remaining[part_length..];
         }
         Some(string)
+    }
+
+    pub fn raw_len(&self) -> usize {
+        self.domain.len()
     }
 }
 

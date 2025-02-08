@@ -9,6 +9,7 @@ use crate::dns::{DnsType, Request};
 #[cfg(debug_assertions)]
 use log::debug;
 use smallvec::SmallVec;
+use std::fmt::Display;
 use std::net::{AddrParseError, Ipv4Addr, Ipv6Addr, TcpStream, UdpSocket};
 use std::rc::Rc;
 
@@ -142,11 +143,24 @@ impl QueryResult {
             .and_then(|res| res.get_record(DnsType::CNAME.into()))
             .and_then(|record| {
                 if let RecordDataType::CNAME(name) = record {
-                    Some(name)
+                    Some(name.0)
                 } else {
                     None
                 }
             })
+    }
+}
+
+impl Display for QueryResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if let Some(res) = &self.response {
+            Display::fmt(&res, f)?;
+        } else {
+            for e in self.error.iter() {
+                writeln!(f, "{}", e)?;
+            }
+        }
+        Ok(())
     }
 }
 
@@ -178,11 +192,13 @@ mod tests {
         init_logger();
         let server = vec!["94.140.14.140".to_string()];
         let resolver = Resolver::new(server).unwrap();
-        let result = resolver
-            .query_a("www.baidu.com".to_string())
-            .get_a_record()
-            .unwrap();
-        println!("{:?}", result);
+        let result = resolver.query_a("www.baidu.com".to_string());
+        if let Some(answer) = result.get_a_record() {
+            println!("{}", answer);
+        } else {
+            println!("No CNAME record");
+            println!("{}", result);
+        }
     }
 
     #[test]
@@ -190,11 +206,13 @@ mod tests {
         init_logger();
         let server = vec!["94.140.14.140".to_string()];
         let resolver = Resolver::new(server).unwrap();
-        let result = resolver
-            .query_aaaa("www.google.com".to_string())
-            .get_aaaa_record()
-            .unwrap();
-        println!("{:?}", result);
+        let result = resolver.query_aaaa("www.google.com".to_string());
+        if let Some(answer) = result.get_aaaa_record() {
+            println!("{}", answer);
+        } else {
+            println!("No CNAME record");
+            println!("{}", result);
+        }
     }
 
     #[test]
@@ -202,10 +220,21 @@ mod tests {
         init_logger();
         let server = vec!["9.9.9.9".to_string()];
         let resolver = Resolver::new(server).unwrap();
-        let result = resolver
-            .query_cname("www.baidu.com".to_string())
-            .get_cname_record()
-            .unwrap();
-        println!("{:?}", result);
+        let result = resolver.query_cname("www.baidu.com".to_string());
+        if let Some(answer) = result.get_cname_record() {
+            println!("{}", answer);
+        } else {
+            println!("No CNAME record");
+            println!("{}", result);
+        }
+    }
+
+    #[test]
+    fn test_fmt() {
+        init_logger();
+        let server = vec!["94.140.14.140".to_string()];
+        let resolver = Resolver::new(server).unwrap();
+        let result = resolver.query_a("www.baidu.com".to_string());
+        println!("{}", result);
     }
 }

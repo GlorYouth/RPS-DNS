@@ -21,6 +21,7 @@ pub mod debug {
     struct ThreadLogger {
         logs: Vec<LogEntry>,
         thread_id: u64,
+        is_println_enabled: bool,
     }
 
     impl ThreadLogger {
@@ -30,6 +31,7 @@ pub mod debug {
             Self {
                 logs: Vec::new(),
                 thread_id: hash,
+                is_println_enabled: false,
             }
         }
 
@@ -41,6 +43,10 @@ pub mod debug {
                 thread_id: self.thread_id,
             };
             self.logs.push(entry);
+        }
+
+        fn set_println_enabled(&mut self, value: bool) {
+            self.is_println_enabled = value;
         }
     }
 
@@ -64,16 +70,18 @@ pub mod debug {
             THREAD_LOGGER.with(|logger| {
                 logger.borrow_mut().log(record);
                 // 使用 env_logger 打印日志（确保已初始化）;
-                println!(
-                    "{}",
-                    format!(
-                        "[{}] [{} {:X}]  {}",
-                        record.level(),
-                        Local::now().format("%Y-%m-%d %H:%M:%S"),
-                        logger.borrow().thread_id,
-                        record.args()
-                    )
-                );
+                if logger.borrow().is_println_enabled {
+                    println!(
+                        "{}",
+                        format!(
+                            "[{}] [{} {:X}]  {}",
+                            record.level(),
+                            Local::now().format("%Y-%m-%d %H:%M:%S"),
+                            logger.borrow().thread_id,
+                            record.args()
+                        )
+                    );
+                }
             });
         }
 
@@ -86,7 +94,22 @@ pub mod debug {
 
     pub fn init_logger() {
         // 设置全局 logger
-        if log::set_logger(Box::leak(Box::from(GlobalLogger::new()))).is_ok() {};
+        if log::set_logger(Box::leak(Box::from(GlobalLogger::new()))).is_ok() {
+            std::panic::set_hook(Box::new(|info| {
+                eprintln!("Test panicked: {}", info.to_string());
+
+                // 获取当前线程的日志并打印
+                let logs = get_current_thread_logs();
+                if !logs.is_empty() {
+                    eprintln!("Captured logs before panic:");
+                    for log in logs {
+                        eprintln!("{}", log);
+                    }
+                }
+            }));
+        } else {
+            logger_flush();
+        }
         log::set_max_level(log::LevelFilter::Trace);
     }
 
@@ -102,8 +125,10 @@ pub mod debug {
                 .iter()
                 .map(|entry| {
                     format!(
-                        "[{}] {}",
-                        entry.timestamp.format("%Y-%m-%d %H:%M:%S"),
+                        "[{}] [{} {:X}]  {}",
+                        entry.level,
+                        Local::now().format("%Y-%m-%d %H:%M:%S"),
+                        logger.borrow().thread_id,
                         entry.message
                     )
                 })

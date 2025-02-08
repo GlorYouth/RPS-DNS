@@ -1,5 +1,6 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
+use crate::dns::RecordFmtType;
 use crate::dns::Request;
 use crate::dns::types::parts::header::ResponseHeader;
 use crate::dns::types::parts::question::Question;
@@ -8,6 +9,7 @@ use crate::dns::types::parts::record::Record;
 #[cfg(debug_assertions)]
 use log::trace;
 use smallvec::SmallVec;
+use std::fmt::Display;
 
 #[derive(Debug)]
 pub struct Response {
@@ -110,6 +112,35 @@ impl Response {
     }
 }
 
+impl Display for Response {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        Display::fmt(&self.header, fmt)?;
+        writeln!(fmt, "\tQuestions: {}", self.question.len())?;
+        writeln!(fmt, "\tAnswer RRs: {}", self.answer.len())?;
+        writeln!(fmt, "\tAuthority RRs: {}", self.authority.len())?;
+        writeln!(fmt, "\tAdditional RRs: {}", self.additional.len())?;
+        writeln!(fmt, "Queries:")?;
+        for q in &self.question {
+            Display::fmt(&q, fmt)?;
+        }
+        let iter = self
+            .answer
+            .iter()
+            .chain(self.authority.iter())
+            .chain(self.additional.iter());
+        let mut iter = iter
+            .filter(|r| matches!(r.get_fmt_type(), RecordFmtType::Answers))
+            .peekable();
+
+        if iter.peek().is_some() {
+            writeln!(fmt, "Answers:")?;
+        }
+
+        iter.try_for_each(|x| Display::fmt(&x, fmt))?;
+        Ok(())
+    }
+}
+
 impl From<&RawResponse<'_>> for Option<Response> {
     #[inline]
     fn from(value: &RawResponse) -> Option<Response> {
@@ -139,13 +170,13 @@ impl<'a> ResponseCheck<'a> {
             trace!("从Slice解析RawResponse除Header外部分");
         }
         raw.init(|header| {
-            if header.get_id() != self.request.header.id {
+            if header.get_id() != self.request.header.get_id() {
                 #[cfg(debug_assertions)]
                 {
                     trace!(
                         "请求id和响应id不同,分别为{},{}",
                         header.get_id(),
-                        self.request.header.id
+                        self.request.header.get_id()
                     );
                 }
                 return None;
@@ -157,24 +188,24 @@ impl<'a> ResponseCheck<'a> {
                 }
                 return None;
             }
-            if header.get_opcode() != self.request.header.opcode {
+            if header.get_opcode() != self.request.header.get_opcode() {
                 #[cfg(debug_assertions)]
                 {
                     trace!(
                         "请求和响应的opcode不同,分别为{},{}",
                         header.get_opcode(),
-                        self.request.header.opcode
+                        self.request.header.get_opcode()
                     );
                 }
                 return None;
             }
-            if header.get_rec_desired() != self.request.header.rec_desired {
+            if header.get_rec_desired() != self.request.header.get_rec_desired() {
                 #[cfg(debug_assertions)]
                 {
                     trace!(
                         "请求和响应的rec_desired不同,分别为{},{}",
                         header.get_rec_desired(),
-                        self.request.header.rec_desired
+                        self.request.header.get_rec_desired()
                     );
                 }
                 return None;
@@ -189,7 +220,11 @@ impl<'a> ResponseCheck<'a> {
             if header.get_questions() != self.request.question.len() as u16 {
                 #[cfg(debug_assertions)]
                 {
-                    trace!("响应的opcode不为0x0,而是{}", header.get_rcode());
+                    trace!(
+                        "请求与响应的question数不同,分别为{},{}",
+                        self.request.question.len(),
+                        header.get_questions()
+                    );
                 }
             }
             // todo tc authenticated .etc

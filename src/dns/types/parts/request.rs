@@ -4,8 +4,8 @@ use crate::dns::types::parts::header::RequestHeader;
 use crate::dns::types::parts::question::Question;
 use crate::dns::types::parts::raw::RawRequest;
 use crate::dns::utils::SliceOperator;
-use rand::Rng;
 use smallvec::SmallVec;
+use std::fmt::{Display, Formatter};
 use std::rc::Rc;
 
 const SUFFIX: &[u8] = "xn--".as_bytes();
@@ -23,7 +23,6 @@ impl Request {
 
     #[inline]
     pub fn new(domain: Rc<String>, qtype: u16) -> Request {
-        let mut rng = rand::rng();
         let mut question = SmallVec::new();
         question.push(Question {
             qname: domain,
@@ -32,15 +31,7 @@ impl Request {
         });
 
         Request {
-            header: RequestHeader {
-                id: rng.random(),
-                response: 0,
-                opcode: 0,
-                truncated: 0,
-                rec_desired: 1,
-                z: 0,
-                check_disable: 0,
-            },
+            header: Default::default(),
             question,
         }
     }
@@ -50,15 +41,9 @@ impl Request {
 
         // 前两个Bytes
         operator.set_pos(2);
-        operator.write_u16(self.header.id);
+        operator.write_u16(self.header.get_id());
 
-        operator.write_u8(
-            self.header.response << 7
-                | self.header.opcode << 3
-                | self.header.truncated << 1
-                | self.header.rec_desired,
-        );
-        operator.write_u8(self.header.z << 6 | self.header.check_disable << 4);
+        operator.write_u16(self.header.get_flags());
         operator.write_u16(self.question.len() as u16);
         operator.write_u32(0);
         operator.write_u16(0);
@@ -75,14 +60,8 @@ impl Request {
     pub fn encode_to_tcp<'b>(&self, buffer: &'b mut [u8]) -> &'b [u8] {
         let mut operator = SliceOperator::from_slice(buffer);
         operator.set_pos(2);
-        operator.write_u16(self.header.id);
-        operator.write_u8(
-            self.header.response << 7
-                | self.header.opcode << 3
-                | self.header.truncated << 1
-                | self.header.rec_desired,
-        );
-        operator.write_u8(self.header.z << 6 | self.header.check_disable << 4);
+        operator.write_u16(self.header.get_id());
+        operator.write_u16(self.header.get_flags());
         operator.write_u16(self.question.len() as u16);
         operator.write_u32(0);
         operator.write_u16(0);
@@ -138,5 +117,32 @@ impl From<&RawRequest<'_>> for Option<Request> {
             header: RequestHeader::from(request.get_raw_header()),
             question,
         })
+    }
+}
+
+impl Display for Request {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(&self.header, f)?;
+        writeln!(f, "\tQuestions: {}", self.question.len())?;
+        writeln!(f, "\tAnswer RRs: 0")?;
+        writeln!(f, "\tAuthority RRs: 0")?;
+        writeln!(f, "\tAdditional RRs: 0")?;
+        writeln!(f, "Queries:")?;
+        for q in &self.question {
+            Display::fmt(&q, f)?;
+        }
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::Request;
+    use std::rc::Rc;
+
+    #[test]
+    fn test_fmt() {
+        let request = Request::new(Rc::new(String::from("www.google.com")), 1);
+        println!("{}", request);
     }
 }
