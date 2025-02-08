@@ -2,7 +2,7 @@
 
 use crate::dns::types::parts::raw::{DnsClass, DnsTTL, RawRecord, RecordDataType};
 use std::fmt::Display;
-use crate::DnsTypeNum;
+use crate::dns::DnsTypeNum;
 
 #[derive(Debug)]
 pub struct Record {

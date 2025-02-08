@@ -2,7 +2,7 @@
 
 use crate::dns::types::base::RawDomain;
 use crate::dns::utils::SliceReader;
-#[cfg(debug_assertions)]
+#[cfg(feature = "logger")]
 use log::trace;
 
 #[derive(Debug)]
@@ -16,14 +16,14 @@ impl<'a> RawQuestion<'a> {
     pub const LEAST_SIZE: usize = Self::FIX_SIZE + 2;
 
     pub fn new(reader: &mut SliceReader<'a>) -> Option<RawQuestion<'a>> {
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "logger")]
         {
             trace!("准备解析Question内的name");
         }
         let name = RawDomain::from_reader(reader)?;
         let len = reader.len();
         if reader.pos() + Self::FIX_SIZE > len {
-            #[cfg(debug_assertions)]
+            #[cfg(feature = "logger")]
             {
                 trace!("解析完name后，剩余Slice不足以存放Question的其余部分");
             }

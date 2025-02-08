@@ -2,10 +2,10 @@
 use crate::dns::types::base::DnsType;
 use crate::dns::types::base::RawDomain;
 use crate::dns::utils::SliceReader;
-#[cfg(debug_assertions)]
+#[cfg(feature = "logger")]
 use log::{debug, trace};
 use std::net::{Ipv4Addr, Ipv6Addr};
-use crate::DnsTypeNum;
+use crate::dns::DnsTypeNum;
 
 pub struct RawRecord<'a> {
     name: RawDomain,
@@ -20,7 +20,7 @@ impl<'a> RawRecord<'a> {
     pub const LEAST_SIZE: usize = 12;
 
     pub fn new(reader: &mut SliceReader<'a>) -> Option<RawRecord<'a>> {
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "logger")]
         {
             trace!("准备解析Record内的name");
         }
@@ -28,7 +28,7 @@ impl<'a> RawRecord<'a> {
         let len = reader.len();
 
         if reader.pos() + Self::FIX_SIZE > len {
-            #[cfg(debug_assertions)]
+            #[cfg(feature = "logger")]
             {
                 trace!("解析完name后，剩余Slice不足以存放Record的其余部分");
             }
@@ -39,15 +39,13 @@ impl<'a> RawRecord<'a> {
         let data_length = reader.read_u16() as usize;
 
         if reader.pos() + data_length > len {
-            #[cfg(debug_assertions)]
-            {
-                debug!(
+            #[cfg(feature = "logger")]
+            debug!(
                     "读取到Record中Data可变部分长度为{:x},需要总Slice长度为{:x},实际Slice长度{:x}",
                     data_length,
                     reader.pos() + data_length,
                     len
                 );
-            }
             return None;
         }
 
@@ -119,7 +117,7 @@ impl RecordDataType {
             )),
 
             _ => {
-                #[cfg(debug_assertions)]
+                #[cfg(feature = "logger")]
                 debug!("RecordDataType未实现类型或数据格式错误: {}", rtype);
                 None
             }

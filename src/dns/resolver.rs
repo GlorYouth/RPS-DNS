@@ -6,7 +6,7 @@ use crate::dns::error::Error;
 use crate::dns::net::{NetQuery, NetQueryError};
 use crate::dns::utils::ServerType;
 use crate::dns::{DnsTypeNum, Request};
-#[cfg(debug_assertions)]
+#[cfg(feature = "logger")]
 use log::debug;
 use smallvec::SmallVec;
 use std::fmt::Display;
@@ -64,7 +64,7 @@ impl Resolver {
                             }
                         }
                     } else {
-                        #[cfg(debug_assertions)]
+                        #[cfg(feature = "logger")]
                         debug!("连接到对应的tcp server失败");
                         error_vec.push(Error::from(NetQueryError::ConnectTcpAddrError));
                         continue; //连接到server失败, 则尝试备用server
@@ -82,13 +82,13 @@ impl Resolver {
                                 }
                             }
                         } else {
-                            #[cfg(debug_assertions)]
+                            #[cfg(feature = "logger")]
                             debug!("连接到对应的udp server失败");
                             error_vec.push(Error::from(NetQueryError::ConnectUdpAddrError));
                             continue;
                         }
                     } else {
-                        #[cfg(debug_assertions)]
+                        #[cfg(feature = "logger")]
                         debug!("监听udp端口失败");
                         error_vec.push(Error::from(NetQueryError::BindUdpAddrError));
                         continue; //监听udp失败，尝试备用

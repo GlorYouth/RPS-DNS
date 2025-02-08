@@ -2,7 +2,7 @@ use crate::dns::types::parts::raw::header::RawResponseHeader;
 use crate::dns::types::parts::raw::question::RawQuestion;
 use crate::dns::types::parts::raw::record::RawRecord;
 use crate::dns::utils::SliceReader;
-#[cfg(debug_assertions)]
+#[cfg(feature = "logger")]
 use log::{debug, trace};
 use smallvec::SmallVec;
 
@@ -20,7 +20,7 @@ impl<'a> RawResponse<'a> {
     #[inline]
     pub fn new(slice: &'a [u8]) -> Option<RawResponse<'a>> {
         if slice.len() < RawResponseHeader::SIZE + RawQuestion::LEAST_SIZE {
-            #[cfg(debug_assertions)]
+            #[cfg(feature = "logger")]
             {
                 debug!(
                     "传入Slice长度不符合最低标准RawResponse, 输入Slice长度 {}, 需要至少 {}",
@@ -30,17 +30,17 @@ impl<'a> RawResponse<'a> {
             }
             return None;
         }
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "logger")]
         {
-            trace!("开始生成SliceReader")
+            trace!("开始生成SliceReader");
         }
         let mut reader = SliceReader::from_slice(slice);
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "logger")]
         {
             trace!("开始解析Header")
         }
         let raw_header = RawResponseHeader::new(&mut reader);
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "logger")]
         {
             trace!("开始初始化RawResponse");
         }
@@ -61,7 +61,7 @@ impl<'a> RawResponse<'a> {
         let additional_rrs = self.raw_header.get_additional_rrs();
 
         for _i in 0..questions {
-            #[cfg(debug_assertions)]
+            #[cfg(feature = "logger")]
             {
                 trace!("正在从Slice解析第{}个RawQuestion", _i);
             }
@@ -69,7 +69,7 @@ impl<'a> RawResponse<'a> {
         }
 
         for _i in 0..answer_rrs {
-            #[cfg(debug_assertions)]
+            #[cfg(feature = "logger")]
             {
                 trace!("正在从Slice解析RawRecord=>第{}个response", _i);
             }
@@ -77,7 +77,7 @@ impl<'a> RawResponse<'a> {
         }
 
         for _i in 0..authority_rrs {
-            #[cfg(debug_assertions)]
+            #[cfg(feature = "logger")]
             {
                 trace!("正在从Slice解析RawRecord=>第{}个authority", _i);
             }
@@ -85,7 +85,7 @@ impl<'a> RawResponse<'a> {
         }
 
         for _i in 0..additional_rrs {
-            #[cfg(debug_assertions)]
+            #[cfg(feature = "logger")]
             {
                 trace!("正在从Slice解析RawRecord=>第{}个additional", _i);
             }
@@ -100,12 +100,12 @@ impl<'a> RawResponse<'a> {
         &'b mut self,
         mut check: F,
     ) -> Option<()> {
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "logger")]
         {
             trace!("开始检查header部分");
         }
         if check(&self.raw_header).is_none() {
-            #[cfg(debug_assertions)]
+            #[cfg(feature = "logger")]
             {
                 debug!("header检验失败");
             }
