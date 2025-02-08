@@ -1,7 +1,7 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
 use crate::dns::utils::SliceReader;
-#[cfg(debug_assertions)]
+#[cfg(feature = "logger")]
 use log::{debug, trace};
 use smallvec::SmallVec;
 use std::fmt::Debug;
@@ -19,13 +19,13 @@ impl RawDomain {
         loop {
             let first_u8 = reader.read_u8();
             if first_u8 & 0b1100_0000_u8 == 0b1100_0000_u8 {
-                #[cfg(debug_assertions)]
+                #[cfg(feature = "logger")]
                 {
                     trace!("发现有Domain Pointer");
                 }
                 let offset =
                     u16::from_be_bytes([first_u8 & 0b0011_1111_u8, reader.read_u8()]) as usize;
-                #[cfg(debug_assertions)]
+                #[cfg(feature = "logger")]
                 {
                     trace!("其指向字节为:{:x}", offset);
                 }
@@ -41,7 +41,7 @@ impl RawDomain {
                 }
                 break;
             }
-            #[cfg(debug_assertions)]
+            #[cfg(feature = "logger")]
             {
                 trace!("普通的Tags,内含{}个ASCII", first_u8);
             }
@@ -52,7 +52,7 @@ impl RawDomain {
             }
         }
         if domain.is_empty() {
-            #[cfg(debug_assertions)]
+            #[cfg(feature = "logger")]
             {
                 debug!("DomainName没有长度");
             }
@@ -72,12 +72,12 @@ impl RawDomain {
         while slice.len() > 0 {
             let first_u8 = slice[0];
             if first_u8 & 0b1100_0000_u8 == 0b1100_0000_u8 {
-                #[cfg(debug_assertions)]
+                #[cfg(feature = "logger")]
                 {
                     trace!("发现有Domain Pointer");
                 }
                 let offset = u16::from_be_bytes([first_u8 & 0b0011_1111_u8, slice[1]]) as usize;
-                #[cfg(debug_assertions)]
+                #[cfg(feature = "logger")]
                 {
                     trace!("其指向字节为:{:x}", offset);
                 }
@@ -86,7 +86,7 @@ impl RawDomain {
                     slice = &arr[..pos];
                     continue;
                 } else {
-                    #[cfg(debug_assertions)]
+                    #[cfg(feature = "logger")]
                     {
                         debug!("并没有raw_message如下offset后找到b'0' {}", offset);
                     }
@@ -97,7 +97,7 @@ impl RawDomain {
                 //有概率最后一个为0x0,看不同server是如何实现的，这里是为了效率加了判断
                 break;
             }
-            #[cfg(debug_assertions)]
+            #[cfg(feature = "logger")]
             {
                 trace!("普通的Tags,内含{}个ASCII", slice[0]);
             }
@@ -106,7 +106,7 @@ impl RawDomain {
         }
 
         if domain.is_empty() {
-            #[cfg(debug_assertions)]
+            #[cfg(feature = "logger")]
             {
                 debug!("DomainName没有长度");
             }
@@ -137,7 +137,7 @@ impl RawDomain {
                         string.push_str(&decoded_part);
                     }
                     Err(_) => {
-                        #[cfg(debug_assertions)]
+                        #[cfg(feature = "logger")]
                         {
                             debug!("punycode解码失败, 解码输入的为 {}", input);
                         }
@@ -149,7 +149,7 @@ impl RawDomain {
                     if byte.is_ascii() {
                         string.push(*byte as char);
                     } else {
-                        #[cfg(debug_assertions)]
+                        #[cfg(feature = "logger")]
                         {
                             debug!("domain内有非ASCII字符:{},{}", *byte as char, *byte);
                         }

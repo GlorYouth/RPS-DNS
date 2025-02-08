@@ -137,7 +137,7 @@ impl Display for Request {
 
 #[cfg(test)]
 mod tests {
-    use crate::Request;
+    use crate::dns::Request;
     use std::rc::Rc;
 
     #[test]

@@ -1,5 +1,5 @@
 #[cfg_attr(debug_assertions, allow(dead_code))]
-#[cfg(debug_assertions)]
+#[cfg(feature = "logger")]
 pub mod debug {
     use ahash::RandomState;
     use chrono::Local;
@@ -138,6 +138,7 @@ pub mod debug {
 }
 
 #[cfg(test)]
+#[cfg(feature = "logger")]
 mod test {
     use super::debug::*;
     use log::debug;
