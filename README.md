@@ -37,6 +37,7 @@ Client/Server还遥遥无期(还没准备dev呢)
 ## 目录树
 ```
 RPS-DNS
+├─ .gitignore
 ├─ Cargo.toml
 ├─ LICENSE
 ├─ README.md
@@ -67,6 +68,7 @@ RPS-DNS
 │     │  │  ├─ response.rs
 │     │  │  └─ raw
 │     │  │     ├─ header.rs
+│     │  │     ├─ others.rs
 │     │  │     ├─ question.rs
 │     │  │     ├─ record.rs
 │     │  │     ├─ request.rs
@@ -79,6 +81,10 @@ RPS-DNS
 │     └─ error
 │        ├─ error.rs
 │        └─ logger.rs
-└─ benches
-└─ benchmark.rs
+├─ benches
+│  └─ benchmark.rs
+└─ .github
+   ├─ dependabot.yml
+   └─ workflows
+      └─ rust.yml
 ```
