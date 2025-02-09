@@ -8,7 +8,7 @@ use crate::dns::types::parts::record::{Record, RecordDataType};
 use crate::dns::utils::SliceReader;
 
 #[cfg(feature = "logger")]
-use log::{trace,debug};
+use log::{debug, trace};
 use smallvec::SmallVec;
 use std::fmt::Display;
 

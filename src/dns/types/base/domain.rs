@@ -12,16 +12,16 @@ pub struct RawDomain {
 }
 const SUFFIX: &[u8] = "xn--".as_bytes();
 impl RawDomain {
-    
     pub fn as_ref(&self) -> &Vec<u8> {
         &self.domain
     }
-    
-    pub fn from_str<T: AsRef<str>>(s: T) -> Option<RawDomain> { //不带0x0
+
+    pub fn from_str<T: AsRef<str>>(s: T) -> Option<RawDomain> {
+        //不带0x0
         let s = s.as_ref();
-        let vec = s.split('.').try_fold(
-            Vec::with_capacity(20),
-            |mut v: Vec<u8>, str| {
+        let vec = s
+            .split('.')
+            .try_fold(Vec::with_capacity(20), |mut v: Vec<u8>, str| {
                 if str.is_ascii() {
                     v.push(str.len() as u8);
                     v.extend_from_slice(str.as_bytes());
@@ -39,15 +39,14 @@ impl RawDomain {
                     }
                 }
                 Some(v)
-            },
-        )?;
+            })?;
         let len = vec.len();
         Some(RawDomain {
             domain: vec,
             raw_len: len,
         })
     }
-    
+
     pub fn from_reader(reader: &mut SliceReader) -> Option<RawDomain> {
         let mut domain = Vec::with_capacity(30);
         let mut pos = reader.pos();
@@ -216,7 +215,6 @@ impl RawDomain {
         self.domain.len()
     }
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -254,7 +252,7 @@ mod tests {
         assert_eq!(domain.to_string().unwrap(), "www.a.shifen.com".to_string());
         assert_eq!(reader.pos(), 43 + 15);
     }
-    
+
     #[test]
     fn test_from_str() {
         let domain = RawDomain::from_str("www.baidu.com").unwrap();

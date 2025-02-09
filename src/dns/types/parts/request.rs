@@ -1,12 +1,12 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
+use crate::dns::types::base::RawDomain;
 use crate::dns::types::parts::header::RequestHeader;
 use crate::dns::types::parts::question::Question;
 use crate::dns::utils::SliceOperator;
 use smallvec::SmallVec;
 use std::fmt::{Display, Formatter};
 use std::rc::Rc;
-use crate::dns::types::base::RawDomain;
 
 const SUFFIX: &[u8] = "xn--".as_bytes();
 
@@ -94,13 +94,16 @@ impl Display for Request {
 
 #[cfg(test)]
 mod tests {
-    use std::rc::Rc;
     use crate::dns::Request;
     use crate::dns::{DnsTypeNum, RawDomain};
+    use std::rc::Rc;
 
     #[test]
     fn test_fmt() {
-        let request = Request::new(Rc::new(RawDomain::from_str("www.baidu.com").unwrap()),DnsTypeNum::A);
+        let request = Request::new(
+            Rc::new(RawDomain::from_str("www.baidu.com").unwrap()),
+            DnsTypeNum::A,
+        );
         println!("{}", request);
     }
 }

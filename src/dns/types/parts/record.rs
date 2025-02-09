@@ -8,6 +8,7 @@ use crate::dns::utils::SliceReader;
 use log::{debug, trace};
 use std::fmt::Display;
 use std::net::{Ipv4Addr, Ipv6Addr};
+use std::rc::Rc;
 
 #[derive(Debug)]
 pub struct Record {
@@ -52,14 +53,14 @@ impl Record {
         }
 
         let data = match rtype {
-            DnsTypeNum::CNAME => {
-                RawRecordDataType::Domain(RawDomain::from_reader_with_size(reader, data_length)?)
-            }
+            DnsTypeNum::CNAME => RawRecordDataType::Domain(Rc::from(
+                RawDomain::from_reader_with_size(reader, data_length)?,
+            )),
             _ => RawRecordDataType::Other(reader.read_slice(data_length)),
         };
 
         Some(Record {
-            name: name,
+            name,
             rtype,
             class,
             ttl,
@@ -78,7 +79,11 @@ impl Record {
 
 impl Display for Record {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-        write!(f, "\t{}: type ", self.name.to_string().unwrap_or("???".to_owned()))?;
+        write!(
+            f,
+            "\t{}: type ",
+            self.name.to_string().unwrap_or("???".to_owned())
+        )?;
         Display::fmt(&self.data.get_dns_type(), f)?;
         writeln!(
             f,
@@ -87,7 +92,11 @@ impl Display for Record {
             self.class
         )?;
 
-        writeln!(f, "\t\tName: {}", self.name.to_string().unwrap_or("???".to_owned()))?;
+        writeln!(
+            f,
+            "\t\tName: {}",
+            self.name.to_string().unwrap_or("???".to_owned())
+        )?;
 
         #[inline]
         fn write_other(r: &Record, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
@@ -115,7 +124,11 @@ impl Display for Record {
             RecordDataType::CNAME(str) => {
                 writeln!(f, "\t\tType: CNAME ({})", DnsTypeNum::CNAME)?;
                 write_other(self, f)?;
-                writeln!(f, "\t\tCNAME: {}", str.0)
+                writeln!(
+                    f,
+                    "\t\tCNAME: {}",
+                    str.to_string().unwrap_or("???".to_owned())
+                )
             }
         }
     }
@@ -126,7 +139,7 @@ pub enum RecordFmtType {
 }
 
 enum RawRecordDataType<'a> {
-    Domain(RawDomain),
+    Domain(Rc<RawDomain>),
     Other(&'a [u8]),
 }
 
@@ -134,7 +147,7 @@ enum RawRecordDataType<'a> {
 pub enum RecordDataType {
     A(Ipv4Addr),
     AAAA(Ipv6Addr),
-    CNAME((String, usize)),
+    CNAME(Rc<RawDomain>),
 }
 
 impl RecordDataType {
@@ -145,8 +158,7 @@ impl RecordDataType {
             }
 
             (DnsTypeNum::CNAME, RawRecordDataType::Domain(d)) => {
-                let len = d.raw_len();
-                Some(RecordDataType::CNAME((d.to_string()?, len)))
+                Some(RecordDataType::CNAME(d.clone()))
             }
 
             (DnsTypeNum::AAAA, RawRecordDataType::Other(d)) if d.len() >= 16 => {
@@ -167,7 +179,7 @@ impl RecordDataType {
         match self {
             RecordDataType::A(_) => 4,
             RecordDataType::AAAA(_) => 16,
-            RecordDataType::CNAME(str) => str.1,
+            RecordDataType::CNAME(str) => str.raw_len(),
         }
     }
 

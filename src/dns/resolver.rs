@@ -1,5 +1,6 @@
 #![cfg_attr(debug_assertions, allow(unused_variables, dead_code))]
 
+use crate::dns::RawDomain;
 use crate::dns::RecordDataType;
 use crate::dns::Response;
 use crate::dns::error::Error;
@@ -12,7 +13,6 @@ use smallvec::SmallVec;
 use std::fmt::Display;
 use std::net::{AddrParseError, Ipv4Addr, Ipv6Addr, TcpStream, UdpSocket};
 use std::rc::Rc;
-use crate::dns::RawDomain;
 
 pub struct Resolver {
     server: SmallVec<[ServerType; 5]>,
@@ -99,7 +99,7 @@ impl Resolver {
                 };
             }
             error_vec.into()
-        } else { 
+        } else {
             error_vec.push(Error::StringParseError(domain));
             error_vec.into()
         }
@@ -149,7 +149,7 @@ impl QueryResult {
             .and_then(|res| res.get_record(DnsTypeNum::CNAME))
             .and_then(|record| {
                 if let RecordDataType::CNAME(name) = record {
-                    Some(name.0)
+                    Some(name.to_string()?)
                 } else {
                     None
                 }

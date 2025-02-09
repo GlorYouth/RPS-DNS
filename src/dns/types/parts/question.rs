@@ -43,7 +43,11 @@ impl Question {
 
 impl Display for Question {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-        write!(fmt, "\t{}: type ", self.qname.to_string().unwrap_or_else(||"???".to_owned()))?;
+        write!(
+            fmt,
+            "\t{}: type ",
+            self.qname.to_string().unwrap_or_else(|| "???".to_owned())
+        )?;
         if let Some(qtype) = DnsType::from_u16(self.qtype) {
             Display::fmt(&qtype, fmt)?;
         } else {
@@ -51,7 +55,11 @@ impl Display for Question {
         }
         let qclass = DnsClass::get_str(self.qclass);
         writeln!(fmt, ", class {}", qclass)?;
-        writeln!(fmt, "\t\tName: {}", self.qname.to_string().unwrap_or_else(||"???".to_owned()))?;
+        writeln!(
+            fmt,
+            "\t\tName: {}",
+            self.qname.to_string().unwrap_or_else(|| "???".to_owned())
+        )?;
         write!(fmt, "\t\tType: ")?;
         if let Some(qtype) = DnsType::from_u16(self.qtype) {
             Display::fmt(&qtype, fmt)?;
