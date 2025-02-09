@@ -14,7 +14,7 @@ Client/Server还遥遥无期(还没准备dev呢)
 - [ ] RFC1035  
 
 ## 待办
-- [ ] 实现所有类型的fmt输出(Display&Debug)
+- [x] 实现所有类型的fmt输出(Display)
 - [ ] 解决剩下少数flag，例如TC  
 - [ ] 实现从Windows Hosts/Linux Hosts读取本地记录,以及读取本地缓存
 - [ ] 写代码注释，可以交给AI  
@@ -36,7 +36,8 @@ Client/Server还遥遥无期(还没准备dev呢)
 
 ## 目录树
 ```
-RPS-DNS
+core
+├─ .gitignore
 ├─ Cargo.toml
 ├─ LICENSE
 ├─ README.md
@@ -60,17 +61,11 @@ RPS-DNS
 │     │  ├─ parts.rs
 │     │  ├─ parts
 │     │  │  ├─ header.rs
+│     │  │  ├─ others.rs
 │     │  │  ├─ question.rs
-│     │  │  ├─ raw.rs
 │     │  │  ├─ record.rs
 │     │  │  ├─ request.rs
-│     │  │  ├─ response.rs
-│     │  │  └─ raw
-│     │  │     ├─ header.rs
-│     │  │     ├─ question.rs
-│     │  │     ├─ record.rs
-│     │  │     ├─ request.rs
-│     │  │     └─ response.rs
+│     │  │  └─ response.rs
 │     │  └─ base
 │     │     ├─ dns_type.rs
 │     │     └─ domain.rs
@@ -79,6 +74,9 @@ RPS-DNS
 │     └─ error
 │        ├─ error.rs
 │        └─ logger.rs
-└─ benches
-└─ benchmark.rs
+├─ benches
+│  └─ benchmark.rs
+└─ .run
+   ├─ Run dns-core.run.xml
+   └─ Test dns-core.run.xml
 ```

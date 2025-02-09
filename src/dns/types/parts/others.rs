@@ -1,7 +1,8 @@
+#[cfg(feature = "fmt")]
 use smallvec::SmallVec;
-
+#[cfg(feature = "fmt")]
 pub struct DnsClass;
-
+#[cfg(feature = "fmt")]
 impl DnsClass {
     pub fn get_str(class_u16: u16) -> &'static str {
         match class_u16 {
@@ -13,9 +14,9 @@ impl DnsClass {
         }
     }
 }
-
+#[cfg(feature = "fmt")]
 pub struct DnsTTL;
-
+#[cfg(feature = "fmt")]
 impl DnsTTL {
     const SECOND: u32 = 1;
     const MINUTE: u32 = 60 * Self::SECOND;

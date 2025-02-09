@@ -1,99 +1,158 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
+#[cfg(feature = "fmt")]
 use crate::dns::RecordFmtType;
 use crate::dns::Request;
-use crate::dns::types::parts::header::ResponseHeader;
+use crate::dns::types::parts::header::{HEADER_SIZE, ResponseHeader};
 use crate::dns::types::parts::question::Question;
-use crate::dns::types::parts::raw::{RawResponse, RecordDataType};
-use crate::dns::types::parts::record::Record;
-#[cfg(debug_assertions)]
-use log::trace;
+use crate::dns::types::parts::record::{Record, RecordDataType};
+use crate::dns::utils::SliceReader;
+
+#[cfg(feature = "logger")]
+use log::{debug, trace};
 use smallvec::SmallVec;
+#[cfg(feature = "fmt")]
 use std::fmt::Display;
 
 #[derive(Debug)]
 pub struct Response {
     pub header: ResponseHeader,
-    pub question: SmallVec<[Question; 5]>,
-    pub answer: SmallVec<[Record; 10]>,
-    pub authority: SmallVec<[Record; 5]>,
-    pub additional: SmallVec<[Record; 5]>,
+    pub question: SmallVec<[Question; 1]>,
+    pub answer: Vec<Record>,
 }
 
 impl Response {
-    pub fn new(slice: &[u8]) -> Option<Response> {
-        #[cfg(debug_assertions)]
-        {
-            trace!("开始从Slice解析RawResponse");
-        }
-        let mut raw = RawResponse::new(slice)?;
-        #[cfg(debug_assertions)]
-        {
-            trace!("从Slice解析RawResponse除Header外部分");
-        }
-        raw.init_without_check()?;
-        #[cfg(debug_assertions)]
-        {
-            trace!("开始全解析RawResponse");
-        }
-        Some(Response::from_raw(&raw)?)
-    }
-
+    #[inline]
     pub fn from_slice_uncheck(slice: &[u8]) -> Option<Response> {
-        let mut raw = RawResponse::new(slice)?;
-        raw.init_without_check()?;
-        Some(Response::from_raw(&raw)?)
+        Self::from_slice_check(slice, |_| Some(()))
     }
 
-    pub fn from_raw(value: &RawResponse) -> Option<Response> {
-        let raw_question = value.get_raw_question();
-        let raw_answer = value.get_raw_answer();
-        let raw_authority = value.get_raw_authority();
-        let raw_additional = value.get_raw_additional();
-
-        let mut question = SmallVec::new();
-        let mut answer = SmallVec::new();
-        let mut authority = SmallVec::new();
-        let mut additional = SmallVec::new();
-
-        for v in raw_question {
-            #[cfg(debug_assertions)]
+    fn from_slice_check<F: Fn(&ResponseHeader) -> Option<()>>(
+        slice: &[u8],
+        check: F,
+    ) -> Option<Response> {
+        if slice.len() < HEADER_SIZE + Question::LEAST_SIZE {
+            #[cfg(feature = "logger")]
             {
-                trace!("开始全解析Question {}", question.len());
+                debug!(
+                    "传入Slice长度不符合最低标准RawResponse, 输入Slice长度 {}, 需要至少 {}",
+                    slice.len(),
+                    HEADER_SIZE + Question::LEAST_SIZE
+                );
             }
-            question.push(Question::new(v)?);
+
+            return None;
+        }
+        let mut reader = SliceReader::from_slice(slice);
+        #[cfg(feature = "logger")]
+        {
+            trace!("开始解析Header")
+        }
+        let header = ResponseHeader::from(&mut reader);
+        check(&header)?;
+
+        let mut questions = SmallVec::new();
+        let total: usize = header.answer_rrs as usize
+            + header.authority_rrs as usize
+            + header.additional_rrs as usize;
+        let mut rrs = Vec::with_capacity(total);
+
+        for _i in 0..header.questions {
+            #[cfg(feature = "logger")]
+            {
+                trace!("正在从Slice解析第{}个RawQuestion", _i);
+            }
+            questions.push(Question::new(&mut reader)?)
         }
 
-        for v in raw_answer {
-            #[cfg(debug_assertions)]
-            {
-                trace!("开始全解析answer => Record {}", answer.len());
-            }
-            answer.push(Record::new(v)?);
+        #[cfg(not(feature = "logger"))]
+        for _ in 0..total {
+            rrs.push(Record::new(&mut reader)?);
         }
 
-        for v in raw_authority {
-            #[cfg(debug_assertions)]
-            {
-                trace!("开始全解析authority => Record {}", authority.len());
+        #[cfg(feature = "logger")]
+        {
+            for _i in 0..header.answer_rrs {
+                trace!("正在从Slice解析RawRecord=>第{}个response", _i);
+                rrs.push(Record::new(&mut reader)?);
             }
-            authority.push(Record::new(v)?);
-        }
 
-        for v in raw_additional {
-            #[cfg(debug_assertions)]
-            {
-                trace!("开始全解析additional => Record {}", additional.len());
+            for _i in 0..header.authority_rrs {
+                trace!("正在从Slice解析RawRecord=>第{}个authority", _i);
+                rrs.push(Record::new(&mut reader)?);
             }
-            additional.push(Record::new(v)?);
+
+            for _i in 0..header.additional_rrs {
+                trace!("正在从Slice解析RawRecord=>第{}个additional", _i);
+                rrs.push(Record::new(&mut reader)?);
+            }
         }
 
         Some(Response {
-            header: ResponseHeader::from(value.get_raw_header()),
-            question,
-            answer,
-            authority,
-            additional,
+            header,
+            question: questions,
+            answer: rrs,
+        })
+    }
+
+    #[inline]
+    pub fn from_slice(slice: &[u8], request: &Request) -> Option<Response> {
+        Self::from_slice_check(slice, |header| {
+            if header.id != request.header.id {
+                #[cfg(feature = "logger")]
+                {
+                    trace!(
+                        "请求id和响应id不同,分别为{},{}",
+                        header.id, request.header.id
+                    );
+                }
+                return None;
+            }
+            if header.response != 0x1 {
+                #[cfg(feature = "logger")]
+                {
+                    trace!("响应的response flag非0x1");
+                }
+                return None;
+            }
+            if header.opcode != request.header.opcode {
+                #[cfg(feature = "logger")]
+                {
+                    trace!(
+                        "请求和响应的opcode不同,分别为{},{}",
+                        header.opcode, request.header.opcode
+                    );
+                }
+                return None;
+            }
+            if header.rec_desired != request.header.rec_desired {
+                #[cfg(feature = "logger")]
+                {
+                    trace!(
+                        "请求和响应的rec_desired不同,分别为{},{}",
+                        header.rec_desired, request.header.rec_desired
+                    );
+                }
+                return None;
+            }
+            if header.rcode != 0x0 {
+                #[cfg(feature = "logger")]
+                {
+                    trace!("响应的opcode不为0x0,而是{}", header.rcode);
+                }
+                return None;
+            }
+            if header.questions != request.question.len() as u16 {
+                #[cfg(feature = "logger")]
+                {
+                    trace!(
+                        "请求与响应的question数不同,分别为{},{}",
+                        request.question.len(),
+                        header.questions
+                    );
+                }
+            }
+            Some(())
         })
     }
 
@@ -112,22 +171,15 @@ impl Response {
     }
 }
 
+#[cfg(feature = "fmt")]
 impl Display for Response {
     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         Display::fmt(&self.header, fmt)?;
-        writeln!(fmt, "\tQuestions: {}", self.question.len())?;
-        writeln!(fmt, "\tAnswer RRs: {}", self.answer.len())?;
-        writeln!(fmt, "\tAuthority RRs: {}", self.authority.len())?;
-        writeln!(fmt, "\tAdditional RRs: {}", self.additional.len())?;
         writeln!(fmt, "Queries:")?;
         for q in &self.question {
             Display::fmt(&q, fmt)?;
         }
-        let iter = self
-            .answer
-            .iter()
-            .chain(self.authority.iter())
-            .chain(self.additional.iter());
+        let iter = self.answer.iter();
         let mut iter = iter
             .filter(|r| matches!(r.get_fmt_type(), RecordFmtType::Answers))
             .peekable();
@@ -138,102 +190,5 @@ impl Display for Response {
 
         iter.try_for_each(|x| Display::fmt(&x, fmt))?;
         Ok(())
-    }
-}
-
-impl From<&RawResponse<'_>> for Option<Response> {
-    #[inline]
-    fn from(value: &RawResponse) -> Option<Response> {
-        Response::from_raw(value)
-    }
-}
-
-pub struct ResponseCheck<'a> {
-    request: &'a Request,
-}
-
-impl<'a> ResponseCheck<'a> {
-    #[inline]
-    pub fn new(request: &'a Request) -> Self {
-        Self { request }
-    }
-
-    #[inline]
-    pub fn check_into_response(self, response_slice: &[u8]) -> Option<Response> {
-        #[cfg(debug_assertions)]
-        {
-            trace!("开始从Slice解析RawResponse");
-        }
-        let mut raw = RawResponse::new(response_slice)?;
-        #[cfg(debug_assertions)]
-        {
-            trace!("从Slice解析RawResponse除Header外部分");
-        }
-        raw.init(|header| {
-            if header.get_id() != self.request.header.get_id() {
-                #[cfg(debug_assertions)]
-                {
-                    trace!(
-                        "请求id和响应id不同,分别为{},{}",
-                        header.get_id(),
-                        self.request.header.get_id()
-                    );
-                }
-                return None;
-            }
-            if header.get_response() != 0x1 {
-                #[cfg(debug_assertions)]
-                {
-                    trace!("响应的response flag非0x1");
-                }
-                return None;
-            }
-            if header.get_opcode() != self.request.header.get_opcode() {
-                #[cfg(debug_assertions)]
-                {
-                    trace!(
-                        "请求和响应的opcode不同,分别为{},{}",
-                        header.get_opcode(),
-                        self.request.header.get_opcode()
-                    );
-                }
-                return None;
-            }
-            if header.get_rec_desired() != self.request.header.get_rec_desired() {
-                #[cfg(debug_assertions)]
-                {
-                    trace!(
-                        "请求和响应的rec_desired不同,分别为{},{}",
-                        header.get_rec_desired(),
-                        self.request.header.get_rec_desired()
-                    );
-                }
-                return None;
-            }
-            if header.get_rcode() != 0x0 {
-                #[cfg(debug_assertions)]
-                {
-                    trace!("响应的opcode不为0x0,而是{}", header.get_rcode());
-                }
-                return None;
-            }
-            if header.get_questions() != self.request.question.len() as u16 {
-                #[cfg(debug_assertions)]
-                {
-                    trace!(
-                        "请求与响应的question数不同,分别为{},{}",
-                        self.request.question.len(),
-                        header.get_questions()
-                    );
-                }
-            }
-            // todo tc authenticated .etc
-            Some(())
-        })?;
-        #[cfg(debug_assertions)]
-        {
-            trace!("开始全解析RawResponse");
-        }
-        Some(Response::from_raw(&raw)?)
     }
 }

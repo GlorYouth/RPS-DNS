@@ -117,10 +117,13 @@ mod tests {
             16u8,
         ];
         let mut reader = SliceReader::from(&slice[..]);
-        assert_eq!(reader.slice, [
-            0u8, 1u8, 2u8, 3u8, 4u8, 5u8, 6u8, 7u8, 8u8, 9u8, 10u8, 11u8, 12u8, 13u8, 14u8, 15u8,
-            16u8
-        ]);
+        assert_eq!(
+            reader.slice,
+            [
+                0u8, 1u8, 2u8, 3u8, 4u8, 5u8, 6u8, 7u8, 8u8, 9u8, 10u8, 11u8, 12u8, 13u8, 14u8,
+                15u8, 16u8
+            ]
+        );
         assert_eq!(reader.pos(), 0);
         assert_eq!(reader.peek_u8(), 0u8);
         assert_eq!(reader.read_u8(), 0);

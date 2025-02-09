@@ -1,4 +1,4 @@
-use crate::dns::{Request, Response, ResponseCheck};
+use crate::dns::{Request, Response};
 use std::fmt::{Debug, Display, Formatter};
 use std::io::{Read, Write};
 use std::net::{TcpStream, UdpSocket};
@@ -18,8 +18,7 @@ impl NetQuery {
             .read(&mut buf)
             .map_err(|_| NetQueryError::ConnectTcpAddrError)?;
         let len = u16::from_be_bytes([buf[0], buf[1]]);
-        let response = ResponseCheck::new(&request)
-            .check_into_response(&buf.as_slice()[2..(len + 2) as usize]);
+        let response = Response::from_slice(&buf.as_slice()[2..(len + 2) as usize], &request);
         Ok(response)
     }
 
@@ -44,8 +43,7 @@ impl NetQuery {
         let number_of_bytes = socket
             .recv(&mut buf)
             .map_err(|_| NetQueryError::RecvUdpConnectError)?;
-        let response =
-            ResponseCheck::new(&request).check_into_response(&buf.as_slice()[..number_of_bytes]);
+        let response = Response::from_slice(&buf.as_slice()[..number_of_bytes], &request);
         Ok(response)
     }
 }

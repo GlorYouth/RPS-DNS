@@ -1,11 +1,25 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
-use crate::dns::types::parts::raw::{DnsClass, DnsTTL, RawRecord, RecordDataType};
+#[cfg(feature = "fmt")]
+use crate::dns::DnsTTL;
+use crate::dns::DnsTypeNum;
+use crate::dns::RawDomain;
+#[cfg(feature = "fmt")]
+use crate::dns::types::base::DnsType;
+#[cfg(feature = "fmt")]
+use crate::dns::types::parts::DnsClass;
+use crate::dns::utils::SliceReader;
+#[cfg(feature = "logger")]
+use log::{debug, trace};
+#[cfg(feature = "fmt")]
 use std::fmt::Display;
+use std::net::{Ipv4Addr, Ipv6Addr};
+use std::rc::Rc;
 
 #[derive(Debug)]
 pub struct Record {
-    pub name: String,
+    pub name: RawDomain,
+    pub rtype: u16,
     pub class: u16,
     pub ttl: u32,
     pub data: RecordDataType,
@@ -13,15 +27,65 @@ pub struct Record {
 
 impl Record {
     #[inline]
-    pub fn new(record: &RawRecord) -> Option<Record> {
+    pub fn new(reader: &mut SliceReader) -> Option<Record> {
+        #[cfg(feature = "logger")]
+        {
+            trace!("准备解析Record内的name");
+        }
+        let name = RawDomain::from_reader(reader)?;
+        let len = reader.len();
+
+        if reader.pos() + 10 > len {
+            #[cfg(feature = "logger")]
+            {
+                trace!("解析完name后，剩余Slice不足以存放Record的其余部分");
+            }
+            return None;
+        }
+        let rtype = reader.read_u16();
+        let class = reader.read_u16();
+        let ttl = reader.read_u32();
+        let data_length = reader.read_u16() as usize;
+
+        if reader.pos() + data_length > len {
+            #[cfg(feature = "logger")]
+            debug!(
+                "读取到Record中Data可变部分长度为{:x},需要总Slice长度为{:x},实际Slice长度{:x}",
+                data_length,
+                reader.pos() + data_length,
+                len
+            );
+            return None;
+        }
+
+        let data = match rtype {
+            DnsTypeNum::CNAME => RecordDataType::CNAME(Rc::from(RawDomain::from_reader_with_size(
+                reader,
+                data_length,
+            )?)),
+            DnsTypeNum::A => RecordDataType::A(Ipv4Addr::from(
+                <[u8; 4]>::try_from(reader.read_slice(data_length)).unwrap(),
+            )),
+            DnsTypeNum::AAAA => RecordDataType::AAAA(Ipv6Addr::from(
+                <[u8; 16]>::try_from(reader.read_slice(data_length)).unwrap(),
+            )),
+            _ => {
+                #[cfg(feature = "logger")]
+                trace!("Unsupported Type: {}", rtype);
+                return None;
+            }
+        };
+
         Some(Record {
-            name: record.get_name()?,
-            class: record.get_class(),
-            ttl: record.get_ttl(),
-            data: record.get_data()?,
+            name,
+            rtype,
+            class,
+            ttl,
+            data,
         })
     }
 
+    #[cfg(feature = "fmt")]
     pub fn get_fmt_type(&self) -> RecordFmtType {
         match self.data {
             RecordDataType::A(_) | RecordDataType::AAAA(_) | RecordDataType::CNAME(_) => {
@@ -31,9 +95,14 @@ impl Record {
     }
 }
 
+#[cfg(feature = "fmt")]
 impl Display for Record {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-        write!(f, "\t{}: type ", self.name)?;
+        write!(
+            f,
+            "\t{}: type ",
+            self.name.to_string().unwrap_or("???".to_owned())
+        )?;
         Display::fmt(&self.data.get_dns_type(), f)?;
         writeln!(
             f,
@@ -42,7 +111,11 @@ impl Display for Record {
             self.class
         )?;
 
-        writeln!(f, "\t\tName: {}", self.name)?;
+        writeln!(
+            f,
+            "\t\tName: {}",
+            self.name.to_string().unwrap_or("???".to_owned())
+        )?;
 
         #[inline]
         fn write_other(r: &Record, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
@@ -58,31 +131,64 @@ impl Display for Record {
 
         match &self.data {
             RecordDataType::A(addr) => {
-                writeln!(f, "\t\tType: A (1)")?;
+                writeln!(f, "\t\tType: A ({})", DnsTypeNum::A)?;
                 write_other(self, f)?;
                 writeln!(f, "\t\tA: {}", addr)
             }
             RecordDataType::AAAA(addr) => {
-                writeln!(f, "\t\tType: AAAA (28)")?;
+                writeln!(f, "\t\tType: AAAA ({})", DnsTypeNum::AAAA)?;
                 write_other(self, f)?;
                 writeln!(f, "\t\tAAAA: {}", addr)
             }
             RecordDataType::CNAME(str) => {
-                writeln!(f, "\t\tType: CNAME (5)")?;
+                writeln!(f, "\t\tType: CNAME ({})", DnsTypeNum::CNAME)?;
                 write_other(self, f)?;
-                writeln!(f, "\t\tCNAME: {}", str.0)
+                writeln!(
+                    f,
+                    "\t\tCNAME: {}",
+                    str.to_string().unwrap_or("???".to_owned())
+                )
             }
         }
     }
 }
 
-impl From<&RawRecord<'_>> for Option<Record> {
-    #[inline]
-    fn from(record: &RawRecord) -> Option<Record> {
-        Record::new(record)
-    }
-}
-
+#[cfg(feature = "fmt")]
 pub enum RecordFmtType {
     Answers,
+}
+
+#[derive(Debug, Clone)]
+pub enum RecordDataType {
+    A(Ipv4Addr),
+    AAAA(Ipv6Addr),
+    CNAME(Rc<RawDomain>),
+}
+
+impl RecordDataType {
+    #[cfg(feature = "fmt")]
+    pub fn len(&self) -> usize {
+        match self {
+            RecordDataType::A(_) => 4,
+            RecordDataType::AAAA(_) => 16,
+            RecordDataType::CNAME(str) => str.raw_len(),
+        }
+    }
+
+    pub fn get_rtype(&self) -> u16 {
+        match self {
+            RecordDataType::A(_) => DnsTypeNum::A,
+            RecordDataType::AAAA(_) => DnsTypeNum::AAAA,
+            RecordDataType::CNAME(_) => DnsTypeNum::CNAME,
+        }
+    }
+
+    #[cfg(feature = "fmt")]
+    pub fn get_dns_type(&self) -> DnsType {
+        match self {
+            RecordDataType::A(_) => DnsType::A,
+            RecordDataType::AAAA(_) => DnsType::AAAA,
+            RecordDataType::CNAME(_) => DnsType::CNAME,
+        }
+    }
 }

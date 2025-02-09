@@ -1,30 +1,38 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
-use crate::dns::types::parts::raw::{RawRequestHeader, RawResponseHeader};
+use crate::dns::utils::SliceReader;
 use rand::{Rng, rng};
 use std::fmt::Display;
 
 #[derive(Debug)]
 pub struct RequestHeader {
-    id: u16,
+    pub id: u16,
 
     // 1bit 0代表请求，1代表响应
-    response: u8,
+    pub response: u8,
 
     // 4bit 指定此消息中的查询类型
-    opcode: u8,
+    pub opcode: u8,
 
     // 1bit 如果是1，说明此消息因长度大于传输信道上允许的长度而被截断/tcp传输？
-    truncated: u8,
+    pub truncated: u8,
 
     // 1bit 如果是1，则指定服务器应当在查询不到域名的情况下尝试递归查询
-    rec_desired: u8,
+    pub rec_desired: u8,
 
     // 1bit 是否为反向dns查询
-    z: u8,
+    pub z: u8,
 
     // 1bit 为0不允许未经身份验证的数据
-    check_disable: u8,
+    pub check_disable: u8,
+
+    pub questions: u16,
+
+    pub answer_rrs: u16,
+
+    pub authority_rrs: u16,
+
+    pub additional_rrs: u16,
 }
 
 impl Display for RequestHeader {
@@ -100,7 +108,29 @@ impl Display for RequestHeader {
             "\t\t{} => Non-authenticated data: {}",
             format_flag(self.check_disable, 11, 1),
             check_disable
-        )
+        )?;
+        writeln!(f, "\tQuestions: {}", self.questions)?;
+        writeln!(f, "\tAnswer RRs: {}", self.answer_rrs)?;
+        writeln!(f, "\tAuthority RRs: {}", self.authority_rrs)?;
+        writeln!(f, "\tAdditional RRs: {}", self.additional_rrs)
+    }
+}
+
+pub const HEADER_SIZE: usize = 12;
+impl RequestHeader {
+    #[inline]
+    fn get_flags_first_u8(&self) -> u8 {
+        self.response << 7 | self.opcode << 3 | self.truncated << 1 | self.rec_desired
+    }
+
+    #[inline]
+    fn get_flags_second_u8(&self) -> u8 {
+        self.z << 6 | self.check_disable << 4 | self.opcode
+    }
+
+    #[inline]
+    pub(crate) fn get_flags(&self) -> u16 {
+        (self.get_flags_first_u8() as u16) << 8 | (self.get_flags_second_u8() as u16)
     }
 }
 
@@ -114,54 +144,11 @@ impl Default for RequestHeader {
             rec_desired: 1,
             z: 0,
             check_disable: 0,
+            questions: 1,
+            answer_rrs: 0,
+            authority_rrs: 0,
+            additional_rrs: 0,
         }
-    }
-}
-
-impl RequestHeader {
-    #[inline]
-    pub fn get_id(&self) -> u16 {
-        self.id
-    }
-
-    #[inline]
-    pub fn get_flags_first_u8(&self) -> u8 {
-        self.response << 7 | self.opcode << 3 | self.truncated << 1 | self.rec_desired
-    }
-
-    #[inline]
-    pub fn get_flags_second_u8(&self) -> u8 {
-        self.z << 6 | self.check_disable << 4
-    }
-
-    #[inline]
-    pub fn get_flags(&self) -> u16 {
-        (self.get_flags_first_u8() as u16) << 8 | (self.get_flags_second_u8() as u16)
-    }
-
-    #[inline]
-    pub fn get_response(&self) -> u8 {
-        self.response
-    }
-
-    #[inline]
-    pub fn get_z(&self) -> u8 {
-        self.z
-    }
-
-    #[inline]
-    pub fn get_check_disable(&self) -> u8 {
-        self.check_disable
-    }
-
-    #[inline]
-    pub fn get_opcode(&self) -> u8 {
-        self.opcode
-    }
-
-    #[inline]
-    pub fn get_rec_desired(&self) -> u8 {
-        self.rec_desired
     }
 }
 
@@ -181,16 +168,34 @@ fn format_flag(value: u8, position: u8, length: u8) -> String {
     s
 }
 
-impl From<&RawRequestHeader<'_>> for RequestHeader {
-    fn from(header: &RawRequestHeader) -> Self {
+impl From<&mut SliceReader<'_>> for RequestHeader {
+    fn from(reader: &mut SliceReader) -> Self {
+        let id = reader.read_u16();
+        let first_u8 = reader.read_u8();
+        let second_u8 = reader.read_u8();
+        let response = first_u8 >> 7;
+        let opcode = (first_u8 << 1) >> 4;
+        let truncated = (first_u8 & 0b0000_0010) >> 1;
+        let rec_desired = first_u8 & 0b0000_0001;
+        let z = (second_u8 << 1) >> 7;
+        let check_disable = (second_u8 << 3) >> 7;
+        let questions = reader.read_u16();
+        let answer_rrs = reader.read_u16();
+        let authority_rrs = reader.read_u16();
+        let additional_rrs = reader.read_u16();
+
         Self {
-            id: header.get_id(),
-            response: header.get_response(),
-            opcode: header.get_opcode(),
-            truncated: header.get_truncated(),
-            rec_desired: header.get_rec_desired(),
-            z: header.get_z(),
-            check_disable: header.get_check_disable(),
+            id,
+            response,
+            opcode,
+            truncated,
+            rec_desired,
+            z,
+            check_disable,
+            questions,
+            answer_rrs,
+            authority_rrs,
+            additional_rrs,
         }
     }
 }
@@ -228,22 +233,53 @@ pub struct ResponseHeader {
 
     // 4bit 响应状态
     pub rcode: u8,
+
+    pub questions: u16,
+
+    pub answer_rrs: u16,
+
+    pub authority_rrs: u16,
+
+    pub additional_rrs: u16,
 }
 
-impl From<&RawResponseHeader<'_>> for ResponseHeader {
-    fn from(header: &RawResponseHeader) -> Self {
+impl From<&mut SliceReader<'_>> for ResponseHeader {
+    fn from(reader: &mut SliceReader) -> Self {
+        let id = reader.read_u16();
+        let first_u8 = reader.read_u8();
+        let second_u8 = reader.read_u8();
+
+        let response = first_u8 >> 7;
+        let opcode = (first_u8 << 1) >> 4;
+        let authoritative = (first_u8 & 0b0000_0100) >> 2;
+        let truncated = (first_u8 & 0b0000_0010) >> 1;
+        let rec_desired = first_u8 & 0b0000_0001;
+        let rec_avail = second_u8 >> 7;
+        let z = (second_u8 << 1) >> 7;
+        let authenticated = (second_u8 << 2) >> 7;
+        let check_disable = (second_u8 << 3) >> 7;
+        let rcode = (second_u8 << 4) >> 4;
+        let questions = reader.read_u16();
+        let answer_rrs = reader.read_u16();
+        let authority_rrs = reader.read_u16();
+        let additional_rrs = reader.read_u16();
+
         Self {
-            id: header.get_id(),
-            response: header.get_response(),
-            opcode: header.get_opcode(),
-            authoritative: header.get_authoritative(),
-            truncated: header.get_truncated(),
-            rec_desired: header.get_rec_desired(),
-            rec_avail: header.get_rec_avail(),
-            z: header.get_z(),
-            authenticated: header.get_authenticated(),
-            check_disable: header.get_check_disable(),
-            rcode: header.get_rcode(),
+            id,
+            response,
+            opcode,
+            authoritative,
+            truncated,
+            rec_desired,
+            rec_avail,
+            z,
+            authenticated,
+            check_disable,
+            rcode,
+            questions,
+            answer_rrs,
+            authority_rrs,
+            additional_rrs,
         }
     }
 }
@@ -273,6 +309,7 @@ impl ResponseHeader {
     }
 }
 
+#[cfg(feature = "fmt")]
 impl Display for ResponseHeader {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         writeln!(f, "Header: ")?;
@@ -399,15 +436,23 @@ impl Display for ResponseHeader {
             format_flag(self.rcode, 12, 4),
             rcode,
             self.rcode
-        )
+        )?;
+        writeln!(f, "\tQuestions: {}", self.questions)?;
+        writeln!(f, "\tAnswer RRs: {}", self.answer_rrs)?;
+        writeln!(f, "\tAuthority RRs: {}", self.authority_rrs)?;
+        writeln!(f, "\tAdditional RRs: {}", self.additional_rrs)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::dns::types::parts::header::{RequestHeader, format_flag};
+    #[cfg(feature = "fmt")]
+    use crate::dns::types::parts::header::format_flag;
+    use crate::dns::types::parts::header::{RequestHeader, ResponseHeader};
+    use crate::dns::utils::SliceReader;
 
     #[test]
+    #[cfg(feature = "fmt")]
     fn test_fmt() {
         let header = RequestHeader {
             id: 0xad,
@@ -417,15 +462,82 @@ mod tests {
             rec_desired: 1,
             z: 0,
             check_disable: 0,
+            questions: 1,
+            answer_rrs: 0,
+            authority_rrs: 0,
+            additional_rrs: 0,
         };
         println!("{:}", header);
     }
 
     #[test]
+    #[cfg(feature = "fmt")]
     fn test_format_flag() {
         assert_eq!(format_flag(0x5, 3, 4), "...0 101. .... ....");
         assert_eq!(format_flag(0x1, 0, 1), "1... .... .... ....");
         assert_eq!(format_flag(0b0110, 2, 3), "..11 0... .... ....");
         assert_eq!(format_flag(0b1111, 0, 16), "0000 0000 0000 1111");
+    }
+
+    #[test]
+    fn test_request_header() {
+        let mut reader = SliceReader::from(
+            &[
+                0x75, 0xb3, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x64,
+                0x6e, 0x73, 0x06, 0x77, 0x65, 0x69, 0x78, 0x69, 0x6e, 0x02, 0x71, 0x71, 0x03, 0x63,
+                0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01,
+            ][..],
+        );
+        let header = RequestHeader::from(&mut reader);
+        assert_eq!(header.id, 0x75b3);
+        assert_eq!(header.response, 0x00);
+        assert_eq!(header.opcode, 0x00);
+        assert_eq!(header.truncated, 0x00);
+        assert_eq!(header.rec_desired, 0x01);
+        assert_eq!(header.z, 0x00);
+        assert_eq!(header.check_disable, 0x00);
+        assert_eq!(header.questions, 0x01);
+        assert_eq!(header.answer_rrs, 0x00);
+        assert_eq!(header.authority_rrs, 0x00);
+        assert_eq!(header.additional_rrs, 0x00);
+    }
+
+    #[test]
+    fn test_response_header() {
+        let mut reader = SliceReader::from(
+            &[
+                0x0f, 0x04, 0x81, 0x80, 0x00, 0x01, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x06, 0x63,
+                0x6f, 0x6e, 0x66, 0x69, 0x67, 0x04, 0x65, 0x64, 0x67, 0x65, 0x05, 0x73, 0x6b, 0x79,
+                0x70, 0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01, 0xc0, 0x0c, 0x00,
+                0x05, 0x00, 0x01, 0x00, 0x00, 0x22, 0x30, 0x00, 0x2a, 0x06, 0x63, 0x6f, 0x6e, 0x66,
+                0x69, 0x67, 0x04, 0x65, 0x64, 0x67, 0x65, 0x05, 0x73, 0x6b, 0x79, 0x70, 0x65, 0x03,
+                0x63, 0x6f, 0x6d, 0x0e, 0x74, 0x72, 0x61, 0x66, 0x66, 0x69, 0x63, 0x6d, 0x61, 0x6e,
+                0x61, 0x67, 0x65, 0x72, 0x03, 0x6e, 0x65, 0x74, 0x00, 0xc0, 0x33, 0x00, 0x05, 0x00,
+                0x01, 0x00, 0x00, 0x00, 0x3a, 0x00, 0x10, 0x06, 0x6c, 0x2d, 0x30, 0x30, 0x30, 0x37,
+                0x06, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0xc0, 0x18, 0xc0, 0x69, 0x00, 0x05, 0x00,
+                0x01, 0x00, 0x00, 0x21, 0x3e, 0x00, 0x24, 0x11, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67,
+                0x2d, 0x65, 0x64, 0x67, 0x65, 0x2d, 0x73, 0x6b, 0x79, 0x70, 0x65, 0x06, 0x6c, 0x2d,
+                0x30, 0x30, 0x30, 0x37, 0x08, 0x6c, 0x2d, 0x6d, 0x73, 0x65, 0x64, 0x67, 0x65, 0xc0,
+                0x58, 0xc0, 0x85, 0x00, 0x05, 0x00, 0x01, 0x00, 0x00, 0x00, 0x4c, 0x00, 0x02, 0xc0,
+                0x97, 0xc0, 0x97, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x92, 0x00, 0x04, 0x0d,
+                0x6b, 0x2a, 0x10,
+            ][..],
+        );
+        let header = ResponseHeader::from(&mut reader);
+        assert_eq!(header.id, 0x0f04);
+        assert_eq!(header.response, 0x01);
+        assert_eq!(header.opcode, 0x00);
+        assert_eq!(header.authoritative, 0x00);
+        assert_eq!(header.truncated, 0x00);
+        assert_eq!(header.rec_desired, 0x01);
+        assert_eq!(header.rec_avail, 0x01);
+        assert_eq!(header.z, 0x00);
+        assert_eq!(header.authenticated, 0x00);
+        assert_eq!(header.check_disable, 0x00);
+        assert_eq!(header.rcode, 0x00);
+        assert_eq!(header.questions, 0x01);
+        assert_eq!(header.answer_rrs, 0x05);
+        assert_eq!(header.authority_rrs, 0x00);
+        assert_eq!(header.additional_rrs, 0x00);
     }
 }
