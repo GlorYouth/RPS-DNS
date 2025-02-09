@@ -63,6 +63,7 @@ impl Response {
             questions.push(Question::new(&mut reader)?)
         }
 
+        #[cfg(not(feature = "logger"))]
         for _ in 0..total {
             rrs.push(Record::new(&mut reader)?);
         }

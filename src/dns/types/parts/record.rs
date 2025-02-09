@@ -53,10 +53,16 @@ impl Record {
         }
 
         let data = match rtype {
-            DnsTypeNum::CNAME => RawRecordDataType::Domain(Rc::from(
+            DnsTypeNum::CNAME => RecordDataType::CNAME(Rc::from(
                 RawDomain::from_reader_with_size(reader, data_length)?,
             )),
-            _ => RawRecordDataType::Other(reader.read_slice(data_length)),
+            DnsTypeNum::A => RecordDataType::A(Ipv4Addr::from(<[u8; 4]>::try_from(reader.read_slice(data_length)).unwrap())),
+            DnsTypeNum::AAAA => RecordDataType::AAAA(Ipv6Addr::from(<[u8; 16]>::try_from(reader.read_slice(data_length)).unwrap())),
+            _ => {
+                #[cfg(feature = "logger")]
+                trace!("Unsupported Type: {}",rtype);
+                return None
+            },
         };
 
         Some(Record {
@@ -64,7 +70,7 @@ impl Record {
             rtype,
             class,
             ttl,
-            data: RecordDataType::new(rtype, &data)?,
+            data,
         })
     }
 
@@ -138,10 +144,6 @@ pub enum RecordFmtType {
     Answers,
 }
 
-enum RawRecordDataType<'a> {
-    Domain(Rc<RawDomain>),
-    Other(&'a [u8]),
-}
 
 #[derive(Debug, Clone)]
 pub enum RecordDataType {
@@ -151,29 +153,6 @@ pub enum RecordDataType {
 }
 
 impl RecordDataType {
-    fn new(rtype: u16, data: &RawRecordDataType) -> Option<RecordDataType> {
-        match (rtype, data) {
-            (DnsTypeNum::A, RawRecordDataType::Other(d)) if d.len() >= 4 => {
-                Some(RecordDataType::A(Ipv4Addr::new(d[0], d[1], d[2], d[3])))
-            }
-
-            (DnsTypeNum::CNAME, RawRecordDataType::Domain(d)) => {
-                Some(RecordDataType::CNAME(d.clone()))
-            }
-
-            (DnsTypeNum::AAAA, RawRecordDataType::Other(d)) if d.len() >= 16 => {
-                Some(RecordDataType::AAAA(Ipv6Addr::from(
-                    <&[u8] as TryInto<[u8; 16]>>::try_into(d).ok()?,
-                )))
-            }
-
-            _ => {
-                #[cfg(feature = "logger")]
-                debug!("RecordDataType未实现类型或数据格式错误: {}", rtype);
-                None
-            }
-        }
-    }
 
     pub fn len(&self) -> usize {
         match self {
