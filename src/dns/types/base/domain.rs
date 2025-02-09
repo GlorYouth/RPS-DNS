@@ -8,6 +8,7 @@ use std::fmt::Debug;
 #[derive(PartialEq, Debug)]
 pub struct RawDomain {
     domain: Vec<u8>, //不包含最后的0x0
+    #[cfg(feature = "fmt")]
     raw_len: usize,
 }
 const SUFFIX: &[u8] = "xn--".as_bytes();
@@ -40,9 +41,11 @@ impl RawDomain {
                 }
                 Some(v)
             })?;
+        #[cfg(feature = "fmt")]
         let len = vec.len();
         Some(RawDomain {
             domain: vec,
+            #[cfg(feature = "fmt")]
             raw_len: len,
         })
     }
@@ -104,9 +107,11 @@ impl RawDomain {
             return None; //防止无长度的域名
         }
         reader.set_pos(pos);
+        #[cfg(feature = "fmt")]
         let len = domain.len();
         Some(RawDomain {
             domain,
+            #[cfg(feature = "fmt")]
             raw_len: len + 1,
         })
     }
@@ -159,6 +164,7 @@ impl RawDomain {
         }
         Some(RawDomain {
             domain,
+            #[cfg(feature = "fmt")]
             raw_len: size,
         })
     }

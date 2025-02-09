@@ -309,6 +309,7 @@ impl ResponseHeader {
     }
 }
 
+#[cfg(feature = "fmt")]
 impl Display for ResponseHeader {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         writeln!(f, "Header: ")?;
@@ -445,10 +446,13 @@ impl Display for ResponseHeader {
 
 #[cfg(test)]
 mod tests {
-    use crate::dns::types::parts::header::{RequestHeader, ResponseHeader, format_flag};
+    use crate::dns::types::parts::header::{RequestHeader, ResponseHeader};
+    #[cfg(feature = "fmt")]
+    use crate::dns::types::parts::header::{format_flag};
     use crate::dns::utils::SliceReader;
 
     #[test]
+    #[cfg(feature = "fmt")]
     fn test_fmt() {
         let header = RequestHeader {
             id: 0xad,
@@ -467,6 +471,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "fmt")]
     fn test_format_flag() {
         assert_eq!(format_flag(0x5, 3, 4), "...0 101. .... ....");
         assert_eq!(format_flag(0x1, 0, 1), "1... .... .... ....");

@@ -5,11 +5,13 @@ use crate::dns::types::parts::header::RequestHeader;
 use crate::dns::types::parts::question::Question;
 use crate::dns::utils::SliceOperator;
 use smallvec::SmallVec;
+#[cfg(feature = "fmt")]
 use std::fmt::{Display, Formatter};
 use std::rc::Rc;
 
 const SUFFIX: &[u8] = "xn--".as_bytes();
 
+#[derive(Debug)]
 pub struct Request {
     pub header: RequestHeader,
     pub question: SmallVec<[Question; 1]>,
@@ -77,6 +79,7 @@ impl Request {
     }
 }
 
+#[cfg(feature = "fmt")]
 impl Display for Request {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         Display::fmt(&self.header, f)?;
@@ -94,16 +97,23 @@ impl Display for Request {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(feature = "fmt")]
     use crate::dns::Request;
+    #[cfg(feature = "fmt")]
     use crate::dns::{DnsTypeNum, RawDomain};
+    #[cfg(feature = "fmt")]
     use std::rc::Rc;
 
     #[test]
+    #[cfg(feature = "fmt")]
     fn test_fmt() {
         let request = Request::new(
             Rc::new(RawDomain::from_str("www.baidu.com").unwrap()),
             DnsTypeNum::A,
         );
+        #[cfg(feature = "fmt")]
         println!("{}", request);
+        #[cfg(not(feature = "fmt"))]
+        println!("{:?}", request);
     }
 }

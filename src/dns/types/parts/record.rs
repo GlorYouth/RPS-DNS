@@ -1,14 +1,20 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
 use crate::dns::DnsTypeNum;
-use crate::dns::types::base::{DnsType, RawDomain};
-use crate::dns::types::parts::{DnsClass, DnsTTL};
+#[cfg(feature = "fmt")]
+use crate::dns::types::base::{DnsType};
+#[cfg(feature = "fmt")]
+use crate::dns::types::parts::{DnsClass};
 use crate::dns::utils::SliceReader;
 #[cfg(feature = "logger")]
 use log::{debug, trace};
+#[cfg(feature = "fmt")]
 use std::fmt::Display;
 use std::net::{Ipv4Addr, Ipv6Addr};
 use std::rc::Rc;
+use crate::dns::RawDomain;
+#[cfg(feature = "fmt")]
+use crate::dns::DnsTTL;
 
 #[derive(Debug)]
 pub struct Record {
@@ -74,6 +80,7 @@ impl Record {
         })
     }
 
+    #[cfg(feature = "fmt")]
     pub fn get_fmt_type(&self) -> RecordFmtType {
         match self.data {
             RecordDataType::A(_) | RecordDataType::AAAA(_) | RecordDataType::CNAME(_) => {
@@ -83,6 +90,7 @@ impl Record {
     }
 }
 
+#[cfg(feature = "fmt")]
 impl Display for Record {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         write!(
@@ -140,6 +148,7 @@ impl Display for Record {
     }
 }
 
+#[cfg(feature = "fmt")]
 pub enum RecordFmtType {
     Answers,
 }
@@ -152,8 +161,10 @@ pub enum RecordDataType {
     CNAME(Rc<RawDomain>),
 }
 
+
 impl RecordDataType {
 
+    #[cfg(feature = "fmt")]
     pub fn len(&self) -> usize {
         match self {
             RecordDataType::A(_) => 4,
@@ -170,6 +181,7 @@ impl RecordDataType {
         }
     }
 
+    #[cfg(feature = "fmt")]
     pub fn get_dns_type(&self) -> DnsType {
         match self {
             RecordDataType::A(_) => DnsType::A,

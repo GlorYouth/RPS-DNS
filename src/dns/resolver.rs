@@ -10,6 +10,7 @@ use crate::dns::{DnsTypeNum, Request};
 #[cfg(feature = "logger")]
 use log::debug;
 use smallvec::SmallVec;
+#[cfg(feature = "fmt")]
 use std::fmt::Display;
 use std::net::{AddrParseError, Ipv4Addr, Ipv6Addr, TcpStream, UdpSocket};
 use std::rc::Rc;
@@ -157,6 +158,7 @@ impl QueryResult {
     }
 }
 
+#[cfg(feature = "fmt")]
 impl Display for QueryResult {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if let Some(res) = &self.response {
@@ -205,6 +207,7 @@ mod tests {
             println!("{}", answer);
         } else {
             println!("No A record");
+            #[cfg(feature = "fmt")]
             println!("{}", result);
         }
     }
@@ -220,6 +223,7 @@ mod tests {
             println!("{}", answer);
         } else {
             println!("No AAAA record");
+            #[cfg(feature = "fmt")]
             println!("{}", result);
         }
     }
@@ -235,11 +239,13 @@ mod tests {
             println!("{}", answer);
         } else {
             println!("No CNAME record");
+            #[cfg(feature = "fmt")]
             println!("{}", result);
         }
     }
 
     #[test]
+    #[cfg(feature = "fmt")]
     fn test_fmt() {
         #[cfg(feature = "logger")]
         init_logger();

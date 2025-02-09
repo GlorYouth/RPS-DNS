@@ -1,5 +1,6 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
+#[cfg(feature = "fmt")]
 use crate::dns::RecordFmtType;
 use crate::dns::Request;
 use crate::dns::types::parts::header::{HEADER_SIZE, ResponseHeader};
@@ -10,6 +11,7 @@ use crate::dns::utils::SliceReader;
 #[cfg(feature = "logger")]
 use log::{debug, trace};
 use smallvec::SmallVec;
+#[cfg(feature = "fmt")]
 use std::fmt::Display;
 
 #[derive(Debug)]
@@ -169,6 +171,7 @@ impl Response {
     }
 }
 
+#[cfg(feature = "fmt")]
 impl Display for Response {
     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         Display::fmt(&self.header, fmt)?;
