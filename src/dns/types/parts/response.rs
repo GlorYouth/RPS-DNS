@@ -17,11 +17,10 @@ pub struct Response {
     pub header: ResponseHeader,
     pub question: SmallVec<[Question; 1]>,
     pub answer: Vec<Record>,
-    pub authority: Vec<Record>,
-    pub additional: Vec<Record>,
 }
 
 impl Response {
+    #[inline]
     pub fn from_slice_uncheck(slice: &[u8]) -> Option<Response> {
         Self::from_slice_check(slice, |_| Some(()))
     }
@@ -54,9 +53,8 @@ impl Response {
         check(&header)?;
 
         let mut questions = SmallVec::new();
-        let mut answer_rrs = Vec::with_capacity(header.answer_rrs as usize);
-        let mut authority_rrs = Vec::with_capacity(header.authority_rrs as usize);
-        let mut additional_rrs = Vec::with_capacity(header.additional_rrs as usize);
+        let total:usize = header.answer_rrs as usize + header.authority_rrs as usize + header.additional_rrs as usize;
+        let mut rrs = Vec::with_capacity(total);
 
         for _i in 0..header.questions {
             #[cfg(feature = "logger")]
@@ -66,39 +64,38 @@ impl Response {
             questions.push(Question::new(&mut reader)?)
         }
 
-        for _i in 0..answer_rrs.capacity() {
+        for _i in 0..header.answer_rrs {
             #[cfg(feature = "logger")]
             {
                 trace!("正在从Slice解析RawRecord=>第{}个response", _i);
             }
-            answer_rrs.push(Record::new(&mut reader)?);
+            rrs.push(Record::new(&mut reader)?);
         }
 
-        for _i in 0..authority_rrs.capacity() {
+        for _i in 0..header.authority_rrs {
             #[cfg(feature = "logger")]
             {
                 trace!("正在从Slice解析RawRecord=>第{}个authority", _i);
             }
-            authority_rrs.push(Record::new(&mut reader)?);
+            rrs.push(Record::new(&mut reader)?);
         }
 
-        for _i in 0..additional_rrs.capacity() {
+        for _i in 0..header.additional_rrs {
             #[cfg(feature = "logger")]
             {
                 trace!("正在从Slice解析RawRecord=>第{}个additional", _i);
             }
-            additional_rrs.push(Record::new(&mut reader)?);
+            rrs.push(Record::new(&mut reader)?);
         }
 
         Some(Response {
             header,
             question: questions,
-            answer: answer_rrs,
-            authority: authority_rrs,
-            additional: additional_rrs,
+            answer: rrs,
         })
     }
 
+    #[inline]
     pub fn from_slice(slice: &[u8], request: &Request) -> Option<Response> {
         Self::from_slice_check(slice, |header| {
             if header.id != request.header.id {
@@ -183,9 +180,7 @@ impl Display for Response {
         }
         let iter = self
             .answer
-            .iter()
-            .chain(self.authority.iter())
-            .chain(self.additional.iter());
+            .iter();
         let mut iter = iter
             .filter(|r| matches!(r.get_fmt_type(), RecordFmtType::Answers))
             .peekable();
