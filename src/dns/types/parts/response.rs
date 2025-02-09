@@ -38,10 +38,7 @@ impl Response {
                     HEADER_SIZE + Question::LEAST_SIZE
                 );
             }
-            #[cfg(feature = "logger")]
-            {
-                trace!("开始生成SliceReader");
-            }
+
             return None;
         }
         let mut reader = SliceReader::from_slice(slice);
@@ -53,7 +50,9 @@ impl Response {
         check(&header)?;
 
         let mut questions = SmallVec::new();
-        let total:usize = header.answer_rrs as usize + header.authority_rrs as usize + header.additional_rrs as usize;
+        let total: usize = header.answer_rrs as usize
+            + header.authority_rrs as usize
+            + header.additional_rrs as usize;
         let mut rrs = Vec::with_capacity(total);
 
         for _i in 0..header.questions {
@@ -178,9 +177,7 @@ impl Display for Response {
         for q in &self.question {
             Display::fmt(&q, fmt)?;
         }
-        let iter = self
-            .answer
-            .iter();
+        let iter = self.answer.iter();
         let mut iter = iter
             .filter(|r| matches!(r.get_fmt_type(), RecordFmtType::Answers))
             .peekable();
