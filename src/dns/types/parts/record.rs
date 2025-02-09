@@ -1,10 +1,13 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
+#[cfg(feature = "fmt")]
+use crate::dns::DnsTTL;
 use crate::dns::DnsTypeNum;
+use crate::dns::RawDomain;
 #[cfg(feature = "fmt")]
-use crate::dns::types::base::{DnsType};
+use crate::dns::types::base::DnsType;
 #[cfg(feature = "fmt")]
-use crate::dns::types::parts::{DnsClass};
+use crate::dns::types::parts::DnsClass;
 use crate::dns::utils::SliceReader;
 #[cfg(feature = "logger")]
 use log::{debug, trace};
@@ -12,9 +15,6 @@ use log::{debug, trace};
 use std::fmt::Display;
 use std::net::{Ipv4Addr, Ipv6Addr};
 use std::rc::Rc;
-use crate::dns::RawDomain;
-#[cfg(feature = "fmt")]
-use crate::dns::DnsTTL;
 
 #[derive(Debug)]
 pub struct Record {
@@ -59,16 +59,21 @@ impl Record {
         }
 
         let data = match rtype {
-            DnsTypeNum::CNAME => RecordDataType::CNAME(Rc::from(
-                RawDomain::from_reader_with_size(reader, data_length)?,
+            DnsTypeNum::CNAME => RecordDataType::CNAME(Rc::from(RawDomain::from_reader_with_size(
+                reader,
+                data_length,
+            )?)),
+            DnsTypeNum::A => RecordDataType::A(Ipv4Addr::from(
+                <[u8; 4]>::try_from(reader.read_slice(data_length)).unwrap(),
             )),
-            DnsTypeNum::A => RecordDataType::A(Ipv4Addr::from(<[u8; 4]>::try_from(reader.read_slice(data_length)).unwrap())),
-            DnsTypeNum::AAAA => RecordDataType::AAAA(Ipv6Addr::from(<[u8; 16]>::try_from(reader.read_slice(data_length)).unwrap())),
+            DnsTypeNum::AAAA => RecordDataType::AAAA(Ipv6Addr::from(
+                <[u8; 16]>::try_from(reader.read_slice(data_length)).unwrap(),
+            )),
             _ => {
                 #[cfg(feature = "logger")]
-                trace!("Unsupported Type: {}",rtype);
-                return None
-            },
+                trace!("Unsupported Type: {}", rtype);
+                return None;
+            }
         };
 
         Some(Record {
@@ -153,7 +158,6 @@ pub enum RecordFmtType {
     Answers,
 }
 
-
 #[derive(Debug, Clone)]
 pub enum RecordDataType {
     A(Ipv4Addr),
@@ -161,9 +165,7 @@ pub enum RecordDataType {
     CNAME(Rc<RawDomain>),
 }
 
-
 impl RecordDataType {
-
     #[cfg(feature = "fmt")]
     pub fn len(&self) -> usize {
         match self {

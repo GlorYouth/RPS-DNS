@@ -446,9 +446,9 @@ impl Display for ResponseHeader {
 
 #[cfg(test)]
 mod tests {
-    use crate::dns::types::parts::header::{RequestHeader, ResponseHeader};
     #[cfg(feature = "fmt")]
-    use crate::dns::types::parts::header::{format_flag};
+    use crate::dns::types::parts::header::format_flag;
+    use crate::dns::types::parts::header::{RequestHeader, ResponseHeader};
     use crate::dns::utils::SliceReader;
 
     #[test]

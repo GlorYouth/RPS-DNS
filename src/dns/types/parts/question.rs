@@ -1,8 +1,9 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
 #[cfg(feature = "fmt")]
-use crate::dns::types::base::{DnsType};
+use crate::dns::types::base::DnsType;
 
+use crate::dns::RawDomain;
 #[cfg(feature = "fmt")]
 use crate::dns::types::parts::DnsClass;
 use crate::dns::utils::SliceReader;
@@ -10,7 +11,6 @@ use log::trace;
 #[cfg(feature = "fmt")]
 use std::fmt::Display;
 use std::rc::Rc;
-use crate::dns::RawDomain;
 
 #[derive(Debug)]
 pub struct Question {
