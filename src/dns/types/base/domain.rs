@@ -52,10 +52,7 @@ impl RawDomain {
 
     // 主解析逻辑
     #[inline(always)]
-    fn parse_labels<F>(
-        reader: &mut SliceReader,
-        handle_label: F,
-    ) -> Option<(Vec<u8>,u8)>
+    fn parse_labels<F>(reader: &mut SliceReader, handle_label: F) -> Option<(Vec<u8>, u8)>
     where
         F: Fn(usize) -> bool, // 返回false表示需要终止解析
     {
@@ -120,12 +117,7 @@ impl RawDomain {
         let start_pos = reader.pos();
         let len = reader.len();
 
-        let (domain, max_pos) = Self::parse_labels(reader, |current_pos| { 
-            if current_pos >= len { 
-                return false;
-            }
-            true
-        })?;
+        let (domain, max_pos) = Self::parse_labels(reader, |current_pos| current_pos < len)?;
 
         if domain.is_empty() {
             #[cfg(feature = "logger")]
@@ -151,12 +143,7 @@ impl RawDomain {
             return None;
         }
 
-        let (domain, _) = Self::parse_labels(reader, |current_offset| {
-            if current_offset >= end_pos {
-                return false;
-            }
-            true
-        })?;
+        let (domain, _) = Self::parse_labels(reader, |current_pos| current_pos < end_pos)?;
 
         reader.set_pos(end_pos);
         Some(RawDomain {
@@ -220,9 +207,9 @@ impl RawDomain {
 }
 #[cfg(test)]
 mod tests {
+    use super::*;
     #[cfg(feature = "logger")]
     use crate::dns::error::init_logger;
-    use super::*;
 
     #[test]
     fn test_from_reader() {

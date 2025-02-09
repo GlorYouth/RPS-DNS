@@ -8,12 +8,12 @@ use crate::dns::types::parts::question::Question;
 use crate::dns::types::parts::record::{Record, RecordDataType};
 use crate::dns::utils::SliceReader;
 
+use crate::dns::DnsTypeNum;
 #[cfg(feature = "logger")]
 use log::{debug, trace};
 use smallvec::SmallVec;
 #[cfg(feature = "fmt")]
 use std::fmt::Display;
-use crate::dns::DnsTypeNum;
 
 #[derive(Debug)]
 pub struct Response {
