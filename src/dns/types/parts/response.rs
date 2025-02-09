@@ -13,6 +13,7 @@ use log::{debug, trace};
 use smallvec::SmallVec;
 #[cfg(feature = "fmt")]
 use std::fmt::Display;
+use crate::dns::DnsTypeNum;
 
 #[derive(Debug)]
 pub struct Response {
@@ -158,9 +159,9 @@ impl Response {
 
     pub fn get_record(&self, rtype: u16) -> Option<RecordDataType> {
         let predicate: fn(&RecordDataType) -> bool = match rtype {
-            1 => |data| matches!(data, RecordDataType::A(_)),
-            5 => |data| matches!(data, RecordDataType::CNAME(_)),
-            28 => |data| matches!(data, RecordDataType::AAAA(_)),
+            DnsTypeNum::A => |data| matches!(data, RecordDataType::A(_)),
+            DnsTypeNum::CNAME => |data| matches!(data, RecordDataType::CNAME(_)),
+            DnsTypeNum::AAAA => |data| matches!(data, RecordDataType::AAAA(_)),
             _ => return None,
         };
 

@@ -50,118 +50,115 @@ impl RawDomain {
         })
     }
 
-    pub fn from_reader(reader: &mut SliceReader) -> Option<RawDomain> {
+    // 主解析逻辑
+    #[inline(always)]
+    fn parse_labels<F>(
+        reader: &mut SliceReader,
+        handle_label: F,
+    ) -> Option<(Vec<u8>,u8)>
+    where
+        F: Fn(usize) -> bool, // 返回false表示需要终止解析
+    {
         let mut domain = Vec::with_capacity(30);
-        let mut pos = reader.pos();
+        let mut max_pos = reader.pos();
+        let mut visited_num = 0x1_u32; //用移位判断循环次数
+
         loop {
-            let first_u8 = reader.read_u8();
-            if first_u8 & 0b1100_0000_u8 == 0b1100_0000_u8 {
+            let start_pos = reader.pos();
+            visited_num = visited_num << 1;
+            // 防止指针循环
+            if visited_num == 0 {
                 #[cfg(feature = "logger")]
-                {
-                    trace!("发现有Domain Pointer");
-                }
-                let offset =
-                    u16::from_be_bytes([first_u8 & 0b0011_1111_u8, reader.read_u8()]) as usize;
-                #[cfg(feature = "logger")]
-                {
-                    trace!("其指向字节为:{:x}", offset);
-                }
-                if reader.pos() > pos {
-                    pos = reader.pos();
-                }
-                reader.set_pos(offset);
-                continue;
-            }
-            if first_u8 == 0x0_u8 {
-                if reader.pos() > pos {
-                    pos = reader.pos();
-                }
-                break;
-            }
-            #[cfg(feature = "logger")]
-            {
-                trace!("普通的Tags,内含{}个ASCII", first_u8);
-            }
-            if first_u8 as usize + reader.pos() > reader.len() {
-                #[cfg(feature = "logger")]
-                {
-                    trace!(
-                        "Tags: {} 超出剩余数组{}",
-                        first_u8,
-                        reader.len() - reader.pos()
-                    );
-                }
+                trace!("检测到循环指针");
                 return None;
             }
-            domain.push(first_u8);
-            domain.extend_from_slice(reader.read_slice(first_u8 as usize));
-            if reader.pos() > pos {
-                pos = reader.pos();
+
+            if !handle_label(reader.pos()) {
+                break; //记得后面要检查domain大小
             }
+
+            let label_len = reader.peek_u8();
+
+            // 处理指针
+            if (label_len & 0b1100_0000_u8) == 0b1100_0000_u8 {
+                let pointer_pos = reader.read_u16() as usize & 0x_3FFF;
+                if pointer_pos > reader.len() {
+                    #[cfg(feature = "logger")]
+                    trace!("parse_labels中处理指针时出界");
+                    return None;
+                }
+                max_pos = max_pos.max(reader.pos());
+                reader.set_pos(pointer_pos);
+                continue;
+            }
+            reader.skip(1);
+
+            // 处理结束标记
+            if label_len == 0 {
+                max_pos = max_pos.max(reader.pos());
+                break;
+            }
+
+            // 处理普通标签
+            let end_pos = reader.pos() + label_len as usize;
+            if end_pos > reader.len() {
+                #[cfg(feature = "logger")]
+                trace!("parse_labels中处理普通标签时出界");
+                return None;
+            }
+
+            domain.extend_from_slice(&reader.as_ref()[start_pos..end_pos]);
+            max_pos = max_pos.max(end_pos);
+            reader.set_pos(end_pos);
         }
+
+        Some((domain, max_pos as u8))
+    }
+
+    // 优化后的两个公开函数
+    pub fn from_reader(reader: &mut SliceReader) -> Option<RawDomain> {
+        let start_pos = reader.pos();
+        let len = reader.len();
+
+        let (domain, max_pos) = Self::parse_labels(reader, |current_pos| { 
+            if current_pos >= len { 
+                return false;
+            }
+            true
+        })?;
+
         if domain.is_empty() {
             #[cfg(feature = "logger")]
-            {
-                debug!("DomainName没有长度");
-            }
-            return None; //防止无长度的域名
+            debug!("空域名");
+            return None;
         }
-        reader.set_pos(pos);
-        #[cfg(feature = "fmt")]
-        let len = domain.len();
+
+        reader.set_pos(max_pos as usize);
         Some(RawDomain {
             domain,
             #[cfg(feature = "fmt")]
-            raw_len: len + 1,
+            raw_len: max_pos as usize - start_pos,
         })
     }
 
     pub fn from_reader_with_size(reader: &mut SliceReader, size: usize) -> Option<RawDomain> {
-        let mut domain = Vec::with_capacity(30);
-        let mut slice = reader.read_slice(size);
-        while slice.len() > 0 {
-            let first_u8 = slice[0];
-            if first_u8 & 0b1100_0000_u8 == 0b1100_0000_u8 {
-                #[cfg(feature = "logger")]
-                {
-                    trace!("发现有Domain Pointer");
-                }
-                let offset = u16::from_be_bytes([first_u8 & 0b0011_1111_u8, slice[1]]) as usize;
-                #[cfg(feature = "logger")]
-                {
-                    trace!("其指向字节为:{:x}", offset);
-                }
-                let arr = &reader.as_ref()[offset..];
-                if let Some(pos) = arr.iter().position(|b| *b == 0x0) {
-                    slice = &arr[..pos];
-                    continue;
-                } else {
-                    #[cfg(feature = "logger")]
-                    {
-                        debug!("并没有raw_message如下offset后找到b'0' {}", offset);
-                    }
-                    return None;
-                }
-            }
-            if first_u8 == 0x0_u8 {
-                //有概率最后一个为0x0,看不同server是如何实现的，这里是为了效率加了判断
-                break;
-            }
+        let start_pos = reader.pos();
+        let end_pos = start_pos + size;
+
+        if end_pos > reader.len() {
             #[cfg(feature = "logger")]
-            {
-                trace!("普通的Tags,内含{}个ASCII", slice[0]);
-            }
-            domain.extend_from_slice(slice[0..(first_u8 as usize) + 1].as_ref());
-            slice = &slice[(first_u8 as usize) + 1..];
+            debug!("读取RDATA时出界");
+            return None;
         }
 
-        if domain.is_empty() {
-            #[cfg(feature = "logger")]
-            {
-                debug!("DomainName没有长度");
+        let (domain, _) = Self::parse_labels(reader, |current_offset| {
+            if current_offset >= end_pos {
+                return false;
             }
-            return None; //防止无长度的域名
-        }
+            true
+        })?;
+
+        reader.set_pos(end_pos);
         Some(RawDomain {
             domain,
             #[cfg(feature = "fmt")]
@@ -223,10 +220,14 @@ impl RawDomain {
 }
 #[cfg(test)]
 mod tests {
+    #[cfg(feature = "logger")]
+    use crate::dns::error::init_logger;
     use super::*;
 
     #[test]
     fn test_from_reader() {
+        #[cfg(feature = "logger")]
+        init_logger();
         let reader = &mut SliceReader::from_slice(&[
             3, 119, 119, 119, 5, 98, 97, 105, 100, 117, 3, 99, 111, 109, 0,
         ]);
