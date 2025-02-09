@@ -12,6 +12,7 @@ use smallvec::SmallVec;
 use std::fmt::Display;
 use std::net::{AddrParseError, Ipv4Addr, Ipv6Addr, TcpStream, UdpSocket};
 use std::rc::Rc;
+use crate::dns::RawDomain;
 
 pub struct Resolver {
     server: SmallVec<[ServerType; 5]>,
@@ -47,34 +48,17 @@ impl Resolver {
     }
 
     fn query(&self, domain: String, qtype: u16) -> QueryResult {
-        let domain = Rc::new(domain);
         let mut error_vec = SmallVec::new();
-        let buf = [0_u8; 1500];
-        for server in &self.server {
-            return match server {
-                ServerType::Tcp(addr) => {
-                    //后面可以考虑复用连接
-                    if let Ok(stream) = TcpStream::connect(addr) {
-                        let request = Request::new(domain.clone(), qtype);
-                        match NetQuery::query_tcp(stream, request, buf) {
-                            Ok(response) => response.into(),
-                            Err(e) => {
-                                error_vec.push(e.into());
-                                continue;
-                            }
-                        }
-                    } else {
-                        #[cfg(feature = "logger")]
-                        debug!("连接到对应的tcp server失败");
-                        error_vec.push(Error::from(NetQueryError::ConnectTcpAddrError));
-                        continue; //连接到server失败, 则尝试备用server
-                    }
-                }
-                ServerType::Udp(addr) => {
-                    if let Ok(socket) = UdpSocket::bind("0.0.0.0:0") {
-                        if let Ok(addr) = socket.connect(addr) {
+        if let Some(domain) = RawDomain::from_str(domain.as_str()) {
+            let domain = Rc::new(domain);
+            let buf = [0_u8; 1500];
+            for server in &self.server {
+                return match server {
+                    ServerType::Tcp(addr) => {
+                        //后面可以考虑复用连接
+                        if let Ok(stream) = TcpStream::connect(addr) {
                             let request = Request::new(domain.clone(), qtype);
-                            match NetQuery::query_udp(socket, request, buf) {
+                            match NetQuery::query_tcp(stream, request, buf) {
                                 Ok(response) => response.into(),
                                 Err(e) => {
                                     error_vec.push(e.into());
@@ -83,20 +67,42 @@ impl Resolver {
                             }
                         } else {
                             #[cfg(feature = "logger")]
-                            debug!("连接到对应的udp server失败");
-                            error_vec.push(Error::from(NetQueryError::ConnectUdpAddrError));
-                            continue;
+                            debug!("连接到对应的tcp server失败");
+                            error_vec.push(Error::from(NetQueryError::ConnectTcpAddrError));
+                            continue; //连接到server失败, 则尝试备用server
                         }
-                    } else {
-                        #[cfg(feature = "logger")]
-                        debug!("监听udp端口失败");
-                        error_vec.push(Error::from(NetQueryError::BindUdpAddrError));
-                        continue; //监听udp失败，尝试备用
                     }
-                }
-            };
+                    ServerType::Udp(addr) => {
+                        if let Ok(socket) = UdpSocket::bind("0.0.0.0:0") {
+                            if let Ok(addr) = socket.connect(addr) {
+                                let request = Request::new(domain.clone(), qtype);
+                                match NetQuery::query_udp(socket, request, buf) {
+                                    Ok(response) => response.into(),
+                                    Err(e) => {
+                                        error_vec.push(e.into());
+                                        continue;
+                                    }
+                                }
+                            } else {
+                                #[cfg(feature = "logger")]
+                                debug!("连接到对应的udp server失败");
+                                error_vec.push(Error::from(NetQueryError::ConnectUdpAddrError));
+                                continue;
+                            }
+                        } else {
+                            #[cfg(feature = "logger")]
+                            debug!("监听udp端口失败");
+                            error_vec.push(Error::from(NetQueryError::BindUdpAddrError));
+                            continue; //监听udp失败，尝试备用
+                        }
+                    }
+                };
+            }
+            error_vec.into()
+        } else { 
+            error_vec.push(Error::StringParseError(domain));
+            error_vec.into()
         }
-        error_vec.into()
     }
 }
 
@@ -198,7 +204,7 @@ mod tests {
         if let Some(answer) = result.get_a_record() {
             println!("{}", answer);
         } else {
-            println!("No CNAME record");
+            println!("No A record");
             println!("{}", result);
         }
     }
@@ -213,7 +219,7 @@ mod tests {
         if let Some(answer) = result.get_aaaa_record() {
             println!("{}", answer);
         } else {
-            println!("No CNAME record");
+            println!("No AAAA record");
             println!("{}", result);
         }
     }

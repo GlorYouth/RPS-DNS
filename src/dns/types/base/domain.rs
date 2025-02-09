@@ -3,7 +3,6 @@
 use crate::dns::utils::SliceReader;
 #[cfg(feature = "logger")]
 use log::{debug, trace};
-use smallvec::SmallVec;
 use std::fmt::Debug;
 
 #[derive(PartialEq, Debug)]
@@ -11,8 +10,44 @@ pub struct RawDomain {
     domain: Vec<u8>, //不包含最后的0x0
     raw_len: usize,
 }
-
+const SUFFIX: &[u8] = "xn--".as_bytes();
 impl RawDomain {
+    
+    pub fn as_ref(&self) -> &Vec<u8> {
+        &self.domain
+    }
+    
+    pub fn from_str<T: AsRef<str>>(s: T) -> Option<RawDomain> { //不带0x0
+        let s = s.as_ref();
+        let vec = s.split('.').try_fold(
+            Vec::with_capacity(20),
+            |mut v: Vec<u8>, str| {
+                if str.is_ascii() {
+                    v.push(str.len() as u8);
+                    v.extend_from_slice(str.as_bytes());
+                } else {
+                    match punycode::encode(str) {
+                        Ok(s) => {
+                            let mut len = SUFFIX.len() as u8;
+                            let bytes = s.as_bytes();
+                            len += bytes.len() as u8;
+                            v.push(len);
+                            v.extend_from_slice(SUFFIX);
+                            v.extend_from_slice(bytes);
+                        }
+                        Err(_) => return None,
+                    }
+                }
+                Some(v)
+            },
+        )?;
+        let len = vec.len();
+        Some(RawDomain {
+            domain: vec,
+            raw_len: len,
+        })
+    }
+    
     pub fn from_reader(reader: &mut SliceReader) -> Option<RawDomain> {
         let mut domain = Vec::with_capacity(30);
         let mut pos = reader.pos();
@@ -44,6 +79,17 @@ impl RawDomain {
             #[cfg(feature = "logger")]
             {
                 trace!("普通的Tags,内含{}个ASCII", first_u8);
+            }
+            if first_u8 as usize + reader.pos() > reader.len() {
+                #[cfg(feature = "logger")]
+                {
+                    trace!(
+                        "Tags: {} 超出剩余数组{}",
+                        first_u8,
+                        reader.len() - reader.pos()
+                    );
+                }
+                return None;
             }
             domain.push(first_u8);
             domain.extend_from_slice(reader.read_slice(first_u8 as usize));
@@ -207,5 +253,11 @@ mod tests {
         let domain = RawDomain::from_reader_with_size(reader, 15).unwrap();
         assert_eq!(domain.to_string().unwrap(), "www.a.shifen.com".to_string());
         assert_eq!(reader.pos(), 43 + 15);
+    }
+    
+    #[test]
+    fn test_from_str() {
+        let domain = RawDomain::from_str("www.baidu.com").unwrap();
+        assert_eq!(domain.to_string().unwrap(), "www.baidu.com".to_string());
     }
 }

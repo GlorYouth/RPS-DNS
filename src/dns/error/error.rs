@@ -4,6 +4,7 @@ use std::net::AddrParseError;
 
 pub enum Error {
     AddrParseError(AddrParseError),
+    StringParseError(String),
     QueryError(NetQueryError),
 }
 
@@ -24,6 +25,7 @@ impl Display for Error {
         match self {
             Error::AddrParseError(e) => Display::fmt(&e, f),
             Error::QueryError(e) => Display::fmt(&e, f),
+            Error::StringParseError(e) => Display::fmt(&e, f),
         }
     }
 }
@@ -33,6 +35,7 @@ impl Debug for Error {
         match self {
             Error::AddrParseError(e) => Debug::fmt(&e, f),
             Error::QueryError(e) => Debug::fmt(&e, f),
+            Error::StringParseError(e) => Debug::fmt(&e, f),
         }
     }
 }

@@ -2,30 +2,25 @@
 
 use crate::dns::types::parts::header::RequestHeader;
 use crate::dns::types::parts::question::Question;
-use crate::dns::types::parts::raw::RawRequest;
 use crate::dns::utils::SliceOperator;
 use smallvec::SmallVec;
 use std::fmt::{Display, Formatter};
 use std::rc::Rc;
+use crate::dns::types::base::RawDomain;
 
 const SUFFIX: &[u8] = "xn--".as_bytes();
 
 pub struct Request {
     pub header: RequestHeader,
-    pub question: SmallVec<[Question; 5]>,
+    pub question: SmallVec<[Question; 1]>,
 }
 
 impl Request {
     #[inline]
-    pub fn from_raw(request: &RawRequest) -> Option<Request> {
-        request.into()
-    }
-
-    #[inline]
-    pub fn new(domain: Rc<String>, qtype: u16) -> Request {
+    pub fn new(domain: Rc<RawDomain>, qtype: u16) -> Request {
         let mut question = SmallVec::new();
         question.push(Question {
-            qname: domain,
+            qname: domain.clone(),
             qtype,
             qclass: 1,
         });
@@ -41,7 +36,7 @@ impl Request {
 
         // 前两个Bytes
         operator.set_pos(2);
-        operator.write_u16(self.header.get_id());
+        operator.write_u16(self.header.id);
 
         operator.write_u16(self.header.get_flags());
         operator.write_u16(self.question.len() as u16);
@@ -60,7 +55,7 @@ impl Request {
     pub fn encode_to_tcp<'b>(&self, buffer: &'b mut [u8]) -> &'b [u8] {
         let mut operator = SliceOperator::from_slice(buffer);
         operator.set_pos(2);
-        operator.write_u16(self.header.get_id());
+        operator.write_u16(self.header.id);
         operator.write_u16(self.header.get_flags());
         operator.write_u16(self.question.len() as u16);
         operator.write_u32(0);
@@ -73,50 +68,12 @@ impl Request {
 
     fn encode_question(&self, operator: &mut SliceOperator) -> Option<()> {
         for q in &self.question {
-            let mut vec = q.qname.split('.').try_fold(
-                SmallVec::new(),
-                |mut v: SmallVec<[u8; 10]>, str| {
-                    if str.is_ascii() {
-                        v.push(str.len() as u8);
-                        v.extend_from_slice(str.as_bytes());
-                    } else {
-                        match punycode::encode(str) {
-                            Ok(s) => {
-                                let mut len = SUFFIX.len() as u8;
-                                let bytes = s.as_bytes();
-                                len += bytes.len() as u8;
-                                v.push(len);
-                                v.extend_from_slice(SUFFIX);
-                                v.extend_from_slice(bytes);
-                            }
-                            Err(_) => return None,
-                        }
-                    }
-                    Some(v)
-                },
-            )?;
-            vec.push(0x0);
-            operator.write_slice(&vec);
+            operator.write_slice(q.qname.as_ref().as_ref());
+            operator.write_u8(0x0);
             operator.write_u16(q.qtype);
             operator.write_u16(q.qclass);
         }
         Some(())
-    }
-}
-
-impl From<&RawRequest<'_>> for Option<Request> {
-    #[inline]
-    fn from(request: &RawRequest) -> Option<Request> {
-        let raw_question = request.get_raw_question();
-        let mut question = SmallVec::new();
-
-        for v in raw_question {
-            question.push(Question::new(v)?);
-        }
-        Some(Request {
-            header: RequestHeader::from(request.get_raw_header()),
-            question,
-        })
     }
 }
 
@@ -137,12 +94,13 @@ impl Display for Request {
 
 #[cfg(test)]
 mod tests {
-    use crate::dns::Request;
     use std::rc::Rc;
+    use crate::dns::Request;
+    use crate::dns::{DnsTypeNum, RawDomain};
 
     #[test]
     fn test_fmt() {
-        let request = Request::new(Rc::new(String::from("www.google.com")), 1);
+        let request = Request::new(Rc::new(RawDomain::from_str("www.baidu.com").unwrap()),DnsTypeNum::A);
         println!("{}", request);
     }
 }
