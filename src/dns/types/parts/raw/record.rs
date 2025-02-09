@@ -1,11 +1,12 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
+
+use crate::dns::DnsTypeNum;
 use crate::dns::types::base::DnsType;
 use crate::dns::types::base::RawDomain;
 use crate::dns::utils::SliceReader;
 #[cfg(feature = "logger")]
 use log::{debug, trace};
 use std::net::{Ipv4Addr, Ipv6Addr};
-use crate::dns::DnsTypeNum;
 
 pub struct RawRecord<'a> {
     name: RawDomain,
@@ -41,16 +42,18 @@ impl<'a> RawRecord<'a> {
         if reader.pos() + data_length > len {
             #[cfg(feature = "logger")]
             debug!(
-                    "读取到Record中Data可变部分长度为{:x},需要总Slice长度为{:x},实际Slice长度{:x}",
-                    data_length,
-                    reader.pos() + data_length,
-                    len
-                );
+                "读取到Record中Data可变部分长度为{:x},需要总Slice长度为{:x},实际Slice长度{:x}",
+                data_length,
+                reader.pos() + data_length,
+                len
+            );
             return None;
         }
 
         let data = match rtype {
-            5 => RawRecordDataType::Domain(RawDomain::from_reader_with_size(reader, data_length)?),
+            DnsTypeNum::CNAME => {
+                RawRecordDataType::Domain(RawDomain::from_reader_with_size(reader, data_length)?)
+            }
             _ => RawRecordDataType::Other(reader.read_slice(data_length)),
         };
 
@@ -112,9 +115,11 @@ impl RecordDataType {
                 Some(RecordDataType::CNAME((d.to_string()?, len)))
             }
 
-            (DnsTypeNum::AAAA, RawRecordDataType::Other(d)) if d.len() >= 16 => Some(RecordDataType::AAAA(
-                Ipv6Addr::from(<&[u8] as TryInto<[u8; 16]>>::try_into(d).ok()?),
-            )),
+            (DnsTypeNum::AAAA, RawRecordDataType::Other(d)) if d.len() >= 16 => {
+                Some(RecordDataType::AAAA(Ipv6Addr::from(
+                    <&[u8] as TryInto<[u8; 16]>>::try_into(d).ok()?,
+                )))
+            }
 
             _ => {
                 #[cfg(feature = "logger")]

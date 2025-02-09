@@ -22,6 +22,7 @@ impl<'a> RawQuestion<'a> {
         }
         let name = RawDomain::from_reader(reader)?;
         let len = reader.len();
+        
         if reader.pos() + Self::FIX_SIZE > len {
             #[cfg(feature = "logger")]
             {

@@ -14,10 +14,10 @@ use std::fmt::Display;
 #[derive(Debug)]
 pub struct Response {
     pub header: ResponseHeader,
-    pub question: SmallVec<[Question; 5]>,
-    pub answer: SmallVec<[Record; 10]>,
-    pub authority: SmallVec<[Record; 5]>,
-    pub additional: SmallVec<[Record; 5]>,
+    pub question: SmallVec<[Question; 1]>,
+    pub answer: Vec<Record>,
+    pub authority: Vec<Record>,
+    pub additional: Vec<Record>,
 }
 
 impl Response {
@@ -39,6 +39,7 @@ impl Response {
         Some(Response::from_raw(&raw)?)
     }
 
+    #[inline]
     pub fn from_slice_uncheck(slice: &[u8]) -> Option<Response> {
         let mut raw = RawResponse::new(slice)?;
         raw.init_without_check()?;
@@ -52,9 +53,9 @@ impl Response {
         let raw_additional = value.get_raw_additional();
 
         let mut question = SmallVec::new();
-        let mut answer = SmallVec::new();
-        let mut authority = SmallVec::new();
-        let mut additional = SmallVec::new();
+        let mut answer = Vec::with_capacity(raw_answer.len());
+        let mut authority = Vec::with_capacity(raw_authority.len());
+        let mut additional = Vec::with_capacity(raw_additional.len());
 
         for v in raw_question {
             #[cfg(feature = "logger")]

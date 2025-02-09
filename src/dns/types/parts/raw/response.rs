@@ -10,10 +10,10 @@ pub struct RawResponse<'a> {
     reader: SliceReader<'a>,
 
     raw_header: RawResponseHeader<'a>,
-    raw_question: SmallVec<[RawQuestion<'a>; 5]>,
-    answer: SmallVec<[RawRecord<'a>; 10]>, //预分配，提升性能
-    authority: SmallVec<[RawRecord<'a>; 5]>,
-    additional: SmallVec<[RawRecord<'a>; 5]>,
+    raw_question: SmallVec<[RawQuestion<'a>;1]>,
+    answer: Vec<RawRecord<'a>>, //预分配，提升性能
+    authority: Vec<RawRecord<'a>>,
+    additional: Vec<RawRecord<'a>>,
 }
 
 impl<'a> RawResponse<'a> {
@@ -48,9 +48,9 @@ impl<'a> RawResponse<'a> {
             reader,
             raw_header,
             raw_question: SmallVec::new(),
-            answer: SmallVec::new(),
-            authority: SmallVec::new(),
-            additional: SmallVec::new(),
+            answer: Vec::with_capacity(5),
+            authority: Vec::new(),
+            additional: Vec::new(),
         })
     }
 
@@ -120,22 +120,22 @@ impl<'a> RawResponse<'a> {
     }
 
     #[inline]
-    pub fn get_raw_question(&self) -> &SmallVec<[RawQuestion<'a>; 5]> {
+    pub fn get_raw_question(&self) -> &SmallVec<[RawQuestion<'a>; 1]> {
         &self.raw_question
     }
 
     #[inline]
-    pub fn get_raw_answer(&self) -> &SmallVec<[RawRecord<'a>; 10]> {
+    pub fn get_raw_answer(&self) -> &Vec<RawRecord<'a>> {
         &self.answer
     }
 
     #[inline]
-    pub fn get_raw_authority(&self) -> &SmallVec<[RawRecord<'a>; 5]> {
+    pub fn get_raw_authority(&self) -> &Vec<RawRecord<'a>> {
         &self.authority
     }
 
     #[inline]
-    pub fn get_raw_additional(&self) -> &SmallVec<[RawRecord<'a>; 5]> {
+    pub fn get_raw_additional(&self) -> &Vec<RawRecord<'a>> {
         &self.additional
     }
 }

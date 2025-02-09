@@ -8,13 +8,13 @@ use std::fmt::Debug;
 
 #[derive(PartialEq, Debug)]
 pub struct RawDomain {
-    domain: SmallVec<[u8; 30]>, //不包含最后的0x0
+    domain: Vec<u8>, //不包含最后的0x0
     raw_len: usize,
 }
 
 impl RawDomain {
     pub fn from_reader(reader: &mut SliceReader) -> Option<RawDomain> {
-        let mut domain = SmallVec::new();
+        let mut domain = Vec::with_capacity(30);
         let mut pos = reader.pos();
         loop {
             let first_u8 = reader.read_u8();
@@ -67,7 +67,7 @@ impl RawDomain {
     }
 
     pub fn from_reader_with_size(reader: &mut SliceReader, size: usize) -> Option<RawDomain> {
-        let mut domain = SmallVec::new();
+        let mut domain = Vec::with_capacity(30);
         let mut slice = reader.read_slice(size);
         while slice.len() > 0 {
             let first_u8 = slice[0];
