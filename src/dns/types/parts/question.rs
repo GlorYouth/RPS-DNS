@@ -24,7 +24,6 @@ impl Question {
             trace!("准备解析Question内的name");
         }
 
-        let name = RawDomain::from_reader(reader)?;
         let len = reader.len();
         if reader.pos() + Self::FIX_SIZE > len {
             #[cfg(debug_assertions)]
@@ -34,7 +33,7 @@ impl Question {
             return None; //检测出界，防止panic
         }
         Some(Question {
-            qname: Rc::new(name),
+            qname: Rc::new(RawDomain::from_reader(reader)?),
             qtype: reader.read_u16(),
             qclass: reader.read_u16(),
         })

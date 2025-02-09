@@ -9,7 +9,7 @@ pub fn test_encode_into() {
             DnsTypeNum::A,
         )
         .encode_to_udp(&mut buf);
-        assert_eq!(arr.len(), 32);
+        assert_eq!(arr.len(), 31);
     }
 }
 

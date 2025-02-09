@@ -63,28 +63,26 @@ impl Response {
             questions.push(Question::new(&mut reader)?)
         }
 
-        for _i in 0..header.answer_rrs {
-            #[cfg(feature = "logger")]
-            {
+        for _ in 0..total {
+            rrs.push(Record::new(&mut reader)?);
+        }
+
+        #[cfg(feature = "logger")]
+        {
+            for _i in 0..header.answer_rrs {
                 trace!("正在从Slice解析RawRecord=>第{}个response", _i);
+                rrs.push(Record::new(&mut reader)?);
             }
-            rrs.push(Record::new(&mut reader)?);
-        }
 
-        for _i in 0..header.authority_rrs {
-            #[cfg(feature = "logger")]
-            {
+            for _i in 0..header.authority_rrs {
                 trace!("正在从Slice解析RawRecord=>第{}个authority", _i);
+                rrs.push(Record::new(&mut reader)?);
             }
-            rrs.push(Record::new(&mut reader)?);
-        }
 
-        for _i in 0..header.additional_rrs {
-            #[cfg(feature = "logger")]
-            {
+            for _i in 0..header.additional_rrs {
                 trace!("正在从Slice解析RawRecord=>第{}个additional", _i);
+                rrs.push(Record::new(&mut reader)?);
             }
-            rrs.push(Record::new(&mut reader)?);
         }
 
         Some(Response {

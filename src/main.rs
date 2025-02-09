@@ -1,9 +1,9 @@
 extern crate core;
 
-use dns_core::test_decode_from;
+use dns_core::test_encode_into;
 
 mod dns;
 fn main() {
-    test_decode_from();
+    test_encode_into();
     return;
 }
