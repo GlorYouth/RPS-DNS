@@ -195,7 +195,7 @@ impl RawDomain {
             }
             remaining = &remaining[part_length..];
         }
-        if string.is_empty() { 
+        if string.is_empty() {
             string.push('.');
         }
         Some(string)

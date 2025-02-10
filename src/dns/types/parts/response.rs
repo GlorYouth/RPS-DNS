@@ -57,7 +57,7 @@ impl Response {
             + header.authority_rrs as usize
             + header.additional_rrs as usize;
         let mut rrs = Vec::with_capacity(total);
-        
+
         for _i in 0..header.questions {
             #[cfg(feature = "logger")]
             {
@@ -166,6 +166,8 @@ impl Response {
             DnsTypeNum::AAAA => |data| matches!(data, RecordDataType::AAAA(_)),
             _ => return None,
         };
+        
+        // todo
 
         self.answer
             .iter()

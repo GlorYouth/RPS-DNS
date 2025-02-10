@@ -35,7 +35,6 @@ impl Resolver {
             })?;
         Ok(Resolver { server: vec })
     }
-    
 
     fn query(&self, domain: String, qtype: u16) -> QueryResult {
         #[cfg(feature = "result_error")]
@@ -144,7 +143,7 @@ macro_rules! define_get_record {
                     })
                 }
             }
-            
+
             impl Resolver {
                 #[inline]
                 pub fn [<query_ $fn_name>](&self, domain: String) -> QueryResult {

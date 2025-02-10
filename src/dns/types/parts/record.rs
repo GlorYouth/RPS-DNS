@@ -82,6 +82,8 @@ impl Record {
             }
         };
 
+        // todo
+
         Some(Record {
             name,
             rtype,
@@ -124,62 +126,114 @@ impl Display for Record {
             "\t\tName: {}",
             self.name.to_string().unwrap_or("???".to_owned())
         )?;
+        
 
-        #[inline]
-        fn write_other(r: &Record, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-            writeln!(
-                f,
-                "\t\tClass: {} ({:#06X})",
-                DnsClass::get_str(r.class),
-                r.class
-            )?;
-            writeln!(f, "\t\tTTL: {} ({})", r.ttl, DnsTTL::get_str(r.ttl))?;
-            writeln!(f, "\t\tData length: {}", r.data.len())
-        }
+        let (type_name, dns_type) = self.data.get_type_info();
+
+        writeln!(f, "\t\tType: {} ({})", type_name, dns_type)?;
+        writeln!(
+            f,
+            "\t\tClass: {} ({:#06X})",
+            DnsClass::get_str(self.class),
+            self.class
+        )?;
+        writeln!(f, "\t\tTTL: {} ({})", self.ttl, DnsTTL::get_str(self.ttl))?;
+        writeln!(f, "\t\tData length: {}", self.data.len())?;
+
 
         match &self.data {
-            RecordDataType::A(addr) => {
-                writeln!(f, "\t\tType: A ({})", DnsTypeNum::A)?;
-                write_other(self, f)?;
-                writeln!(f, "\t\tA: {}", addr)
+            RecordDataType::A(addr) => writeln!(f, "\t\tA: {}", addr),
+            RecordDataType::NS(_str) => writeln!(
+                f,
+                "\t\tNS: {}",
+                _str.to_string().unwrap_or("???".to_owned())
+            ),
+            RecordDataType::CNAME(_str) => writeln!(
+                f,
+                "\t\tCNAME: {}",
+                _str.to_string().unwrap_or("???".to_owned())
+            ),
+            RecordDataType::SOA(soa) => soa.fmt_with_suffix(f, "\t\t"),
+            RecordDataType::AAAA(addr) => writeln!(f, "\t\tAAAA: {}", addr),
+        }
+    }
+}
+
+
+macro_rules! impl_record {
+    { $($field:ident),* } => {
+        // Define a func. This expands to:
+        //             pub fn get_rtype(&self) -> u16 {
+        //                 match self {
+        //                     RecordDataType::A(_) => DnsTypeNum::A,
+        //                     RecordDataType::NS(_) => DnsTypeNum::NS,
+        //                     RecordDataType::CNAME(_) => DnsTypeNum::CNAME,
+        //                     RecordDataType::SOA(_) => DnsTypeNum::SOA,
+        //                     RecordDataType::AAAA(_) => DnsTypeNum::AAAA,
+        //                 }
+        //             }
+
+        //
+        //          #[cfg(feature = "fmt")]
+        //          pub fn get_dns_type(&self) -> DnsType {
+        //              match self {
+        //                  RecordDataType::A(_) => DnsType::A,
+        //                  RecordDataType::NS(_) => DnsType::NS,
+        //                  RecordDataType::CNAME(_) => DnsType::CNAME,
+        //                  RecordDataType::SOA(_) => DnsType::SOA,
+        //                  RecordDataType::AAAA(_) => DnsType::AAAA,
+        //              }
+        //          }
+        
+        //impl RecordDataType {
+        //     fn get_type_info(&self) -> (&'static str, u16) {
+        //         match self {
+        //             Self::A(_) => ("A", DnsTypeNum::A),
+        //             Self::NS(_) => ("NS", DnsTypeNum::NS),
+        //             Self::CNAME(_) => ("CNAME", DnsTypeNum::CNAME),
+        //             Self::SOA(_) => ("SOA", DnsTypeNum::SOA),
+        //             Self::AAAA(_) => ("AAAA", DnsTypeNum::AAAA),
+        //         }
+        //     }
+        // }
+        impl RecordDataType {
+            pub fn get_rtype(&self) -> u16 {
+                match self {
+                    $(
+                        RecordDataType::$field(_) => DnsTypeNum::$field,
+                    )*
+                }
             }
-            RecordDataType::NS(_str) => {
-                writeln!(f, "\t\tType: NS ({})", DnsTypeNum::NS)?;
-                write_other(self, f)?;
-                writeln!(
-                    f,
-                    "\t\tNS: {}",
-                    _str.to_string().unwrap_or("???".to_owned())
-                )
+
+            #[cfg(feature = "fmt")]
+            pub fn get_dns_type(&self) -> DnsType {
+                match self {
+                    $(
+                        RecordDataType::$field(_) => DnsType::$field,
+                    )*
+                }
             }
-            RecordDataType::CNAME(str) => {
-                writeln!(f, "\t\tType: CNAME ({})", DnsTypeNum::CNAME)?;
-                write_other(self, f)?;
-                writeln!(
-                    f,
-                    "\t\tCNAME: {}",
-                    str.to_string().unwrap_or("???".to_owned())
-                )
-            }
-            RecordDataType::SOA(soa) => {
-                writeln!(f, "\t\tType: SOA ({})", DnsTypeNum::SOA)?;
-                write_other(self, f)?;
-                soa.fmt_with_suffix(f, "\t\t")
-            }
-            RecordDataType::AAAA(addr) => {
-                writeln!(f, "\t\tType: AAAA ({})", DnsTypeNum::AAAA)?;
-                write_other(self, f)?;
-                writeln!(f, "\t\tAAAA: {}", addr)
+            
+            #[cfg(feature = "fmt")]
+            pub fn get_type_info(&self) -> (&'static str, u16) {
+                match self {
+                    $(
+                        Self::$field(_) => (stringify!($field), DnsTypeNum::$field),
+                    )*
+                }
             }
         }
     }
 }
+
 
 #[cfg(feature = "fmt")]
 pub enum RecordFmtType {
     Answers,
     Authoritative,
 }
+
+// todo 
 
 #[derive(Debug, Clone)]
 pub enum RecordDataType {
@@ -201,25 +255,8 @@ impl RecordDataType {
             RecordDataType::AAAA(_) => 16,
         }
     }
-
-    pub fn get_rtype(&self) -> u16 {
-        match self {
-            RecordDataType::A(_) => DnsTypeNum::A,
-            RecordDataType::NS(_) => DnsTypeNum::NS,
-            RecordDataType::CNAME(_) => DnsTypeNum::CNAME,
-            RecordDataType::SOA(_) => DnsTypeNum::SOA,
-            RecordDataType::AAAA(_) => DnsTypeNum::AAAA,
-        }
-    }
-
-    #[cfg(feature = "fmt")]
-    pub fn get_dns_type(&self) -> DnsType {
-        match self {
-            RecordDataType::A(_) => DnsType::A,
-            RecordDataType::NS(_) => DnsType::NS,
-            RecordDataType::CNAME(_) => DnsType::CNAME,
-            RecordDataType::SOA(_) => DnsType::SOA,
-            RecordDataType::AAAA(_) => DnsType::AAAA,
-        }
-    }
 }
+
+impl_record!{A,NS,CNAME,SOA,AAAA}
+
+

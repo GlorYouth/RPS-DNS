@@ -93,20 +93,14 @@ impl Display for Request {
 
 #[cfg(test)]
 mod tests {
-    #[cfg(feature = "fmt")]
     use crate::dns::Request;
-    #[cfg(feature = "fmt")]
     use crate::dns::types::base::{DnsTypeNum, RawDomain};
-    #[cfg(feature = "fmt")]
     use std::rc::Rc;
 
     #[test]
     #[cfg(feature = "fmt")]
     fn test_fmt() {
-        let request = Request::new(
-            Rc::new(RawDomain::from_str(".").unwrap()),
-            DnsTypeNum::NS,
-        );
+        let request = Request::new(Rc::new(RawDomain::from_str(".").unwrap()), DnsTypeNum::NS);
         #[cfg(feature = "fmt")]
         println!("{}", request);
         #[cfg(not(feature = "fmt"))]
@@ -117,6 +111,9 @@ mod tests {
     fn special_test() {
         let request = Request::new(Rc::new(RawDomain::from_str(".").unwrap()), DnsTypeNum::NS);
         let buff = &mut [0; 512];
-        assert_eq!(request.encode_to_udp(buff)[2..],[ 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 1])
+        assert_eq!(
+            request.encode_to_udp(buff)[2..],
+            [1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 1]
+        )
     }
 }
