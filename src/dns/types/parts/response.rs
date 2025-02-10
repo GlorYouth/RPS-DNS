@@ -57,7 +57,7 @@ impl Response {
             + header.authority_rrs as usize
             + header.additional_rrs as usize;
         let mut rrs = Vec::with_capacity(total);
-
+        
         for _i in 0..header.questions {
             #[cfg(feature = "logger")]
             {
@@ -160,6 +160,7 @@ impl Response {
     pub fn get_record(&self, rtype: u16) -> Option<RecordDataType> {
         let predicate: fn(&RecordDataType) -> bool = match rtype {
             DnsTypeNum::A => |data| matches!(data, RecordDataType::A(_)),
+            DnsTypeNum::NS => |data| matches!(data, RecordDataType::NS(_)),
             DnsTypeNum::CNAME => |data| matches!(data, RecordDataType::CNAME(_)),
             DnsTypeNum::SOA => |data| matches!(data, RecordDataType::SOA(_)),
             DnsTypeNum::AAAA => |data| matches!(data, RecordDataType::AAAA(_)),

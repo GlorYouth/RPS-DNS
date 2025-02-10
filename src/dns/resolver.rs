@@ -14,6 +14,7 @@ use crate::dns::utils::ServerType;
 use crate::dns::{DnsTypeNum, Request};
 #[cfg(feature = "logger")]
 use log::debug;
+use paste::paste;
 use smallvec::SmallVec;
 #[cfg(feature = "fmt")]
 use std::fmt::Display;
@@ -34,29 +35,7 @@ impl Resolver {
             })?;
         Ok(Resolver { server: vec })
     }
-
-    //后期需要做多server下轮询/并发
-    //以及获取返回最快dns服务器的结构/返回所有结果中最快的ip
-    //详见smart_dns
-    #[inline]
-    pub fn query_a(&self, domain: String) -> QueryResult {
-        self.query(domain, DnsTypeNum::A)
-    }
-
-    #[inline]
-    pub fn query_aaaa(&self, domain: String) -> QueryResult {
-        self.query(domain, DnsTypeNum::AAAA)
-    }
-
-    #[inline]
-    pub fn query_cname(&self, domain: String) -> QueryResult {
-        self.query(domain, DnsTypeNum::CNAME)
-    }
-
-    #[inline]
-    pub fn query_soa(&self, domain: String) -> QueryResult {
-        self.query(domain, DnsTypeNum::SOA)
-    }
+    
 
     fn query(&self, domain: String, qtype: u16) -> QueryResult {
         #[cfg(feature = "result_error")]
@@ -138,72 +117,50 @@ impl Resolver {
 type ErrorVec = SmallVec<[Error; 3]>;
 
 #[cfg(feature = "result_error")]
+#[derive(Debug)]
 pub struct QueryResult(ErrorAndOption<Response, ErrorVec>);
 
 #[cfg(not(feature = "result_error"))]
+#[derive(Debug)]
 pub struct QueryResult(ErrorAndOption<Response>);
 
-impl QueryResult {
-    #[inline]
-    fn get_a_record(&self) -> Option<Ipv4Addr> {
-        self.0
-            .get_result()
-            .as_ref()
-            .and_then(|res| res.get_record(DnsTypeNum::A)) // 尝试获取 A 记录
-            .and_then(|record| {
-                if let RecordDataType::A(addr) = record {
-                    Some(addr)
-                } else {
-                    None
+//我真不想写了，用宏生成算了
+macro_rules! define_get_record {
+    ($fn_name:ident, $dns_type:expr, $result:ident, $result_expr:expr, $output_type:ty) => {
+        paste! {
+            impl QueryResult {
+                #[inline]
+                pub fn [<get_ $fn_name _record>](&self) -> Option<$output_type> {
+                    self.0
+                        .get_result()
+                        .as_ref()
+                        .and_then(|res| res.get_record(DnsTypeNum::$dns_type))  // 获取指定类型的 DNS 记录
+                        .and_then(|record| {
+                            if let RecordDataType::$dns_type($result) = record {
+                                Some($result_expr)
+                            } else {
+                                None
+                            }
+                    })
                 }
-            })
-    }
-
-    #[inline]
-    fn get_aaaa_record(&self) -> Option<Ipv6Addr> {
-        self.0
-            .get_result()
-            .as_ref()
-            .and_then(|res| res.get_record(DnsTypeNum::AAAA)) // 尝试获取 A 记录
-            .and_then(|record| {
-                if let RecordDataType::AAAA(addr) = record {
-                    Some(addr)
-                } else {
-                    None
+            }
+            
+            impl Resolver {
+                #[inline]
+                pub fn [<query_ $fn_name>](&self, domain: String) -> QueryResult {
+                    self.query(domain, DnsTypeNum::$dns_type)
                 }
-            })
-    }
-
-    #[inline]
-    fn get_cname_record(&self) -> Option<String> {
-        self.0
-            .get_result()
-            .as_ref()
-            .and_then(|res| res.get_record(DnsTypeNum::CNAME))
-            .and_then(|record| {
-                if let RecordDataType::CNAME(name) = record {
-                    Some(name.to_string()?)
-                } else {
-                    None
-                }
-            })
-    }
-
-    #[inline]
-    fn get_soa_record(&self) -> Option<SOA> {
-        self.0
-            .get_result()
-            .as_ref()
-            .and_then(|res| res.get_record(DnsTypeNum::SOA))
-            .and_then(|record| {
-                if let RecordDataType::SOA(soa) = record {
-                    Some(soa)
-                } else {
-                    None
-                }
-            })
-    }
+            }
+        }
+    };
 }
+
+// the last attribute is func output type
+define_get_record!(a, A, addr, addr, Ipv4Addr);
+define_get_record!(aaaa, AAAA, addr, addr, Ipv6Addr);
+define_get_record!(cname, CNAME, str, str.to_string()?, String);
+define_get_record!(soa, SOA, soa, soa, SOA);
+define_get_record!(ns, NS, str, str.to_string()?, String);
 
 #[cfg(feature = "fmt")]
 impl Display for QueryResult {
@@ -295,7 +252,10 @@ mod tests {
         let resolver = Resolver::new(server).unwrap();
         let result = resolver.query_soa("www.baidu.com".to_string());
         if let Some(answer) = result.get_soa_record() {
+            #[cfg(feature = "fmt")]
             println!("{}", answer);
+            #[cfg(not(feature = "fmt"))]
+            println!("{:?}", result);
         } else {
             println!("No SOA record");
             #[cfg(feature = "fmt")]
@@ -308,9 +268,9 @@ mod tests {
     fn test_fmt() {
         #[cfg(feature = "logger")]
         init_logger();
-        let server = vec!["94.140.14.140".to_string()];
+        let server = vec!["223.5.5.5".to_string()];
         let resolver = Resolver::new(server).unwrap();
-        let result = resolver.query_soa("www.baidu.com".to_string());
+        let result = resolver.query_ns(".".to_string());
         println!("{}", result);
     }
 }

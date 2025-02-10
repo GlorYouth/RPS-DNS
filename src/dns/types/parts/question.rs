@@ -21,7 +21,7 @@ pub struct Question {
 
 impl Question {
     pub const FIX_SIZE: usize = 4;
-    pub const LEAST_SIZE: usize = Self::FIX_SIZE + 2;
+    pub const LEAST_SIZE: usize = Self::FIX_SIZE + 1;
     #[inline]
     pub fn new(reader: &mut SliceReader) -> Option<Question> {
         #[cfg(debug_assertions)]

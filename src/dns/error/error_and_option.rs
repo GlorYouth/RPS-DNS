@@ -1,6 +1,7 @@
 #[cfg(not(feature = "result_error"))]
 use std::marker::PhantomData;
 
+#[derive(Debug)]
 pub struct ErrorAndOption<T, E: Default = ()> {
     result: Option<T>,
     #[cfg(feature = "result_error")]

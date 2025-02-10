@@ -111,6 +111,12 @@ pub mod debug {
         }
         log::set_max_level(log::LevelFilter::Trace);
     }
+    
+    pub fn set_println_enabled(value: bool) {
+        THREAD_LOGGER.with(|logger| {
+            logger.borrow_mut().set_println_enabled(value);
+        });
+    }
 
     pub fn logger_flush() {
         log::logger().flush();

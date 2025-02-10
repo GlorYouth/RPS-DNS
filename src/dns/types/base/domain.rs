@@ -23,6 +23,9 @@ impl RawDomain {
         let vec = s
             .split('.')
             .try_fold(Vec::with_capacity(20), |mut v: Vec<u8>, str| {
+                if str.len() == 0 {
+                    return Some(v);
+                }
                 if str.is_ascii() {
                     v.push(str.len() as u8);
                     v.extend_from_slice(str.as_bytes());
@@ -41,12 +44,11 @@ impl RawDomain {
                 }
                 Some(v)
             })?;
-        #[cfg(feature = "fmt")]
         let len = vec.len();
         Some(RawDomain {
             domain: vec,
             #[cfg(feature = "fmt")]
-            raw_len: len,
+            raw_len: len + 1,
         })
     }
 
@@ -120,12 +122,6 @@ impl RawDomain {
 
         let (domain, max_pos) = Self::parse_labels(reader, |current_pos| current_pos < len)?;
 
-        if domain.is_empty() {
-            #[cfg(feature = "logger")]
-            debug!("空域名");
-            return None;
-        }
-
         reader.set_pos(max_pos as usize);
         Some(RawDomain {
             domain,
@@ -198,6 +194,9 @@ impl RawDomain {
                 string.push('.');
             }
             remaining = &remaining[part_length..];
+        }
+        if string.is_empty() { 
+            string.push('.');
         }
         Some(string)
     }

@@ -63,6 +63,10 @@ impl Record {
             DnsTypeNum::A => RecordDataType::A(Ipv4Addr::from(
                 <[u8; 4]>::try_from(reader.read_slice(data_length)).unwrap(),
             )),
+            DnsTypeNum::NS => RecordDataType::NS(Rc::from(RawDomain::from_reader_with_size(
+                reader,
+                data_length,
+            )?)),
             DnsTypeNum::CNAME => RecordDataType::CNAME(Rc::from(RawDomain::from_reader_with_size(
                 reader,
                 data_length,
@@ -90,9 +94,10 @@ impl Record {
     #[cfg(feature = "fmt")]
     pub fn get_fmt_type(&self) -> RecordFmtType {
         match self.data {
-            RecordDataType::A(_) | RecordDataType::AAAA(_) | RecordDataType::CNAME(_) => {
-                RecordFmtType::Answers
-            }
+            RecordDataType::A(_)
+            | RecordDataType::AAAA(_)
+            | RecordDataType::CNAME(_)
+            | RecordDataType::NS(_) => RecordFmtType::Answers,
             RecordDataType::SOA(_) => RecordFmtType::Authoritative,
         }
     }
@@ -138,10 +143,14 @@ impl Display for Record {
                 write_other(self, f)?;
                 writeln!(f, "\t\tA: {}", addr)
             }
-            RecordDataType::AAAA(addr) => {
-                writeln!(f, "\t\tType: AAAA ({})", DnsTypeNum::AAAA)?;
+            RecordDataType::NS(_str) => {
+                writeln!(f, "\t\tType: NS ({})", DnsTypeNum::NS)?;
                 write_other(self, f)?;
-                writeln!(f, "\t\tAAAA: {}", addr)
+                writeln!(
+                    f,
+                    "\t\tNS: {}",
+                    _str.to_string().unwrap_or("???".to_owned())
+                )
             }
             RecordDataType::CNAME(str) => {
                 writeln!(f, "\t\tType: CNAME ({})", DnsTypeNum::CNAME)?;
@@ -157,6 +166,11 @@ impl Display for Record {
                 write_other(self, f)?;
                 soa.fmt_with_suffix(f, "\t\t")
             }
+            RecordDataType::AAAA(addr) => {
+                writeln!(f, "\t\tType: AAAA ({})", DnsTypeNum::AAAA)?;
+                write_other(self, f)?;
+                writeln!(f, "\t\tAAAA: {}", addr)
+            }
         }
     }
 }
@@ -170,6 +184,7 @@ pub enum RecordFmtType {
 #[derive(Debug, Clone)]
 pub enum RecordDataType {
     A(Ipv4Addr),
+    NS(Rc<RawDomain>),
     CNAME(Rc<RawDomain>),
     SOA(SOA),
     AAAA(Ipv6Addr),
@@ -180,6 +195,7 @@ impl RecordDataType {
     pub fn len(&self) -> usize {
         match self {
             RecordDataType::A(_) => 4,
+            RecordDataType::NS(str) => str.raw_len(),
             RecordDataType::CNAME(str) => str.raw_len(),
             RecordDataType::SOA(soa) => soa.raw_len(),
             RecordDataType::AAAA(_) => 16,
@@ -189,6 +205,7 @@ impl RecordDataType {
     pub fn get_rtype(&self) -> u16 {
         match self {
             RecordDataType::A(_) => DnsTypeNum::A,
+            RecordDataType::NS(_) => DnsTypeNum::NS,
             RecordDataType::CNAME(_) => DnsTypeNum::CNAME,
             RecordDataType::SOA(_) => DnsTypeNum::SOA,
             RecordDataType::AAAA(_) => DnsTypeNum::AAAA,
@@ -199,6 +216,7 @@ impl RecordDataType {
     pub fn get_dns_type(&self) -> DnsType {
         match self {
             RecordDataType::A(_) => DnsType::A,
+            RecordDataType::NS(_) => DnsType::NS,
             RecordDataType::CNAME(_) => DnsType::CNAME,
             RecordDataType::SOA(_) => DnsType::SOA,
             RecordDataType::AAAA(_) => DnsType::AAAA,
