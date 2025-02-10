@@ -1,5 +1,9 @@
 #![cfg_attr(debug_assertions, allow(unused_variables, dead_code))]
 
+use crate::dns::RawDomain;
+use crate::dns::RecordDataType;
+use crate::dns::Response;
+use crate::dns::SOA;
 #[cfg(feature = "result_error")]
 use crate::dns::error::Error;
 use crate::dns::error::ErrorAndOption;
@@ -7,9 +11,6 @@ use crate::dns::net::NetQuery;
 #[cfg(feature = "result_error")]
 use crate::dns::net::NetQueryError;
 use crate::dns::utils::ServerType;
-use crate::dns::RawDomain;
-use crate::dns::RecordDataType;
-use crate::dns::Response;
 use crate::dns::{DnsTypeNum, Request};
 #[cfg(feature = "logger")]
 use log::debug;
@@ -50,6 +51,11 @@ impl Resolver {
     #[inline]
     pub fn query_cname(&self, domain: String) -> QueryResult {
         self.query(domain, DnsTypeNum::CNAME)
+    }
+
+    #[inline]
+    pub fn query_soa(&self, domain: String) -> QueryResult {
+        self.query(domain, DnsTypeNum::SOA)
     }
 
     fn query(&self, domain: String, qtype: u16) -> QueryResult {
@@ -182,6 +188,21 @@ impl QueryResult {
                 }
             })
     }
+
+    #[inline]
+    fn get_soa_record(&self) -> Option<SOA> {
+        self.0
+            .get_result()
+            .as_ref()
+            .and_then(|res| res.get_record(DnsTypeNum::SOA))
+            .and_then(|record| {
+                if let RecordDataType::SOA(soa) = record {
+                    Some(soa)
+                } else {
+                    None
+                }
+            })
+    }
 }
 
 #[cfg(feature = "fmt")]
@@ -267,13 +288,29 @@ mod tests {
     }
 
     #[test]
+    fn test_query_soa() {
+        #[cfg(feature = "logger")]
+        init_logger();
+        let server = vec!["9.9.9.9".to_string()];
+        let resolver = Resolver::new(server).unwrap();
+        let result = resolver.query_soa("www.baidu.com".to_string());
+        if let Some(answer) = result.get_soa_record() {
+            println!("{}", answer);
+        } else {
+            println!("No SOA record");
+            #[cfg(feature = "fmt")]
+            println!("{}", result);
+        }
+    }
+
+    #[test]
     #[cfg(feature = "fmt")]
     fn test_fmt() {
         #[cfg(feature = "logger")]
         init_logger();
         let server = vec!["94.140.14.140".to_string()];
         let resolver = Resolver::new(server).unwrap();
-        let result = resolver.query_a("www.baidu.com".to_string());
+        let result = resolver.query_soa("www.baidu.com".to_string());
         println!("{}", result);
     }
 }

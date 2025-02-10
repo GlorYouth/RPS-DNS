@@ -114,6 +114,7 @@ impl RawDomain {
 
     // 优化后的两个公开函数
     pub fn from_reader(reader: &mut SliceReader) -> Option<RawDomain> {
+        #[cfg(feature = "fmt")]
         let start_pos = reader.pos();
         let len = reader.len();
 

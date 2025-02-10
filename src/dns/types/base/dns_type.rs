@@ -6,6 +6,7 @@ use std::fmt::{Display, Formatter};
 pub enum DnsType {
     A,
     CNAME,
+    SOA,
     AAAA,
 }
 
@@ -14,6 +15,7 @@ impl Into<u16> for DnsType {
         match self {
             DnsType::A => DnsTypeNum::A,
             DnsType::CNAME => DnsTypeNum::CNAME,
+            DnsType::SOA => DnsTypeNum::SOA,
             DnsType::AAAA => DnsTypeNum::AAAA,
         }
     }
@@ -24,6 +26,7 @@ impl DnsType {
         match dns_type {
             DnsTypeNum::A => Some(DnsType::A),
             DnsTypeNum::CNAME => Some(DnsType::CNAME),
+            DnsTypeNum::SOA => Some(DnsType::SOA),
             DnsTypeNum::AAAA => Some(DnsType::AAAA),
             _ => None,
         }
@@ -39,6 +42,9 @@ impl Display for DnsType {
             DnsType::CNAME => {
                 write!(f, "CNAME")?;
             }
+            DnsType::SOA => {
+                write!(f, "SOA")?;
+            }
             DnsType::AAAA => {
                 write!(f, "AAAA")?;
             }
@@ -52,5 +58,6 @@ pub struct DnsTypeNum;
 impl DnsTypeNum {
     pub const A: u16 = 1;
     pub const CNAME: u16 = 5;
+    pub const SOA: u16 = 6;
     pub const AAAA: u16 = 28;
 }

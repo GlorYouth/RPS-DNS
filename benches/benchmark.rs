@@ -1,9 +1,9 @@
 #![allow(unused_imports)]
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use dns_core::Request;
 use dns_core::bench_func::*;
 #[cfg(feature = "logger")]
 use dns_core::error::init_logger;
-use dns_core::Request;
 
 fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("fib 20", |b| {

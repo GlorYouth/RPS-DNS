@@ -1,14 +1,15 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
-#[cfg(feature = "fmt")]
-use crate::dns::types::base::DnsType;
-#[cfg(feature = "fmt")]
-use crate::dns::types::parts::DnsClass;
-use crate::dns::utils::SliceReader;
-#[cfg(feature = "fmt")]
-use crate::dns::DnsTTL;
 use crate::dns::DnsTypeNum;
 use crate::dns::RawDomain;
+#[cfg(feature = "fmt")]
+use crate::dns::types::base::DnsClass;
+#[cfg(feature = "fmt")]
+use crate::dns::types::base::DnsTTL;
+#[cfg(feature = "fmt")]
+use crate::dns::types::base::DnsType;
+use crate::dns::types::base::SOA;
+use crate::dns::utils::SliceReader;
 #[cfg(feature = "logger")]
 use log::{debug, trace};
 #[cfg(feature = "fmt")]
@@ -59,13 +60,14 @@ impl Record {
         }
 
         let data = match rtype {
+            DnsTypeNum::A => RecordDataType::A(Ipv4Addr::from(
+                <[u8; 4]>::try_from(reader.read_slice(data_length)).unwrap(),
+            )),
             DnsTypeNum::CNAME => RecordDataType::CNAME(Rc::from(RawDomain::from_reader_with_size(
                 reader,
                 data_length,
             )?)),
-            DnsTypeNum::A => RecordDataType::A(Ipv4Addr::from(
-                <[u8; 4]>::try_from(reader.read_slice(data_length)).unwrap(),
-            )),
+            DnsTypeNum::SOA => RecordDataType::SOA(SOA::from_reader(reader, data_length)?),
             DnsTypeNum::AAAA => RecordDataType::AAAA(Ipv6Addr::from(
                 <[u8; 16]>::try_from(reader.read_slice(data_length)).unwrap(),
             )),
@@ -91,6 +93,7 @@ impl Record {
             RecordDataType::A(_) | RecordDataType::AAAA(_) | RecordDataType::CNAME(_) => {
                 RecordFmtType::Answers
             }
+            RecordDataType::SOA(_) => RecordFmtType::Authoritative,
         }
     }
 }
@@ -149,6 +152,11 @@ impl Display for Record {
                     str.to_string().unwrap_or("???".to_owned())
                 )
             }
+            RecordDataType::SOA(soa) => {
+                writeln!(f, "\t\tType: SOA ({})", DnsTypeNum::SOA)?;
+                write_other(self, f)?;
+                soa.fmt_with_suffix(f, "\t\t")
+            }
         }
     }
 }
@@ -156,13 +164,15 @@ impl Display for Record {
 #[cfg(feature = "fmt")]
 pub enum RecordFmtType {
     Answers,
+    Authoritative,
 }
 
 #[derive(Debug, Clone)]
 pub enum RecordDataType {
     A(Ipv4Addr),
-    AAAA(Ipv6Addr),
     CNAME(Rc<RawDomain>),
+    SOA(SOA),
+    AAAA(Ipv6Addr),
 }
 
 impl RecordDataType {
@@ -170,16 +180,18 @@ impl RecordDataType {
     pub fn len(&self) -> usize {
         match self {
             RecordDataType::A(_) => 4,
-            RecordDataType::AAAA(_) => 16,
             RecordDataType::CNAME(str) => str.raw_len(),
+            RecordDataType::SOA(soa) => soa.raw_len(),
+            RecordDataType::AAAA(_) => 16,
         }
     }
 
     pub fn get_rtype(&self) -> u16 {
         match self {
             RecordDataType::A(_) => DnsTypeNum::A,
-            RecordDataType::AAAA(_) => DnsTypeNum::AAAA,
             RecordDataType::CNAME(_) => DnsTypeNum::CNAME,
+            RecordDataType::SOA(_) => DnsTypeNum::SOA,
+            RecordDataType::AAAA(_) => DnsTypeNum::AAAA,
         }
     }
 
@@ -187,8 +199,9 @@ impl RecordDataType {
     pub fn get_dns_type(&self) -> DnsType {
         match self {
             RecordDataType::A(_) => DnsType::A,
-            RecordDataType::AAAA(_) => DnsType::AAAA,
             RecordDataType::CNAME(_) => DnsType::CNAME,
+            RecordDataType::SOA(_) => DnsType::SOA,
+            RecordDataType::AAAA(_) => DnsType::AAAA,
         }
     }
 }

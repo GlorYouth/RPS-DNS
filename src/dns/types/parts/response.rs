@@ -1,12 +1,12 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
-use crate::dns::types::parts::header::{ResponseHeader, HEADER_SIZE};
-use crate::dns::types::parts::question::Question;
-use crate::dns::types::parts::record::{Record, RecordDataType};
-use crate::dns::utils::SliceReader;
 #[cfg(feature = "fmt")]
 use crate::dns::RecordFmtType;
 use crate::dns::Request;
+use crate::dns::types::parts::header::{HEADER_SIZE, ResponseHeader};
+use crate::dns::types::parts::question::Question;
+use crate::dns::types::parts::record::{Record, RecordDataType};
+use crate::dns::utils::SliceReader;
 
 use crate::dns::DnsTypeNum;
 #[cfg(feature = "logger")]
@@ -104,8 +104,7 @@ impl Response {
                 {
                     trace!(
                         "请求id和响应id不同,分别为{},{}",
-                        header.id,
-                        request.header.id
+                        header.id, request.header.id
                     );
                 }
                 return None;
@@ -122,8 +121,7 @@ impl Response {
                 {
                     trace!(
                         "请求和响应的opcode不同,分别为{},{}",
-                        header.opcode,
-                        request.header.opcode
+                        header.opcode, request.header.opcode
                     );
                 }
                 return None;
@@ -133,8 +131,7 @@ impl Response {
                 {
                     trace!(
                         "请求和响应的rec_desired不同,分别为{},{}",
-                        header.rec_desired,
-                        request.header.rec_desired
+                        header.rec_desired, request.header.rec_desired
                     );
                 }
                 return None;
@@ -164,6 +161,7 @@ impl Response {
         let predicate: fn(&RecordDataType) -> bool = match rtype {
             DnsTypeNum::A => |data| matches!(data, RecordDataType::A(_)),
             DnsTypeNum::CNAME => |data| matches!(data, RecordDataType::CNAME(_)),
+            DnsTypeNum::SOA => |data| matches!(data, RecordDataType::SOA(_)),
             DnsTypeNum::AAAA => |data| matches!(data, RecordDataType::AAAA(_)),
             _ => return None,
         };
@@ -184,15 +182,25 @@ impl Display for Response {
             Display::fmt(&q, fmt)?;
         }
         let iter = self.answer.iter();
-        let mut iter = iter
+        let mut iter_new = iter
+            .clone()
             .filter(|r| matches!(r.get_fmt_type(), RecordFmtType::Answers))
             .peekable();
 
-        if iter.peek().is_some() {
+        if iter_new.peek().is_some() {
             writeln!(fmt, "Answers:")?;
         }
+        iter_new.try_for_each(|x| Display::fmt(&x, fmt))?;
 
-        iter.try_for_each(|x| Display::fmt(&x, fmt))?;
+        let mut iter_new = iter
+            .filter(|r| matches!(r.get_fmt_type(), RecordFmtType::Authoritative))
+            .peekable();
+
+        if iter_new.peek().is_some() {
+            writeln!(fmt, "Authoritative nameservers:")?;
+        }
+
+        iter_new.try_for_each(|x| Display::fmt(&x, fmt))?;
         Ok(())
     }
 }
