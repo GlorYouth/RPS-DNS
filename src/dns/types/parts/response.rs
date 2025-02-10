@@ -166,7 +166,7 @@ impl Response {
             DnsTypeNum::AAAA => |data| matches!(data, RecordDataType::AAAA(_)),
             _ => return None,
         };
-        
+
         // todo
 
         self.answer

@@ -13,6 +13,7 @@ macro_rules! make_dns_type {
         //         SOA,
         //         AAAA,
         //      }
+        
         pub enum DnsType {
             $(
                 $field,
@@ -21,15 +22,15 @@ macro_rules! make_dns_type {
 
         // Build an impl block. This expands to:
         //
-        //     fn into(self) -> u16 {
-        //         match self {
-        //             DnsType::A => DnsTypeNum::A,
-        //             DnsType::NS => DnsTypeNum::NS,
-        //             DnsType::CNAME => DnsTypeNum::CNAME,
-        //             DnsType::SOA => DnsTypeNum::SOA,
-        //             DnsType::AAAA => DnsTypeNum::AAAA,
-        //         }
+        // fn into(self) -> u16 {
+        //     match self {
+        //         DnsType::A => DnsTypeNum::A,
+        //         DnsType::NS => DnsTypeNum::NS,
+        //         DnsType::CNAME => DnsTypeNum::CNAME,
+        //         DnsType::SOA => DnsTypeNum::SOA,
+        //         DnsType::AAAA => DnsTypeNum::AAAA,
         //     }
+        // }
         impl Into<u16> for DnsType {
             fn into(self) -> u16 {
                 match self {
@@ -40,7 +41,7 @@ macro_rules! make_dns_type {
             }
         }
         
-        //impl DnsType {
+        // impl DnsType {
         //     #[cfg(feature = "fmt")]
         //     pub fn from_u16(dns_type: u16) -> Option<DnsType> {
         //         match dns_type {
@@ -52,7 +53,7 @@ macro_rules! make_dns_type {
         //             _ => None,
         //         }
         //     }
-        // }
+        //  }
         
         impl DnsType {
             #[cfg(feature = "fmt")]
@@ -66,7 +67,7 @@ macro_rules! make_dns_type {
             }
         }
         
-        //#[cfg(feature = "fmt")]
+        // #[cfg(feature = "fmt")]
         // impl Display for DnsType {
         //     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         //         match self {

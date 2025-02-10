@@ -126,7 +126,6 @@ impl Display for Record {
             "\t\tName: {}",
             self.name.to_string().unwrap_or("???".to_owned())
         )?;
-        
 
         let (type_name, dns_type) = self.data.get_type_info();
 
@@ -139,7 +138,6 @@ impl Display for Record {
         )?;
         writeln!(f, "\t\tTTL: {} ({})", self.ttl, DnsTTL::get_str(self.ttl))?;
         writeln!(f, "\t\tData length: {}", self.data.len())?;
-
 
         match &self.data {
             RecordDataType::A(addr) => writeln!(f, "\t\tA: {}", addr),
@@ -159,32 +157,32 @@ impl Display for Record {
     }
 }
 
-
 macro_rules! impl_record {
     { $($field:ident),* } => {
         // Define a func. This expands to:
-        //             pub fn get_rtype(&self) -> u16 {
-        //                 match self {
-        //                     RecordDataType::A(_) => DnsTypeNum::A,
-        //                     RecordDataType::NS(_) => DnsTypeNum::NS,
-        //                     RecordDataType::CNAME(_) => DnsTypeNum::CNAME,
-        //                     RecordDataType::SOA(_) => DnsTypeNum::SOA,
-        //                     RecordDataType::AAAA(_) => DnsTypeNum::AAAA,
-        //                 }
-        //             }
+
+        // pub fn get_rtype(&self) -> u16 {
+        //     match self {
+        //         RecordDataType::A(_) => DnsTypeNum::A,
+        //         RecordDataType::NS(_) => DnsTypeNum::NS,
+        //         RecordDataType::CNAME(_) => DnsTypeNum::CNAME,
+        //         RecordDataType::SOA(_) => DnsTypeNum::SOA,
+        //         RecordDataType::AAAA(_) => DnsTypeNum::AAAA,
+        //     }
+        // }
 
         //
-        //          #[cfg(feature = "fmt")]
-        //          pub fn get_dns_type(&self) -> DnsType {
-        //              match self {
-        //                  RecordDataType::A(_) => DnsType::A,
-        //                  RecordDataType::NS(_) => DnsType::NS,
-        //                  RecordDataType::CNAME(_) => DnsType::CNAME,
-        //                  RecordDataType::SOA(_) => DnsType::SOA,
-        //                  RecordDataType::AAAA(_) => DnsType::AAAA,
-        //              }
-        //          }
-        
+        // #[cfg(feature = "fmt")]
+        // pub fn get_dns_type(&self) -> DnsType {
+        //     match self {
+        //         RecordDataType::A(_) => DnsType::A,
+        //         RecordDataType::NS(_) => DnsType::NS,
+        //         RecordDataType::CNAME(_) => DnsType::CNAME,
+        //         RecordDataType::SOA(_) => DnsType::SOA,
+        //         RecordDataType::AAAA(_) => DnsType::AAAA,
+        //     }
+        // }
+
         //impl RecordDataType {
         //     fn get_type_info(&self) -> (&'static str, u16) {
         //         match self {
@@ -213,7 +211,7 @@ macro_rules! impl_record {
                     )*
                 }
             }
-            
+
             #[cfg(feature = "fmt")]
             pub fn get_type_info(&self) -> (&'static str, u16) {
                 match self {
@@ -226,14 +224,13 @@ macro_rules! impl_record {
     }
 }
 
-
 #[cfg(feature = "fmt")]
 pub enum RecordFmtType {
     Answers,
     Authoritative,
 }
 
-// todo 
+// todo
 
 #[derive(Debug, Clone)]
 pub enum RecordDataType {
@@ -257,6 +254,4 @@ impl RecordDataType {
     }
 }
 
-impl_record!{A,NS,CNAME,SOA,AAAA}
-
-
+impl_record! {A,NS,CNAME,SOA,AAAA}
