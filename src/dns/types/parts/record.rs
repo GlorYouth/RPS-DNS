@@ -1,14 +1,14 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
 #[cfg(feature = "fmt")]
-use crate::dns::DnsTTL;
-use crate::dns::DnsTypeNum;
-use crate::dns::RawDomain;
-#[cfg(feature = "fmt")]
 use crate::dns::types::base::DnsType;
 #[cfg(feature = "fmt")]
 use crate::dns::types::parts::DnsClass;
 use crate::dns::utils::SliceReader;
+#[cfg(feature = "fmt")]
+use crate::dns::DnsTTL;
+use crate::dns::DnsTypeNum;
+use crate::dns::RawDomain;
 #[cfg(feature = "logger")]
 use log::{debug, trace};
 #[cfg(feature = "fmt")]

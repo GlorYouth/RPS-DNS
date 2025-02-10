@@ -3,10 +3,10 @@
 #[cfg(feature = "fmt")]
 use crate::dns::types::base::DnsType;
 
-use crate::dns::RawDomain;
 #[cfg(feature = "fmt")]
 use crate::dns::types::parts::DnsClass;
 use crate::dns::utils::SliceReader;
+use crate::dns::RawDomain;
 use log::trace;
 #[cfg(feature = "fmt")]
 use std::fmt::Display;

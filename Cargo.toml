@@ -28,3 +28,4 @@ opt-level = 3
 [features]
 logger = []
 fmt = []
+result_error = []

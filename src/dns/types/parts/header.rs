@@ -1,7 +1,7 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
 use crate::dns::utils::SliceReader;
-use rand::{Rng, rng};
+use rand::{rng, Rng};
 use std::fmt::Display;
 
 #[derive(Debug)]
