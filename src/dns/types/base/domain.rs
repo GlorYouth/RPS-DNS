@@ -3,13 +3,11 @@
 use crate::dns::utils::SliceReader;
 #[cfg(feature = "logger")]
 use log::{debug, trace};
-use std::fmt::Debug;
+use std::fmt::{Debug, Display, Formatter};
 
 #[derive(PartialEq, Debug)]
 pub struct RawDomain {
     domain: Vec<u8>, //不包含最后的0x0
-    #[cfg(feature = "fmt")]
-    raw_len: usize,
 }
 const SUFFIX: &[u8] = "xn--".as_bytes();
 impl RawDomain {
@@ -44,12 +42,7 @@ impl RawDomain {
                 }
                 Some(v)
             })?;
-        let len = vec.len();
-        Some(RawDomain {
-            domain: vec,
-            #[cfg(feature = "fmt")]
-            raw_len: len + 1,
-        })
+        Some(RawDomain { domain: vec })
     }
 
     // 主解析逻辑
@@ -116,18 +109,12 @@ impl RawDomain {
 
     // 优化后的两个公开函数
     pub fn from_reader(reader: &mut SliceReader) -> Option<RawDomain> {
-        #[cfg(feature = "fmt")]
-        let start_pos = reader.pos();
         let len = reader.len();
 
         let (domain, max_pos) = Self::parse_labels(reader, |current_pos| current_pos < len)?;
 
         reader.set_pos(max_pos as usize);
-        Some(RawDomain {
-            domain,
-            #[cfg(feature = "fmt")]
-            raw_len: max_pos as usize - start_pos,
-        })
+        Some(RawDomain { domain })
     }
 
     pub fn from_reader_with_size(reader: &mut SliceReader, size: usize) -> Option<RawDomain> {
@@ -143,11 +130,7 @@ impl RawDomain {
         let (domain, _) = Self::parse_labels(reader, |current_pos| current_pos < end_pos)?;
 
         reader.set_pos(end_pos);
-        Some(RawDomain {
-            domain,
-            #[cfg(feature = "fmt")]
-            raw_len: size,
-        })
+        Some(RawDomain { domain })
     }
 
     pub fn to_string(&self) -> Option<String> {
@@ -200,11 +183,14 @@ impl RawDomain {
         }
         Some(string)
     }
+}
 
-    pub fn raw_len(&self) -> usize {
-        self.domain.len()
+impl Display for RawDomain {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.to_string().unwrap_or("???".into()))
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;

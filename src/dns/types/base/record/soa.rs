@@ -22,16 +22,9 @@ pub struct SOA {
     // 32 位时间值，它规定在区域不再是权威的之前可以等待的时间间隔的上限
     minimum_ttl: u32,
     // 无符号 32 位最小值 TTL 字段，应当用来自这个区域的任何 RR 输出它。
-    #[cfg(feature = "fmt")]
-    raw_length: usize,
 }
 
 impl SOA {
-    #[cfg(feature = "fmt")]
-    pub fn raw_len(&self) -> usize {
-        self.raw_length
-    }
-
     pub fn from_reader(reader: &mut SliceReader, _raw_len: usize) -> Option<Self> {
         let primary_name = Rc::new(RawDomain::from_reader(reader)?);
         let rname = Rc::new(RawDomain::from_reader(reader)?);
@@ -43,8 +36,6 @@ impl SOA {
             retry_interval: reader.read_u32(),
             expire_limit: reader.read_u32(),
             minimum_ttl: reader.read_u32(),
-            #[cfg(feature = "fmt")]
-            raw_length: _raw_len,
         })
     }
 

@@ -23,6 +23,8 @@ pub struct Record {
     pub rtype: u16,
     pub class: u16,
     pub ttl: u32,
+    #[cfg(feature = "fmt")]
+    pub data_len: u16,
     pub data: RecordDataType,
 }
 
@@ -46,14 +48,15 @@ impl Record {
         let rtype = reader.read_u16();
         let class = reader.read_u16();
         let ttl = reader.read_u32();
-        let data_length = reader.read_u16() as usize;
+        let data_len = reader.read_u16();
+        let data_len_usize = data_len as usize;
 
-        if reader.pos() + data_length > len {
+        if reader.pos() + data_len_usize > len {
             #[cfg(feature = "logger")]
             debug!(
                 "读取到Record中Data可变部分长度为{:x},需要总Slice长度为{:x},实际Slice长度{:x}",
-                data_length,
-                reader.pos() + data_length,
+                data_len_usize,
+                reader.pos() + data_len_usize,
                 len
             );
             return None;
@@ -61,19 +64,19 @@ impl Record {
 
         let data = match rtype {
             DnsTypeNum::A => RecordDataType::A(Ipv4Addr::from(
-                <[u8; 4]>::try_from(reader.read_slice(data_length)).unwrap(),
+                <[u8; 4]>::try_from(reader.read_slice(data_len_usize)).unwrap(),
             )),
             DnsTypeNum::NS => RecordDataType::NS(Rc::from(RawDomain::from_reader_with_size(
                 reader,
-                data_length,
+                data_len_usize,
             )?)),
             DnsTypeNum::CNAME => RecordDataType::CNAME(Rc::from(RawDomain::from_reader_with_size(
                 reader,
-                data_length,
+                data_len_usize,
             )?)),
-            DnsTypeNum::SOA => RecordDataType::SOA(SOA::from_reader(reader, data_length)?),
+            DnsTypeNum::SOA => RecordDataType::SOA(SOA::from_reader(reader, data_len_usize)?),
             DnsTypeNum::AAAA => RecordDataType::AAAA(Ipv6Addr::from(
-                <[u8; 16]>::try_from(reader.read_slice(data_length)).unwrap(),
+                <[u8; 16]>::try_from(reader.read_slice(data_len_usize)).unwrap(),
             )),
             _ => {
                 #[cfg(feature = "logger")]
@@ -89,6 +92,8 @@ impl Record {
             rtype,
             class,
             ttl,
+            #[cfg(feature = "fmt")]
+            data_len,
             data,
         })
     }
@@ -137,20 +142,12 @@ impl Display for Record {
             self.class
         )?;
         writeln!(f, "\t\tTTL: {} ({})", self.ttl, DnsTTL::get_str(self.ttl))?;
-        writeln!(f, "\t\tData length: {}", self.data.len())?;
+        writeln!(f, "\t\tData length: {}", self.data_len)?;
 
         match &self.data {
             RecordDataType::A(addr) => writeln!(f, "\t\tA: {}", addr),
-            RecordDataType::NS(_str) => writeln!(
-                f,
-                "\t\tNS: {}",
-                _str.to_string().unwrap_or("???".to_owned())
-            ),
-            RecordDataType::CNAME(_str) => writeln!(
-                f,
-                "\t\tCNAME: {}",
-                _str.to_string().unwrap_or("???".to_owned())
-            ),
+            RecordDataType::NS(_str) => writeln!(f, "\t\tName Server: {}", _str),
+            RecordDataType::CNAME(_str) => writeln!(f, "\t\tCNAME: {}", _str),
             RecordDataType::SOA(soa) => soa.fmt_with_suffix(f, "\t\t"),
             RecordDataType::AAAA(addr) => writeln!(f, "\t\tAAAA: {}", addr),
         }
@@ -239,19 +236,6 @@ pub enum RecordDataType {
     CNAME(Rc<RawDomain>),
     SOA(SOA),
     AAAA(Ipv6Addr),
-}
-
-impl RecordDataType {
-    #[cfg(feature = "fmt")]
-    pub fn len(&self) -> usize {
-        match self {
-            RecordDataType::A(_) => 4,
-            RecordDataType::NS(str) => str.raw_len(),
-            RecordDataType::CNAME(str) => str.raw_len(),
-            RecordDataType::SOA(soa) => soa.raw_len(),
-            RecordDataType::AAAA(_) => 16,
-        }
-    }
 }
 
 impl_record! {A,NS,CNAME,SOA,AAAA}

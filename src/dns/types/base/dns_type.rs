@@ -3,8 +3,8 @@
 use std::fmt::{Display, Formatter};
 
 macro_rules! make_dns_type {
-    { $($field:ident),* } => {
-        // Define a enum. This expands to:
+    ($($field:tt),*) => {
+        // Define an enum. This expands to:
         //
         //     pub enum DnsType {
         //         A,
@@ -13,7 +13,7 @@ macro_rules! make_dns_type {
         //         SOA,
         //         AAAA,
         //      }
-        
+
         pub enum DnsType {
             $(
                 $field,
@@ -40,7 +40,7 @@ macro_rules! make_dns_type {
                 }
             }
         }
-        
+
         // impl DnsType {
         //     #[cfg(feature = "fmt")]
         //     pub fn from_u16(dns_type: u16) -> Option<DnsType> {
@@ -54,7 +54,7 @@ macro_rules! make_dns_type {
         //         }
         //     }
         //  }
-        
+
         impl DnsType {
             #[cfg(feature = "fmt")]
             pub fn from_u16(dns_type: u16) -> Option<DnsType> {
@@ -66,7 +66,7 @@ macro_rules! make_dns_type {
                 }
             }
         }
-        
+
         // #[cfg(feature = "fmt")]
         // impl Display for DnsType {
         //     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -90,25 +90,24 @@ macro_rules! make_dns_type {
         //         Ok(())
         //     }
         // }
-        
+
         #[cfg(feature = "fmt")]
         impl Display for DnsType {
             fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
                 match self {
                     $(
                         DnsType::$field => write!(f, stringify!($field))?,
-                    )* 
+                    )*
                 }
-                Ok(()) 
-            } 
+                Ok(())
+            }
         }
     }
 }
 
+make_dns_type!(A, NS, CNAME, SOA, AAAA);
+
 // todo
-
-make_dns_type! {A,NS,CNAME,SOA,AAAA}
-
 pub struct DnsTypeNum;
 
 impl DnsTypeNum {
