@@ -6,7 +6,6 @@ use std::rc::Rc;
 pub struct NS(Rc<RawDomain>);
 
 impl NS {
-
     #[inline]
     pub fn get_index(&self) -> Rc<RawDomain> {
         self.0.clone()

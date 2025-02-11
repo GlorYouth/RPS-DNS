@@ -4,7 +4,6 @@ use crate::dns::utils::SliceReader;
 pub struct A(std::net::Ipv4Addr);
 
 impl A {
-
     #[inline]
     pub fn get_index(&self) -> std::net::Ipv4Addr {
         self.0
@@ -28,7 +27,6 @@ impl A {
 pub struct AAAA(std::net::Ipv6Addr);
 
 impl AAAA {
-
     #[inline]
     pub fn get_index(&self) -> std::net::Ipv6Addr {
         self.0

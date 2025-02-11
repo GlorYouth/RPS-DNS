@@ -7,6 +7,7 @@ use std::fmt::{Display, Formatter};
 use std::rc::Rc;
 
 #[derive(Clone, Debug)]
+#[allow(unused)]
 pub struct SOA {
     primary_name: Rc<RawDomain>,
     //名称服务器的 <domain-name>，该名称服务器是这个区域的数据起源或主要源。
@@ -74,6 +75,43 @@ impl SOA {
         );
 
         Ok(())
+    }
+}
+#[allow(unused)]
+impl SOA {
+    #[inline]
+    pub fn primary_name(&self) -> Rc<RawDomain> {
+        self.primary_name.clone()
+    }
+
+    #[inline]
+    pub fn rname(&self) -> Rc<RawDomain> {
+        self.rname.clone()
+    }
+
+    #[inline]
+    pub fn serial_number(&self) -> u32 {
+        self.serial_number
+    }
+
+    #[inline]
+    pub fn refresh_interval(&self) -> u32 {
+        self.refresh_interval
+    }
+
+    #[inline]
+    pub fn retry_interval(&self) -> u32 {
+        self.retry_interval
+    }
+
+    #[inline]
+    pub fn expire_limit(&self) -> u32 {
+        self.expire_limit
+    }
+
+    #[inline]
+    pub fn minimum_ttl(&self) -> u32 {
+        self.minimum_ttl
     }
 }
 

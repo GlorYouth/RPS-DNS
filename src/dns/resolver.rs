@@ -152,9 +152,15 @@ macro_rules! define_get_record {
 // the last attribute is func output type
 define_get_record!(a, A, addr, addr.get_index(), std::net::Ipv4Addr);
 define_get_record!(aaaa, AAAA, addr, addr.get_index(), std::net::Ipv6Addr);
-define_get_record!(cname, CNAME, str, str.get_index().to_string(), String);
+define_get_record!(
+    cname,
+    CNAME,
+    str,
+    str.get_index().as_ref().to_string()?,
+    String
+);
 define_get_record!(soa, SOA, soa, soa, SOA);
-define_get_record!(ns, NS, str, str.get_index().to_string(), String);
+define_get_record!(ns, NS, str, str.get_index().as_ref().to_string()?, String);
 
 #[cfg(feature = "fmt")]
 impl std::fmt::Display for QueryResult {

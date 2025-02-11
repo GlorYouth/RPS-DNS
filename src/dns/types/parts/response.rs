@@ -158,7 +158,6 @@ impl Response {
     }
 
     pub fn get_record(&self, _rtype: u16) -> Option<RecordDataType> {
-
         macro_rules! match_rtype {
             { $($field:ident),* } => {
                 // Define a match block. This expands to:
@@ -181,7 +180,7 @@ impl Response {
                 }
             }
         }
-        let predicate: fn(&RecordDataType) -> bool = match_rtype!{A,NS,CNAME,SOA,AAAA};
+        let predicate: fn(&RecordDataType) -> bool = match_rtype! {A,NS,CNAME,SOA,AAAA};
 
         // todo
 

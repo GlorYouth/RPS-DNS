@@ -3,6 +3,7 @@
 use crate::dns::utils::SliceReader;
 #[cfg(feature = "logger")]
 use log::{debug, trace};
+#[cfg(feature = "fmt")]
 use std::fmt::{Debug, Display};
 
 #[derive(PartialEq, Debug)]
@@ -199,9 +200,8 @@ impl RawDomain {
         )
     }
 }
-
+#[cfg(feature = "fmt")]
 impl Display for RawDomain {
-    #[cfg(feature = "fmt")]
     #[inline]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.to_string().unwrap_or("???".into()))
