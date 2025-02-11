@@ -13,20 +13,20 @@ type Result = std::result::Result<Option<Response>, NetQueryError>;
 type Result = Option<Response>;
 
 impl NetQuery {
-    pub fn query_tcp(mut stream: TcpStream, request: Request, mut buf: [u8; 1500]) -> Result {
+    pub fn query_tcp(mut stream: TcpStream, request: Request, buf: &mut [u8; 1500]) -> Result {
         #[cfg(feature = "result_error")]
         {
             stream
-                .write_all(request.encode_to_tcp(&mut buf))
+                .write_all(request.encode_to_tcp(buf))
                 .map_err(|_| NetQueryError::WriteTcpConnectError)?;
             stream
-                .read(&mut buf)
+                .read(buf)
                 .map_err(|_| NetQueryError::ConnectTcpAddrError)?;
         }
         #[cfg(not(feature = "result_error"))]
         {
-            stream.write_all(request.encode_to_tcp(&mut buf)).ok()?;
-            stream.read(&mut buf).ok()?;
+            stream.write_all(request.encode_to_tcp(buf)).ok()?;
+            stream.read(buf).ok()?;
         }
         let len = u16::from_be_bytes([buf[0], buf[1]]);
         let response = Response::from_slice(&buf.as_slice()[2..(len + 2) as usize], &request);
@@ -38,8 +38,8 @@ impl NetQuery {
         response
     }
 
-    pub fn query_udp(socket: UdpSocket, request: Request, mut buf: [u8; 1500]) -> Result {
-        let arr = request.encode_to_udp(&mut buf);
+    pub fn query_udp(socket: UdpSocket, request: Request, buf: &mut [u8; 1500]) -> Result {
+        let arr = request.encode_to_udp(buf);
         if arr.len() > 512 {
             #[cfg(feature = "result_error")]
             let stream = TcpStream::connect(
@@ -58,7 +58,7 @@ impl NetQuery {
                 .send(arr)
                 .map_err(|_| NetQueryError::SendUdpConnectError)?;
             let number_of_bytes = socket
-                .recv(&mut buf)
+                .recv(buf)
                 .map_err(|_| NetQueryError::RecvUdpConnectError)?;
             let response = Response::from_slice(&buf.as_slice()[..number_of_bytes], &request);
             Ok(response)
@@ -66,7 +66,7 @@ impl NetQuery {
         #[cfg(not(feature = "result_error"))]
         {
             socket.send(arr).ok()?;
-            let number_of_bytes = socket.recv(&mut buf).ok()?;
+            let number_of_bytes = socket.recv(buf).ok()?;
             Response::from_slice(&buf.as_slice()[..number_of_bytes], &request)
         }
     }

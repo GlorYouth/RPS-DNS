@@ -105,7 +105,7 @@ macro_rules! make_dns_type {
     }
 }
 
-make_dns_type!(A, NS, CNAME, SOA, AAAA);
+make_dns_type!(A, NS, CNAME, SOA, TXT, AAAA);
 
 // todo
 pub struct DnsTypeNum;
@@ -115,5 +115,6 @@ impl DnsTypeNum {
     pub const NS: u16 = 2;
     pub const CNAME: u16 = 5;
     pub const SOA: u16 = 6;
+    pub const TXT: u16 = 16;
     pub const AAAA: u16 = 28;
 }

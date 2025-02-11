@@ -1,6 +1,6 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
-use crate::dns::types::base::record::{A, AAAA, CNAME, NS, SOA};
+use crate::dns::types::base::record::{A, AAAA, CNAME, NS, SOA, TXT};
 #[cfg(feature = "fmt")]
 use crate::dns::types::base::{DnsClass, DnsTTL};
 use crate::dns::types::base::{DnsTypeNum, RawDomain};
@@ -86,7 +86,7 @@ impl Record {
             }
         }
 
-        let data = match_rtype! {A,NS,CNAME,SOA,AAAA};
+        let data = match_rtype! {A,NS,CNAME,SOA,TXT,AAAA};
 
         // todo
 
@@ -107,7 +107,8 @@ impl Record {
             RecordDataType::A(_)
             | RecordDataType::AAAA(_)
             | RecordDataType::CNAME(_)
-            | RecordDataType::NS(_) => RecordFmtType::Answers,
+            | RecordDataType::NS(_)
+            | RecordDataType::TXT(_) => RecordFmtType::Answers,
             RecordDataType::SOA(_) => RecordFmtType::Authoritative,
         }
     }
@@ -158,7 +159,7 @@ impl Display for Record {
             }
         }
 
-        match_data! {A,NS,CNAME,SOA,AAAA}
+        match_data! {A,NS,CNAME,SOA,TXT,AAAA}
     }
 }
 
@@ -205,7 +206,8 @@ pub enum RecordDataType {
     NS(NS),
     CNAME(CNAME),
     SOA(SOA),
+    TXT(TXT),
     AAAA(AAAA),
 }
 
-impl_record! {A,NS,CNAME,SOA,AAAA}
+impl_record! {A,NS,CNAME,SOA,TXT,AAAA}

@@ -13,8 +13,10 @@ use crate::dns::utils::ServerType;
 use log::debug;
 use paste::paste;
 use smallvec::SmallVec;
+use std::iter::FilterMap;
 use std::net::{AddrParseError, TcpStream, UdpSocket};
 use std::rc::Rc;
+use std::slice::Iter;
 
 pub struct Resolver {
     server: SmallVec<[ServerType; 5]>,
@@ -36,7 +38,7 @@ impl Resolver {
         let mut error_vec = SmallVec::new();
         if let Some(domain) = RawDomain::from_str(domain.as_str()) {
             let domain = Rc::new(domain);
-            let buf = [0_u8; 1500];
+            let mut buf = [0_u8; 1500];
             for server in &self.server {
                 return match server {
                     ServerType::Tcp(addr) => {
@@ -44,7 +46,7 @@ impl Resolver {
                         if let Ok(stream) = TcpStream::connect(addr) {
                             let request = Request::new(domain.clone(), qtype);
                             #[cfg(feature = "result_error")]
-                            match NetQuery::query_tcp(stream, request, buf) {
+                            match NetQuery::query_tcp(stream, request, &mut buf) {
                                 Ok(response) => response.into(),
                                 Err(e) => {
                                     error_vec.push(e.into());
@@ -52,7 +54,7 @@ impl Resolver {
                                 }
                             }
                             #[cfg(not(feature = "result_error"))]
-                            QueryResult::from(NetQuery::query_tcp(stream, request, buf))
+                            QueryResult::from(NetQuery::query_tcp(stream, request, &mut buf))
                         } else {
                             #[cfg(feature = "logger")]
                             debug!("连接到对应的tcp server失败");
@@ -66,7 +68,7 @@ impl Resolver {
                             if let Ok(addr) = socket.connect(addr) {
                                 let request = Request::new(domain.clone(), qtype);
                                 #[cfg(feature = "result_error")]
-                                match NetQuery::query_udp(socket, request, buf) {
+                                match NetQuery::query_udp(socket, request, &mut buf) {
                                     Ok(response) => response.into(),
                                     Err(e) => {
                                         #[cfg(feature = "result_error")]
@@ -75,7 +77,7 @@ impl Resolver {
                                     }
                                 }
                                 #[cfg(not(feature = "result_error"))]
-                                QueryResult::from(NetQuery::query_udp(socket, request, buf))
+                                QueryResult::from(NetQuery::query_udp(socket, request, &mut buf))
                             } else {
                                 #[cfg(feature = "logger")]
                                 debug!("连接到对应的udp server失败");
@@ -118,6 +120,26 @@ pub struct QueryResult(ErrorAndOption<Response, ErrorVec>);
 #[derive(Debug)]
 pub struct QueryResult(ErrorAndOption<Response>);
 
+trait UnwrapVec<T> {
+    fn unwrap_vec(self) -> Vec<T>;
+}
+
+impl<T> UnwrapVec<T> for Vec<Vec<T>> {
+    #[inline]
+    fn unwrap_vec(self) -> Vec<T> {
+        // 展开嵌套 Vec
+        self.into_iter().flatten().collect()
+    }
+}
+
+// 实现 UnwrapVec trait，用于 Vec<i32> 类型（如果不嵌套，直接返回）
+impl<T> UnwrapVec<T> for Vec<T> {
+    #[inline]
+    fn unwrap_vec(self) -> Vec<T> {
+        self
+    }
+}
+
 //我真不想写了，用宏生成算了
 macro_rules! define_get_record {
     ($fn_name:ident, $dns_type:expr, $output_type:ty) => {
@@ -125,17 +147,41 @@ macro_rules! define_get_record {
             impl QueryResult {
                 #[inline]
                 pub fn [<get_ $fn_name _record>](&self) -> Option<$output_type> {
-                    self.0
-                        .get_result()
-                        .as_ref()
-                        .and_then(|res| res.get_record(DnsTypeNum::$dns_type))  // 获取指定类型的 DNS 记录
-                        .and_then(|record| {
-                            if let RecordDataType::$dns_type(v) = record {
-                                v.get_general_output()
+                    if let Some(res) = self.0.get_result() {
+                        res.answer.iter().find_map(|rec| {
+                            if let RecordDataType::$dns_type(v) = &rec.data {
+                                Some(v.get_general_output()?)
                             } else {
                                 None
                             }
-                    })
+                        })
+                    } else {
+                        None
+                    }
+                }
+
+                #[inline]
+                pub fn [<get_ $fn_name _record_all>](&self) -> Vec<$output_type> {
+                    if let Some(v) = self.[<get_ $fn_name _record_iter>]() {
+                        v.collect()
+                    } else {
+                        Default::default()
+                    }
+                }
+
+                #[inline]
+                pub fn [<get_ $fn_name _record_iter>](&self) -> Option<FilterMap<Iter<crate::dns::types::parts::Record>, fn(&crate::dns::types::parts::Record) -> Option<$output_type>>>  {
+                    if let Some(res) = self.0.get_result() {
+                        Some(res.answer.iter().filter_map(|rec| {
+                            if let RecordDataType::$dns_type(v) = &rec.data {
+                                Some(v.get_general_output()?)
+                            } else {
+                                None
+                            }})
+                        )
+                    } else {
+                        None
+                    }
                 }
             }
 
@@ -151,10 +197,12 @@ macro_rules! define_get_record {
 
 // the last attribute is func output type
 define_get_record!(a, A, std::net::Ipv4Addr);
-define_get_record!(aaaa, AAAA, std::net::Ipv6Addr);
+define_get_record!(ns, NS, String);
 define_get_record!(cname, CNAME, String);
 define_get_record!(soa, SOA, SOA);
-define_get_record!(ns, NS, String);
+define_get_record!(txt, TXT, Vec<String>);
+define_get_record!(aaaa, AAAA, std::net::Ipv6Addr);
+// todo
 
 #[cfg(feature = "fmt")]
 impl std::fmt::Display for QueryResult {
@@ -172,7 +220,7 @@ impl std::fmt::Display for QueryResult {
 }
 
 impl From<Option<Response>> for QueryResult {
-    fn from(value: Option<Response>) -> Self {
+    fn from(value: Option<Response>) -> QueryResult {
         QueryResult(ErrorAndOption::from_result(value))
     }
 }
@@ -188,6 +236,8 @@ impl From<ErrorVec> for QueryResult {
 mod tests {
     #[cfg(feature = "logger")]
     use crate::dns::error::init_logger;
+    #[cfg(feature = "logger")]
+    use crate::dns::error::set_println_enabled;
     use crate::dns::resolver::Resolver;
 
     #[test]
@@ -258,13 +308,51 @@ mod tests {
     }
 
     #[test]
+    fn test_query_txt() {
+        #[cfg(feature = "logger")]
+        init_logger();
+        let server = vec!["9.9.9.9".to_string()];
+        let resolver = Resolver::new(server).unwrap();
+        let result = resolver.query_txt("fs.gloryouth.com".to_string());
+        if let Some(answer) = result.get_txt_record() {
+            #[cfg(feature = "fmt")]
+            println!("{:?}", answer);
+            #[cfg(not(feature = "fmt"))]
+            println!("{:?}", result);
+        } else {
+            println!("No TXT record");
+            #[cfg(feature = "fmt")]
+            println!("{}", result);
+        }
+    }
+
+    #[test]
     #[cfg(feature = "fmt")]
     fn test_fmt() {
         #[cfg(feature = "logger")]
         init_logger();
+        #[cfg(feature = "logger")]
+        set_println_enabled(true);
         let server = vec!["223.5.5.5".to_string()];
         let resolver = Resolver::new(server).unwrap();
-        let result = resolver.query_ns(".".to_string());
+        let result = resolver.query_txt("fs.gloryouth.com".to_string());
         println!("{}", result);
+    }
+
+    #[test]
+    fn test_special() {
+        #[cfg(feature = "logger")]
+        init_logger();
+        let server = vec!["9.9.9.9".to_string()];
+        let resolver = Resolver::new(server).unwrap();
+        let result = resolver.query_txt("gloryouth.com".to_string());
+        println!(
+            "{:?}",
+            result
+                .get_txt_record_iter()
+                .unwrap()
+                .flatten()
+                .collect::<Vec<String>>()
+        );
     }
 }
