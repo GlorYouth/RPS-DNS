@@ -157,15 +157,31 @@ impl Response {
         })
     }
 
-    pub fn get_record(&self, rtype: u16) -> Option<RecordDataType> {
-        let predicate: fn(&RecordDataType) -> bool = match rtype {
-            DnsTypeNum::A => |data| matches!(data, RecordDataType::A(_)),
-            DnsTypeNum::NS => |data| matches!(data, RecordDataType::NS(_)),
-            DnsTypeNum::CNAME => |data| matches!(data, RecordDataType::CNAME(_)),
-            DnsTypeNum::SOA => |data| matches!(data, RecordDataType::SOA(_)),
-            DnsTypeNum::AAAA => |data| matches!(data, RecordDataType::AAAA(_)),
-            _ => return None,
-        };
+    pub fn get_record(&self, _rtype: u16) -> Option<RecordDataType> {
+
+        macro_rules! match_rtype {
+            { $($field:ident),* } => {
+                // Define a match block. This expands to:
+
+                //match rtype {
+                //     DnsTypeNum::A => |data| matches!(data, RecordDataType::A(_)),
+                //     DnsTypeNum::NS => |data| matches!(data, RecordDataType::NS(_)),
+                //     DnsTypeNum::CNAME => |data| matches!(data, RecordDataType::CNAME(_)),
+                //     DnsTypeNum::SOA => |data| matches!(data, RecordDataType::SOA(_)),
+                //     DnsTypeNum::AAAA => |data| matches!(data, RecordDataType::AAAA(_)),
+                //     _ => return None,
+                // }
+                //
+
+                match _rtype {
+                    $(
+                        DnsTypeNum::$field => |data| matches!(data, RecordDataType::$field(_)),
+                    )*
+                    _ => return None,
+                }
+            }
+        }
+        let predicate: fn(&RecordDataType) -> bool = match_rtype!{A,NS,CNAME,SOA,AAAA};
 
         // todo
 
