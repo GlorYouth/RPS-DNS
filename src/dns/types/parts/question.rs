@@ -3,9 +3,9 @@
 #[cfg(feature = "fmt")]
 use crate::dns::types::base::DnsType;
 
-use crate::dns::types::RawDomain;
 #[cfg(feature = "fmt")]
 use crate::dns::types::base::DnsClass;
+use crate::dns::types::base::RawDomain;
 use crate::dns::utils::SliceReader;
 use log::trace;
 #[cfg(feature = "fmt")]

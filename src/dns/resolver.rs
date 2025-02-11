@@ -1,23 +1,18 @@
 #![cfg_attr(debug_assertions, allow(unused_variables, dead_code))]
 
-use crate::dns::types::RawDomain;
-use crate::dns::types::parts::RecordDataType;
-use crate::dns::types::parts::{Response, Request};
-use crate::dns::types::base::record::SOA;
 #[cfg(feature = "result_error")]
 use crate::dns::error::Error;
 use crate::dns::error::ErrorAndOption;
 use crate::dns::net::NetQuery;
 #[cfg(feature = "result_error")]
 use crate::dns::net::NetQueryError;
+use crate::dns::types::base::{DnsTypeNum, RawDomain, record::SOA};
+use crate::dns::types::parts::{RecordDataType, Request, Response};
 use crate::dns::utils::ServerType;
-use crate::dns::types::base::DnsTypeNum;
 #[cfg(feature = "logger")]
 use log::debug;
 use paste::paste;
 use smallvec::SmallVec;
-#[cfg(feature = "fmt")]
-use std::fmt::Display;
 use std::net::{AddrParseError, TcpStream, UdpSocket};
 use std::rc::Rc;
 
@@ -154,7 +149,6 @@ macro_rules! define_get_record {
     };
 }
 
-
 // the last attribute is func output type
 define_get_record!(a, A, addr, addr.get_index(), std::net::Ipv4Addr);
 define_get_record!(aaaa, AAAA, addr, addr.get_index(), std::net::Ipv6Addr);
@@ -163,10 +157,10 @@ define_get_record!(soa, SOA, soa, soa, SOA);
 define_get_record!(ns, NS, str, str.get_index().to_string(), String);
 
 #[cfg(feature = "fmt")]
-impl Display for QueryResult {
+impl std::fmt::Display for QueryResult {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if let Some(res) = &self.0.get_result() {
-            Display::fmt(&res, f)?;
+            std::fmt::Display::fmt(&res, f)?;
         } else {
             #[cfg(feature = "result_error")]
             for e in self.0.get_error().iter() {

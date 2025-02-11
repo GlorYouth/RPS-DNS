@@ -1,6 +1,6 @@
-use std::rc::Rc;
+use crate::dns::types::base::RawDomain;
 use crate::dns::utils::SliceReader;
-use crate::dns::types::RawDomain;
+use std::rc::Rc;
 
 #[derive(Clone, Debug)]
 pub struct NS(Rc<RawDomain>);
@@ -10,7 +10,7 @@ impl NS {
     pub fn new(v: Rc<RawDomain>) -> Self {
         Self(v)
     }
-    
+
     #[inline]
     pub fn get_index(&self) -> Rc<RawDomain> {
         self.0.clone()
@@ -36,7 +36,7 @@ impl CNAME {
     pub fn new(v: Rc<RawDomain>) -> Self {
         Self(v)
     }
-    
+
     #[inline]
     pub fn get_index(&self) -> Rc<RawDomain> {
         self.0.clone()

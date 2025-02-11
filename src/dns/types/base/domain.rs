@@ -186,8 +186,17 @@ impl RawDomain {
 
     #[cfg(feature = "fmt")]
     #[inline]
-    pub fn fmt_with_suffix(&self, f: &mut std::fmt::Formatter, _indent: &str, type_str: &str) -> std::fmt::Result {
-        writeln!(f, "{_indent}{type_str}: {}", self.to_string().unwrap_or("???".into()))
+    pub fn fmt_with_suffix(
+        &self,
+        f: &mut std::fmt::Formatter,
+        _indent: &str,
+        type_str: &str,
+    ) -> std::fmt::Result {
+        writeln!(
+            f,
+            "{_indent}{type_str}: {}",
+            self.to_string().unwrap_or("???".into())
+        )
     }
 }
 

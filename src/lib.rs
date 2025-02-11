@@ -1,6 +1,5 @@
 pub mod bench_func;
-mod dns;
+pub mod dns;
 
 #[allow(unused_imports)]
 pub use bench_func::*;
-pub use dns::*;

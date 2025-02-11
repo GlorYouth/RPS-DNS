@@ -1,9 +1,9 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
-use crate::dns::types::base::{DnsTypeNum,RawDomain};
-#[cfg(feature = "fmt")]
-use crate::dns::types::base::{DnsClass,DnsTTL};
 use crate::dns::types::base::record::{A, AAAA, CNAME, NS, SOA};
+#[cfg(feature = "fmt")]
+use crate::dns::types::base::{DnsClass, DnsTTL};
+use crate::dns::types::base::{DnsTypeNum, RawDomain};
 use crate::dns::utils::SliceReader;
 #[cfg(feature = "logger")]
 use log::{debug, trace};
@@ -71,8 +71,8 @@ impl Record {
                 //          return None;
                 //      }
                 // }
-                // 
-                
+                //
+
                 match rtype {
                     $(
                         DnsTypeNum::$field => RecordDataType::$field($field::from_reader_with_size(reader, data_len_usize)?),
@@ -86,7 +86,7 @@ impl Record {
             }
         }
 
-        let data = match_rtype!{A,NS,CNAME,SOA,AAAA};
+        let data = match_rtype! {A,NS,CNAME,SOA,AAAA};
 
         // todo
 
@@ -138,7 +138,6 @@ impl Display for Record {
         writeln!(f, "\t\tTTL: {} ({})", self.ttl, DnsTTL::get_str(self.ttl))?;
         writeln!(f, "\t\tData length: {}", self.data_len)?;
 
-
         macro_rules! match_data {
             { $($field:ident),* } => {
                 // Define a match block. This expands to:
@@ -150,7 +149,7 @@ impl Display for Record {
                 //      RecordDataType::SOA(v) => v.fmt_with_suffix(f, "\t\t"),
                 //      RecordDataType::AAAA(v) => v.fmt_with_suffix(f, "\t\t"),
                 // }
-                
+
                 match &self.data {
                     $(
                         RecordDataType::$field(v) => v.fmt_with_suffix(f, "\t\t"),
@@ -158,7 +157,7 @@ impl Display for Record {
                 }
             }
         }
-        
+
         match_data! {A,NS,CNAME,SOA,AAAA}
     }
 }

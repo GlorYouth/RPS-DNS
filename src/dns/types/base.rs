@@ -4,7 +4,7 @@ mod domain;
 mod fmt;
 pub mod record;
 
-pub use dns_type::*;
-pub use domain::*;
+pub use dns_type::{DnsType, DnsTypeNum};
+pub use domain::RawDomain;
 #[cfg(feature = "fmt")]
-pub use fmt::*;
+pub use fmt::{DnsClass, DnsTTL};

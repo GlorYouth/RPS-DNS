@@ -1,6 +1,6 @@
-use crate::dns::types::RawDomain;
 #[cfg(feature = "fmt")]
 use crate::dns::types::base::DnsTTL;
+use crate::dns::types::base::RawDomain;
 use crate::dns::utils::SliceReader;
 #[cfg(feature = "fmt")]
 use std::fmt::{Display, Formatter};
@@ -40,7 +40,7 @@ impl SOA {
     }
 
     #[cfg(feature = "fmt")]
-    pub fn fmt_with_suffix(&self, f: &mut Formatter, _indent: &str,) -> std::fmt::Result {
+    pub fn fmt_with_suffix(&self, f: &mut Formatter, _indent: &str) -> std::fmt::Result {
         macro_rules! write_field {
             ($label:expr, $($arg:expr),*) => {
                 write!(f, "{_indent}")?;
