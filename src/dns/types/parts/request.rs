@@ -93,7 +93,7 @@ impl Display for Request {
 
 #[cfg(test)]
 mod tests {
-    use crate::dns::Request;
+    use crate::dns::types::parts::Request;
     use crate::dns::types::base::{DnsTypeNum, RawDomain};
     use std::rc::Rc;
 

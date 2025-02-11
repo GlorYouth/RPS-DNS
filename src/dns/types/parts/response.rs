@@ -1,14 +1,14 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
 #[cfg(feature = "fmt")]
-use crate::dns::RecordFmtType;
-use crate::dns::Request;
+use crate::dns::types::parts::{RecordFmtType};
+use crate::dns::types::parts::Request;
 use crate::dns::types::parts::header::{HEADER_SIZE, ResponseHeader};
 use crate::dns::types::parts::question::Question;
 use crate::dns::types::parts::record::{Record, RecordDataType};
 use crate::dns::utils::SliceReader;
 
-use crate::dns::DnsTypeNum;
+use crate::dns::types::DnsTypeNum;
 #[cfg(feature = "logger")]
 use log::{debug, trace};
 use smallvec::SmallVec;

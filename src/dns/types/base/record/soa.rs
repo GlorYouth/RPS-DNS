@@ -1,4 +1,4 @@
-use crate::dns::RawDomain;
+use crate::dns::types::RawDomain;
 #[cfg(feature = "fmt")]
 use crate::dns::types::base::DnsTTL;
 use crate::dns::utils::SliceReader;
@@ -25,7 +25,7 @@ pub struct SOA {
 }
 
 impl SOA {
-    pub fn from_reader(reader: &mut SliceReader, _raw_len: usize) -> Option<Self> {
+    pub fn from_reader_with_size(reader: &mut SliceReader, _raw_len: usize) -> Option<Self> {
         let primary_name = Rc::new(RawDomain::from_reader(reader)?);
         let rname = Rc::new(RawDomain::from_reader(reader)?);
         Some(Self {
@@ -40,43 +40,35 @@ impl SOA {
     }
 
     #[cfg(feature = "fmt")]
-    pub fn fmt_with_suffix(&self, _f: &mut Formatter, _prefix: &str) -> std::fmt::Result {
+    pub fn fmt_with_suffix(&self, f: &mut Formatter, _indent: &str,) -> std::fmt::Result {
         macro_rules! write_field {
             ($label:expr, $($arg:expr),*) => {
-                write!(_f, "{_prefix}")?;
-                writeln!(_f, $label, $($arg),*)?;
+                write!(f, "{_indent}")?;
+                writeln!(f, $label, $($arg),*)?;
             };
         }
+        writeln!(f, "SOA: ")?;
 
+        write_field!("\tPrimary name server: {}", self.primary_name);
+        write_field!("\tResponsible authority's mailbox: {}", self.rname);
+        write_field!("\tSerial number: {}", self.serial_number);
         write_field!(
-            "Primary name server: {}",
-            self.primary_name
-                .as_ref()
-                .to_string()
-                .unwrap_or("???".to_owned())
-        );
-        write_field!(
-            "Responsible authority's mailbox: {}",
-            self.rname.as_ref().to_string().unwrap_or("???".to_owned())
-        );
-        write_field!("Serial number: {}", self.serial_number);
-        write_field!(
-            "Refresh interval: {} ({})",
+            "\tRefresh interval: {} ({})",
             self.refresh_interval,
             DnsTTL::get_str(self.refresh_interval)
         );
         write_field!(
-            "Retry interval: {} ({})",
+            "\tRetry interval: {} ({})",
             self.retry_interval,
             DnsTTL::get_str(self.retry_interval)
         );
         write_field!(
-            "Expire limit: {} ({})",
+            "\tExpire limit: {} ({})",
             self.expire_limit,
             DnsTTL::get_str(self.expire_limit)
         );
         write_field!(
-            "Minimum ttl: {} ({})",
+            "\tMinimum ttl: {} ({})",
             self.minimum_ttl,
             DnsTTL::get_str(self.minimum_ttl)
         );

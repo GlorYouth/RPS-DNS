@@ -1,4 +1,4 @@
-use crate::dns::{Request, Response};
+use crate::dns::types::parts::{Request, Response};
 #[cfg(feature = "result_error")]
 use std::fmt::{Debug, Display, Formatter};
 use std::io::{Read, Write};

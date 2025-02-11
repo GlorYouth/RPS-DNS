@@ -1,6 +1,6 @@
 #![allow(unused_imports)]
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
-use dns_core::Request;
+use dns_core::types::parts::Request;
 use dns_core::bench_func::*;
 #[cfg(feature = "logger")]
 use dns_core::error::init_logger;

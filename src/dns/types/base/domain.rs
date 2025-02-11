@@ -3,7 +3,7 @@
 use crate::dns::utils::SliceReader;
 #[cfg(feature = "logger")]
 use log::{debug, trace};
-use std::fmt::{Debug, Display, Formatter};
+use std::fmt::{Debug, Display};
 
 #[derive(PartialEq, Debug)]
 pub struct RawDomain {
@@ -183,10 +183,18 @@ impl RawDomain {
         }
         Some(string)
     }
+
+    #[cfg(feature = "fmt")]
+    #[inline]
+    pub fn fmt_with_suffix(&self, f: &mut std::fmt::Formatter, _indent: &str, type_str: &str) -> std::fmt::Result {
+        writeln!(f, "{_indent}{type_str}: {}", self.to_string().unwrap_or("???".into()))
+    }
 }
 
 impl Display for RawDomain {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    #[cfg(feature = "fmt")]
+    #[inline]
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.to_string().unwrap_or("???".into()))
     }
 }

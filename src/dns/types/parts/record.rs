@@ -1,21 +1,14 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
-use crate::dns::DnsTypeNum;
-use crate::dns::RawDomain;
+use crate::dns::types::base::{DnsTypeNum,RawDomain};
 #[cfg(feature = "fmt")]
-use crate::dns::types::base::DnsClass;
-#[cfg(feature = "fmt")]
-use crate::dns::types::base::DnsTTL;
-#[cfg(feature = "fmt")]
-use crate::dns::types::base::DnsType;
-use crate::dns::types::base::SOA;
+use crate::dns::types::base::{DnsClass,DnsTTL};
+use crate::dns::types::base::record::{A, AAAA, CNAME, NS, SOA};
 use crate::dns::utils::SliceReader;
 #[cfg(feature = "logger")]
 use log::{debug, trace};
 #[cfg(feature = "fmt")]
 use std::fmt::Display;
-use std::net::{Ipv4Addr, Ipv6Addr};
-use std::rc::Rc;
 
 #[derive(Debug)]
 pub struct Record {
@@ -62,28 +55,38 @@ impl Record {
             return None;
         }
 
-        let data = match rtype {
-            DnsTypeNum::A => RecordDataType::A(Ipv4Addr::from(
-                <[u8; 4]>::try_from(reader.read_slice(data_len_usize)).unwrap(),
-            )),
-            DnsTypeNum::NS => RecordDataType::NS(Rc::from(RawDomain::from_reader_with_size(
-                reader,
-                data_len_usize,
-            )?)),
-            DnsTypeNum::CNAME => RecordDataType::CNAME(Rc::from(RawDomain::from_reader_with_size(
-                reader,
-                data_len_usize,
-            )?)),
-            DnsTypeNum::SOA => RecordDataType::SOA(SOA::from_reader(reader, data_len_usize)?),
-            DnsTypeNum::AAAA => RecordDataType::AAAA(Ipv6Addr::from(
-                <[u8; 16]>::try_from(reader.read_slice(data_len_usize)).unwrap(),
-            )),
-            _ => {
-                #[cfg(feature = "logger")]
-                trace!("Unsupported Type: {}", rtype);
-                return None;
+        macro_rules! match_rtype {
+            { $($field:ident),* } => {
+                // Define a match block. This expands to:
+
+                //match rtype {
+                //      DnsTypeNum::A => RecordDataType::A(A::from_reader_with_size(reader, data_len_usize)?),
+                //      DnsTypeNum::NS => RecordDataType::NS(NS::from_reader_with_size(reader, data_len_usize)?),
+                //      DnsTypeNum::CNAME => RecordDataType::CNAME(CNAME::from_reader_with_size(reader, data_len_usize)?),
+                //      DnsTypeNum::SOA => RecordDataType::SOA(SOA::from_reader_with_size(reader, data_len_usize)?)
+                //      RecordDataType::AAAA(AAAA::from_reader_with_size(reader, data_len_usize)?)
+                //      _ => {
+                //          #[cfg(feature = "logger")]
+                //          trace!("Unsupported Type: {}", rtype);
+                //          return None;
+                //      }
+                // }
+                // 
+                
+                match rtype {
+                    $(
+                        DnsTypeNum::$field => RecordDataType::$field($field::from_reader_with_size(reader, data_len_usize)?),
+                    )*
+                    _ => {
+                        #[cfg(feature = "logger")]
+                        trace!("Unsupported Type: {}", rtype);
+                        return None;
+                    }
+                }
             }
-        };
+        }
+
+        let data = match_rtype!{A,NS,CNAME,SOA,AAAA};
 
         // todo
 
@@ -113,12 +116,9 @@ impl Record {
 #[cfg(feature = "fmt")]
 impl Display for Record {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-        write!(
-            f,
-            "\t{}: type ",
-            self.name.to_string().unwrap_or("???".to_owned())
-        )?;
-        Display::fmt(&self.data.get_dns_type(), f)?;
+        write!(f, "\t{}: type ", self.name)?;
+        let (type_name, dns_type) = self.data.get_type_info();
+        write!(f, "{}", type_name)?;
         writeln!(
             f,
             ", Class: {} ({:#06X})",
@@ -126,13 +126,7 @@ impl Display for Record {
             self.class
         )?;
 
-        writeln!(
-            f,
-            "\t\tName: {}",
-            self.name.to_string().unwrap_or("???".to_owned())
-        )?;
-
-        let (type_name, dns_type) = self.data.get_type_info();
+        writeln!(f, "\t\tName: {}", self.name)?;
 
         writeln!(f, "\t\tType: {} ({})", type_name, dns_type)?;
         writeln!(
@@ -144,41 +138,34 @@ impl Display for Record {
         writeln!(f, "\t\tTTL: {} ({})", self.ttl, DnsTTL::get_str(self.ttl))?;
         writeln!(f, "\t\tData length: {}", self.data_len)?;
 
-        match &self.data {
-            RecordDataType::A(addr) => writeln!(f, "\t\tA: {}", addr),
-            RecordDataType::NS(_str) => writeln!(f, "\t\tName Server: {}", _str),
-            RecordDataType::CNAME(_str) => writeln!(f, "\t\tCNAME: {}", _str),
-            RecordDataType::SOA(soa) => soa.fmt_with_suffix(f, "\t\t"),
-            RecordDataType::AAAA(addr) => writeln!(f, "\t\tAAAA: {}", addr),
+
+        macro_rules! match_data {
+            { $($field:ident),* } => {
+                // Define a match block. This expands to:
+
+                //match &self.data {
+                //      RecordDataType::A(v) => v.fmt_with_suffix(f, "\t\t"),
+                //      RecordDataType::NS(v) => v.fmt_with_suffix(f, "\t\t"),
+                //      RecordDataType::CNAME(v) => v.fmt_with_suffix(f, "\t\t"),
+                //      RecordDataType::SOA(v) => v.fmt_with_suffix(f, "\t\t"),
+                //      RecordDataType::AAAA(v) => v.fmt_with_suffix(f, "\t\t"),
+                // }
+                
+                match &self.data {
+                    $(
+                        RecordDataType::$field(v) => v.fmt_with_suffix(f, "\t\t"),
+                    )*
+                }
+            }
         }
+        
+        match_data! {A,NS,CNAME,SOA,AAAA}
     }
 }
 
 macro_rules! impl_record {
     { $($field:ident),* } => {
         // Define a func. This expands to:
-
-        // pub fn get_rtype(&self) -> u16 {
-        //     match self {
-        //         RecordDataType::A(_) => DnsTypeNum::A,
-        //         RecordDataType::NS(_) => DnsTypeNum::NS,
-        //         RecordDataType::CNAME(_) => DnsTypeNum::CNAME,
-        //         RecordDataType::SOA(_) => DnsTypeNum::SOA,
-        //         RecordDataType::AAAA(_) => DnsTypeNum::AAAA,
-        //     }
-        // }
-
-        //
-        // #[cfg(feature = "fmt")]
-        // pub fn get_dns_type(&self) -> DnsType {
-        //     match self {
-        //         RecordDataType::A(_) => DnsType::A,
-        //         RecordDataType::NS(_) => DnsType::NS,
-        //         RecordDataType::CNAME(_) => DnsType::CNAME,
-        //         RecordDataType::SOA(_) => DnsType::SOA,
-        //         RecordDataType::AAAA(_) => DnsType::AAAA,
-        //     }
-        // }
 
         //impl RecordDataType {
         //     fn get_type_info(&self) -> (&'static str, u16) {
@@ -192,22 +179,6 @@ macro_rules! impl_record {
         //     }
         // }
         impl RecordDataType {
-            pub fn get_rtype(&self) -> u16 {
-                match self {
-                    $(
-                        RecordDataType::$field(_) => DnsTypeNum::$field,
-                    )*
-                }
-            }
-
-            #[cfg(feature = "fmt")]
-            pub fn get_dns_type(&self) -> DnsType {
-                match self {
-                    $(
-                        RecordDataType::$field(_) => DnsType::$field,
-                    )*
-                }
-            }
 
             #[cfg(feature = "fmt")]
             pub fn get_type_info(&self) -> (&'static str, u16) {
@@ -231,11 +202,11 @@ pub enum RecordFmtType {
 
 #[derive(Debug, Clone)]
 pub enum RecordDataType {
-    A(Ipv4Addr),
-    NS(Rc<RawDomain>),
-    CNAME(Rc<RawDomain>),
+    A(A),
+    NS(NS),
+    CNAME(CNAME),
     SOA(SOA),
-    AAAA(Ipv6Addr),
+    AAAA(AAAA),
 }
 
 impl_record! {A,NS,CNAME,SOA,AAAA}

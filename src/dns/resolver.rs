@@ -1,9 +1,9 @@
 #![cfg_attr(debug_assertions, allow(unused_variables, dead_code))]
 
-use crate::dns::RawDomain;
-use crate::dns::RecordDataType;
-use crate::dns::Response;
-use crate::dns::SOA;
+use crate::dns::types::RawDomain;
+use crate::dns::types::parts::RecordDataType;
+use crate::dns::types::parts::{Response, Request};
+use crate::dns::types::base::record::SOA;
 #[cfg(feature = "result_error")]
 use crate::dns::error::Error;
 use crate::dns::error::ErrorAndOption;
@@ -11,14 +11,14 @@ use crate::dns::net::NetQuery;
 #[cfg(feature = "result_error")]
 use crate::dns::net::NetQueryError;
 use crate::dns::utils::ServerType;
-use crate::dns::{DnsTypeNum, Request};
+use crate::dns::types::base::DnsTypeNum;
 #[cfg(feature = "logger")]
 use log::debug;
 use paste::paste;
 use smallvec::SmallVec;
 #[cfg(feature = "fmt")]
 use std::fmt::Display;
-use std::net::{AddrParseError, Ipv4Addr, Ipv6Addr, TcpStream, UdpSocket};
+use std::net::{AddrParseError, TcpStream, UdpSocket};
 use std::rc::Rc;
 
 pub struct Resolver {
@@ -154,12 +154,13 @@ macro_rules! define_get_record {
     };
 }
 
+
 // the last attribute is func output type
-define_get_record!(a, A, addr, addr, Ipv4Addr);
-define_get_record!(aaaa, AAAA, addr, addr, Ipv6Addr);
-define_get_record!(cname, CNAME, str, str.to_string(), String);
+define_get_record!(a, A, addr, addr.get_index(), std::net::Ipv4Addr);
+define_get_record!(aaaa, AAAA, addr, addr.get_index(), std::net::Ipv6Addr);
+define_get_record!(cname, CNAME, str, str.get_index().to_string(), String);
 define_get_record!(soa, SOA, soa, soa, SOA);
-define_get_record!(ns, NS, str, str.to_string(), String);
+define_get_record!(ns, NS, str, str.get_index().to_string(), String);
 
 #[cfg(feature = "fmt")]
 impl Display for QueryResult {

@@ -1,7 +1,6 @@
 pub mod error;
 mod net;
 mod resolver;
-mod types;
-mod utils;
+pub mod types;
+pub mod utils;
 
-pub use types::*;
