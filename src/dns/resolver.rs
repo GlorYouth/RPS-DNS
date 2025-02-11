@@ -120,7 +120,7 @@ pub struct QueryResult(ErrorAndOption<Response>);
 
 //我真不想写了，用宏生成算了
 macro_rules! define_get_record {
-    ($fn_name:ident, $dns_type:expr, $result:ident, $result_expr:expr, $output_type:ty) => {
+    ($fn_name:ident, $dns_type:expr, $output_type:ty) => {
         paste! {
             impl QueryResult {
                 #[inline]
@@ -130,8 +130,8 @@ macro_rules! define_get_record {
                         .as_ref()
                         .and_then(|res| res.get_record(DnsTypeNum::$dns_type))  // 获取指定类型的 DNS 记录
                         .and_then(|record| {
-                            if let RecordDataType::$dns_type($result) = record {
-                                Some($result_expr)
+                            if let RecordDataType::$dns_type(v) = record {
+                                v.get_general_output()
                             } else {
                                 None
                             }
@@ -150,17 +150,11 @@ macro_rules! define_get_record {
 }
 
 // the last attribute is func output type
-define_get_record!(a, A, addr, addr.get_index(), std::net::Ipv4Addr);
-define_get_record!(aaaa, AAAA, addr, addr.get_index(), std::net::Ipv6Addr);
-define_get_record!(
-    cname,
-    CNAME,
-    str,
-    str.get_index().as_ref().to_string()?,
-    String
-);
-define_get_record!(soa, SOA, soa, soa, SOA);
-define_get_record!(ns, NS, str, str.get_index().as_ref().to_string()?, String);
+define_get_record!(a, A, std::net::Ipv4Addr);
+define_get_record!(aaaa, AAAA, std::net::Ipv6Addr);
+define_get_record!(cname, CNAME, String);
+define_get_record!(soa, SOA, SOA);
+define_get_record!(ns, NS, String);
 
 #[cfg(feature = "fmt")]
 impl std::fmt::Display for QueryResult {

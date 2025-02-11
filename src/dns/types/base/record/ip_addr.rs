@@ -9,6 +9,11 @@ impl A {
         self.0
     }
 
+    #[inline]
+    pub fn get_general_output(&self) -> Option<std::net::Ipv4Addr> {
+        Some(self.0)
+    }
+
     #[cfg(feature = "fmt")]
     #[inline]
     pub fn fmt_with_suffix(&self, f: &mut std::fmt::Formatter, _indent: &str) -> std::fmt::Result {
@@ -30,6 +35,11 @@ impl AAAA {
     #[inline]
     pub fn get_index(&self) -> std::net::Ipv6Addr {
         self.0
+    }
+
+    #[inline]
+    pub fn get_general_output(&self) -> Option<std::net::Ipv6Addr> {
+        Some(self.0)
     }
 
     #[cfg(feature = "fmt")]

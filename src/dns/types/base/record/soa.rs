@@ -26,6 +26,11 @@ pub struct SOA {
 }
 
 impl SOA {
+    #[inline]
+    pub fn get_general_output(&self) -> Option<SOA> {
+        Some(self.clone())
+    }
+
     pub fn from_reader_with_size(reader: &mut SliceReader, _raw_len: usize) -> Option<Self> {
         let primary_name = Rc::new(RawDomain::from_reader(reader)?);
         let rname = Rc::new(RawDomain::from_reader(reader)?);

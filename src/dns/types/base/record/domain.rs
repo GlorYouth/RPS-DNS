@@ -11,6 +11,11 @@ impl NS {
         self.0.clone()
     }
 
+    #[inline]
+    pub fn get_general_output(&self) -> Option<String> {
+        self.0.as_ref().to_string()
+    }
+
     #[cfg(feature = "fmt")]
     #[inline]
     pub fn fmt_with_suffix(&self, f: &mut std::fmt::Formatter, _indent: &str) -> std::fmt::Result {
@@ -30,6 +35,11 @@ impl CNAME {
     #[inline]
     pub fn get_index(&self) -> Rc<RawDomain> {
         self.0.clone()
+    }
+
+    #[inline]
+    pub fn get_general_output(&self) -> Option<String> {
+        self.0.as_ref().to_string()
     }
 
     #[cfg(feature = "fmt")]
