@@ -6,10 +6,6 @@ use std::rc::Rc;
 pub struct NS(Rc<RawDomain>);
 
 impl NS {
-    #[inline]
-    pub fn new(v: Rc<RawDomain>) -> Self {
-        Self(v)
-    }
 
     #[inline]
     pub fn get_index(&self) -> Rc<RawDomain> {
@@ -32,11 +28,6 @@ impl NS {
 pub struct CNAME(Rc<RawDomain>);
 
 impl CNAME {
-    #[inline]
-    pub fn new(v: Rc<RawDomain>) -> Self {
-        Self(v)
-    }
-
     #[inline]
     pub fn get_index(&self) -> Rc<RawDomain> {
         self.0.clone()
