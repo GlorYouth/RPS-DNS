@@ -22,6 +22,12 @@ pub struct Resolver {
     server: SmallVec<[ServerType; 5]>,
 }
 
+
+pub struct ResolveConfig {
+    pub server: Vec<String>,
+    pub target: String,
+}
+
 impl Resolver {
     pub fn new(mut server: Vec<String>) -> Result<Resolver, AddrParseError> {
         let vec = server
@@ -116,61 +122,53 @@ type ErrorVec = SmallVec<[Error; 3]>;
 #[derive(Debug)]
 pub struct QueryResult(ErrorAndOption<Response, ErrorVec>);
 
+impl QueryResult {
+    #[inline]
+    pub fn get_result(&self) -> &Option<Response> {
+        self.0.get_result()
+    }
+
+    #[inline]
+    pub fn into_result(self) -> Option<Response> {
+        
+        self.0.into_result()
+    }
+}
+
 #[cfg(not(feature = "result_error"))]
 #[derive(Debug)]
 pub struct QueryResult(ErrorAndOption<Response>);
 
-trait UnwrapVec<T> {
-    fn unwrap_vec(self) -> Vec<T>;
+macro_rules! query_result_map {
+    (A) => { std::net::Ipv4Addr };
+    (NS) => { std::string::String };
+    (CNAME) => { std::string::String };
+    (SOA) => { $crate::dns::types::base::record::SOA };
+    (TXT) => { Vec<String> };
+    (AAAA) => { std::net::Ipv6Addr }
 }
 
-impl<T> UnwrapVec<T> for Vec<Vec<T>> {
-    #[inline]
-    fn unwrap_vec(self) -> Vec<T> {
-        // 展开嵌套 Vec
-        self.into_iter().flatten().collect()
-    }
-}
-
-// 实现 UnwrapVec trait，用于 Vec<i32> 类型（如果不嵌套，直接返回）
-impl<T> UnwrapVec<T> for Vec<T> {
-    #[inline]
-    fn unwrap_vec(self) -> Vec<T> {
-        self
-    }
-}
+// todo
 
 //我真不想写了，用宏生成算了
 macro_rules! define_get_record {
-    ($fn_name:ident, $dns_type:expr, $output_type:ty) => {
+    ($fn_name:ident, $dns_type:expr) => {
         paste! {
             impl QueryResult {
                 #[inline]
-                pub fn [<get_ $fn_name _record>](&self) -> Option<$output_type> {
-                    if let Some(res) = self.0.get_result() {
-                        res.answer.iter().find_map(|rec| {
-                            if let RecordDataType::$dns_type(v) = &rec.data {
-                                Some(v.get_general_output()?)
-                            } else {
-                                None
-                            }
-                        })
-                    } else {
-                        None
-                    }
+                pub fn [<get_ $fn_name _record>](&self) -> Option<query_result_map!($dns_type)> {
+                    let response = self.0.get_result().as_ref()?;
+                    response.answer.iter().find_map(|rec| {
+                        if let RecordDataType::$dns_type(v) = &rec.data {
+                            Some(v.get_general_output()?)
+                        } else {
+                            None
+                        }
+                    })
                 }
 
                 #[inline]
-                pub fn [<get_ $fn_name _record_all>](&self) -> Vec<$output_type> {
-                    if let Some(v) = self.[<get_ $fn_name _record_iter>]() {
-                        v.collect()
-                    } else {
-                        Default::default()
-                    }
-                }
-
-                #[inline]
-                pub fn [<get_ $fn_name _record_iter>](&self) -> Option<FilterMap<Iter<crate::dns::types::parts::Record>, fn(&crate::dns::types::parts::Record) -> Option<$output_type>>>  {
+                pub fn [<get_ $fn_name _record_iter>](&self) -> Option<FilterMap<Iter<crate::dns::types::parts::Record>, fn(&crate::dns::types::parts::Record) -> Option<query_result_map!($dns_type)>>>  {
                     if let Some(res) = self.0.get_result() {
                         Some(res.answer.iter().filter_map(|rec| {
                             if let RecordDataType::$dns_type(v) = &rec.data {
@@ -195,14 +193,87 @@ macro_rules! define_get_record {
     };
 }
 
+
+
 // the last attribute is func output type
-define_get_record!(a, A, std::net::Ipv4Addr);
-define_get_record!(ns, NS, String);
-define_get_record!(cname, CNAME, String);
-define_get_record!(soa, SOA, SOA);
-define_get_record!(txt, TXT, Vec<String>);
-define_get_record!(aaaa, AAAA, std::net::Ipv6Addr);
+define_get_record!(a, A);
+define_get_record!(ns, NS);
+define_get_record!(cname, CNAME);
+define_get_record!(soa, SOA);
+define_get_record!(txt, TXT);
+define_get_record!(aaaa, AAAA);
 // todo
+
+
+
+
+#[macro_export]
+macro_rules! query {
+    ($record_type:ident,$(@$config:ident $server:expr),*) => {
+        || -> Option<query_result_map!($record_type)> {
+            let config = $crate::dns::resolver::ResolveConfig {
+                $(
+                    $config: $server,
+                )*
+            };
+            let resolver = $crate::dns::resolver::Resolver::new(config.server).ok()?;
+            let result = resolver.query(config.target,$crate::dns::types::base::DnsTypeNum::$record_type);
+            let response = result.get_result().as_ref()?;
+            response.answer.iter().find_map(|rec| {
+                if let $crate::dns::types::parts::RecordDataType::$record_type(v) = &rec.data {
+                    Some(v.get_general_output()?)
+                } else {
+                    None
+                }
+            })
+        }()
+    };
+    ($record_type:ident,all,$(@$config:ident $server:expr),*) => {
+        || -> Vec<query_result_map!($record_type)> {
+            let config = $crate::dns::resolver::ResolveConfig {
+                $(
+                    $config: $server,
+                )*
+            };
+            if let Ok(resolver) = $crate::dns::resolver::Resolver::new(config.server) {
+                let result = resolver.query(config.target,$crate::dns::types::base::DnsTypeNum::$record_type);
+                if let Some(res) = result.into_result() {
+                    res.answer.into_iter().filter_map(|rec| { 
+                        if let $crate::dns::types::parts::RecordDataType::$record_type(v) = rec.data {
+                            Some(v.get_general_output()?)
+                        } else {
+                            None
+                        }
+                    }).collect()
+                } else {
+                    Vec::new()
+                }
+            } else {
+                Vec::new()
+            }
+
+        }()
+    };
+    ($record_type:ident,into_iter,$(@$config:ident $server:expr),*) => {
+        || -> Option<std::iter::FilterMap<std::vec::IntoIter<$crate::dns::types::parts::Record>, fn($crate::dns::types::parts::Record) -> Option<query_result_map!($record_type)>>> {
+            let config = $crate::dns::resolver::ResolveConfig {
+                $(
+                    $config: $server,
+                )*
+            };
+            let resolver = $crate::dns::resolver::Resolver::new(config.server).ok()?;
+            let result = resolver.query(config.target,$crate::dns::types::base::DnsTypeNum::$record_type);
+            let res = result.into_result()?;
+            Some(res.answer.into_iter().filter_map(|rec| {
+                if let $crate::dns::types::parts::RecordDataType::$record_type(v) = rec.data {
+                    Some(v.get_general_output()?)
+                } else {
+                    None
+                }
+            }))
+        }()
+    };
+}
 
 #[cfg(feature = "fmt")]
 impl std::fmt::Display for QueryResult {
@@ -354,5 +425,17 @@ mod tests {
                 .flatten()
                 .collect::<Vec<String>>()
         );
+    }
+
+    #[test]
+    fn test_query() {
+        let server = vec!["9.9.9.9".to_string()];
+        let result = query! {
+            A,
+            into_iter,
+            @target "www.baidu.com".to_string(),
+            @server server
+        };
+        println!("{:?}", result.unwrap().next());
     }
 }

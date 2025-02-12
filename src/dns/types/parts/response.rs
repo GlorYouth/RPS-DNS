@@ -5,7 +5,7 @@ use crate::dns::types::parts::RecordFmtType;
 use crate::dns::types::parts::Request;
 use crate::dns::types::parts::header::{HEADER_SIZE, ResponseHeader};
 use crate::dns::types::parts::question::Question;
-use crate::dns::types::parts::record::{Record};
+use crate::dns::types::parts::record::Record;
 use crate::dns::utils::SliceReader;
 
 #[cfg(feature = "logger")]

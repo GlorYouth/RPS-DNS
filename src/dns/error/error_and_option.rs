@@ -33,6 +33,10 @@ impl<T, E: Default> ErrorAndOption<T, E> {
         &self.result
     }
 
+    pub fn into_result(self) -> Option<T> {
+        self.result
+    }
+
     #[cfg(feature = "result_error")]
     pub fn get_error(&self) -> &E {
         &self.error
