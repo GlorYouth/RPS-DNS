@@ -13,6 +13,8 @@ use log::{debug, trace};
 use smallvec::SmallVec;
 #[cfg(feature = "fmt")]
 use std::fmt::Display;
+#[cfg(feature = "result_error")]
+use crate::dns::error::error_trait;
 
 #[derive(Debug)]
 pub struct Response {
@@ -20,6 +22,9 @@ pub struct Response {
     pub question: SmallVec<[Question; 1]>,
     pub answer: Vec<Record>,
 }
+
+#[cfg(feature = "result_error")]
+impl error_trait::A for Response {}
 
 impl Response {
     #[inline]

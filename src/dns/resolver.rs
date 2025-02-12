@@ -1,12 +1,12 @@
 #![cfg_attr(debug_assertions, allow(unused_variables, dead_code))]
 
 #[cfg(feature = "result_error")]
-use crate::dns::error::Error;
-use crate::dns::error::ErrorAndOption;
+use crate::dns::error::{NetError,error_trait};
+use crate::dns::error::ResultAndError;
 use crate::dns::net::NetQuery;
 #[cfg(feature = "result_error")]
 use crate::dns::net::NetQueryError;
-use crate::dns::types::base::{DnsTypeNum, RawDomain, record::SOA};
+use crate::dns::types::base::{DnsTypeNum, RawDomain};
 use crate::dns::types::parts::{RecordDataType, Request, Response};
 use crate::dns::utils::ServerType;
 #[cfg(feature = "logger")]
@@ -14,22 +14,73 @@ use log::debug;
 use paste::paste;
 use smallvec::SmallVec;
 use std::iter::FilterMap;
-use std::net::{AddrParseError, TcpStream, UdpSocket};
-use std::rc::Rc;
+
 use std::slice::Iter;
 
 pub struct Resolver {
     server: SmallVec<[ServerType; 5]>,
 }
 
-
 pub struct ResolveConfig {
     pub server: Vec<String>,
     pub target: String,
 }
 
+
+#[derive(Debug)]
+#[cfg(feature = "result_error")]
+pub enum ResolverQueryError {
+    TargetParseError(String),
+    NetError(Vec<NetError>),
+}
+
+#[cfg(feature = "result_error")]
+impl std::fmt::Display for ResolverQueryError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ResolverQueryError::TargetParseError(str) => {
+                write!(f, "{}", str)
+            }
+            ResolverQueryError::NetError(vec) => {
+                for e in vec {
+                    std::fmt::Display::fmt(e, f)?;
+                }
+                Ok(())
+            }
+        }
+    }
+}
+
+// 没什么营养的东西
+#[cfg(feature = "result_error")]
+fn convert_err(value: NetQueryError, suffix: &str) -> NetError{
+    match value {
+        NetQueryError::ConnectTcpAddrError(str) => {
+            NetError::ConnectTcpAddrError(format!("{} {}", suffix, &str))
+        }
+        NetQueryError::UdpNotConnected(str) => {
+            NetError::UdpNotConnected(format!("{} {}", suffix, &str))
+        }
+        NetQueryError::UdpPacketSendError(str) => {
+            NetError::SendUdpPacketError(format!("{} {}", suffix, &str))
+        }
+        NetQueryError::RecvUdpPacketError(str) => {
+            NetError::RecvUdpPacketError(format!("{} {}", suffix, &str))
+        }
+        NetQueryError::RecvTcpPacketError(str) => {
+            NetError::RecvTcpPacketError(format!("{} {}", suffix, &str))
+        }
+        NetQueryError::WriteTcpConnectError(str) => {
+            NetError::WriteTcpConnectError(format!("{} {}", suffix, &str))
+        }
+    }
+}
+#[cfg(feature = "result_error")]
+impl error_trait::B for ResolverQueryError {}
+
+
 impl Resolver {
-    pub fn new(mut server: Vec<String>) -> Result<Resolver, AddrParseError> {
+    pub fn new(mut server: Vec<String>) -> Result<Resolver, std::net::AddrParseError> {
         let vec = server
             .iter_mut()
             .try_fold(SmallVec::new(), |mut vec, str| {
@@ -41,21 +92,21 @@ impl Resolver {
 
     fn query(&self, domain: String, qtype: u16) -> QueryResult {
         #[cfg(feature = "result_error")]
-        let mut error_vec = SmallVec::new();
+        let mut error_vec = Vec::new();
         if let Some(domain) = RawDomain::from_str(domain.as_str()) {
-            let domain = Rc::new(domain);
+            let domain = std::rc::Rc::new(domain);
             let mut buf = [0_u8; 1500];
             for server in &self.server {
                 return match server {
                     ServerType::Tcp(addr) => {
                         //后面可以考虑复用连接
-                        if let Ok(stream) = TcpStream::connect(addr) {
+                        if let Ok(stream) = std::net::TcpStream::connect(addr) {
                             let request = Request::new(domain.clone(), qtype);
                             #[cfg(feature = "result_error")]
-                            match NetQuery::query_tcp(stream, request, &mut buf) {
+                            match NetQuery::query_tcp(stream, request, &mut buf).into_index() {
                                 Ok(response) => response.into(),
                                 Err(e) => {
-                                    error_vec.push(e.into());
+                                    error_vec.push(convert_err(e,"Resolver::query => ServerType::Tcp => NetQuery::query_tcp ->"));
                                     continue;
                                 }
                             }
@@ -65,20 +116,19 @@ impl Resolver {
                             #[cfg(feature = "logger")]
                             debug!("连接到对应的tcp server失败");
                             #[cfg(feature = "result_error")]
-                            error_vec.push(Error::from(NetQueryError::ConnectTcpAddrError));
+                            error_vec.push(NetError::ConnectTcpAddrError(format!("Resolver::query => ServerType::Tcp -> ConnectTcpAddrError 连接到对应的tcp server失败 {}", addr)));
                             continue; //连接到server失败, 则尝试备用server
                         }
                     }
                     ServerType::Udp(addr) => {
-                        if let Ok(socket) = UdpSocket::bind("0.0.0.0:0") {
+                        if let Ok(socket) = std::net::UdpSocket::bind("0.0.0.0:0") {
                             if let Ok(addr) = socket.connect(addr) {
                                 let request = Request::new(domain.clone(), qtype);
                                 #[cfg(feature = "result_error")]
-                                match NetQuery::query_udp(socket, request, &mut buf) {
+                                match NetQuery::query_udp(socket, request, &mut buf).into_index() {
                                     Ok(response) => response.into(),
                                     Err(e) => {
-                                        #[cfg(feature = "result_error")]
-                                        error_vec.push(e.into());
+                                        error_vec.push(convert_err(e,"Resolver::query => ServerType::Udp => NetQuery::query_udp ->"));
                                         continue;
                                     }
                                 }
@@ -88,58 +138,53 @@ impl Resolver {
                                 #[cfg(feature = "logger")]
                                 debug!("连接到对应的udp server失败");
                                 #[cfg(feature = "result_error")]
-                                error_vec.push(Error::from(NetQueryError::ConnectUdpAddrError));
+                                error_vec.push(NetError::ConnectUdpAddrError(format!("Resolver::query => ServerType::Udp -> 连接到对应的udp server失败{}", addr)));
                                 continue;
                             }
                         } else {
                             #[cfg(feature = "logger")]
                             debug!("监听udp端口失败");
                             #[cfg(feature = "result_error")]
-                            error_vec.push(Error::from(NetQueryError::BindUdpAddrError));
+                            error_vec.push(NetError::BindUdpAddrError("Resolver::query => ServerType::Udp -> 监听udp端口失败".to_string()));
                             continue; //监听udp失败，尝试备用
                         }
                     }
                 };
             }
             #[cfg(feature = "result_error")]
-            return error_vec.into();
+            return ResolverQueryError::NetError(error_vec).into();
             #[cfg(not(feature = "result_error"))]
             QueryResult::from(None)
         } else {
             #[cfg(feature = "result_error")]
-            error_vec.push(Error::StringParseError(domain));
-            #[cfg(feature = "result_error")]
-            return error_vec.into();
+            return ResolverQueryError::TargetParseError(format!("Resolver::query TargetParseError 查询目标String转换失败:{}",domain)).into();
             #[cfg(not(feature = "result_error"))]
             QueryResult::from(None)
         }
     }
 }
-#[cfg(feature = "result_error")]
-type ErrorVec = SmallVec<[Error; 3]>;
 
 #[cfg(feature = "result_error")]
 #[derive(Debug)]
-pub struct QueryResult(ErrorAndOption<Response, ErrorVec>);
+pub struct QueryResult(ResultAndError<Response,ResolverQueryError>);
 
 impl QueryResult {
     #[inline]
-    pub fn get_result(&self) -> &Option<Response> {
+    pub fn get_result(&self) -> Option<&Response> {
         self.0.get_result()
     }
 
     #[inline]
     pub fn into_result(self) -> Option<Response> {
-        
         self.0.into_result()
     }
 }
 
 #[cfg(not(feature = "result_error"))]
 #[derive(Debug)]
-pub struct QueryResult(ErrorAndOption<Response>);
+pub struct QueryResult(ResultAndError<Response>);
 
-macro_rules! query_result_map {
+macro_rules! query_type_map {
     (A) => { std::net::Ipv4Addr };
     (NS) => { std::string::String };
     (CNAME) => { std::string::String };
@@ -150,14 +195,34 @@ macro_rules! query_result_map {
 
 // todo
 
+macro_rules! query_result_map {
+    (single,$query_type:ty) => {Option<$query_type>};
+    (all,$query_type:ty) => {Vec<$query_type>};
+    (iter,$query_type:ty) => {
+        Option<FilterMap<Iter<crate::dns::types::parts::Record>,
+            fn(&crate::dns::types::parts::Record) -> Option<$query_type>>>
+    };
+    (into_iter,$query_type:ty) => {
+        Option<std::iter::FilterMap<std::vec::IntoIter<$crate::dns::types::parts::Record>,
+            fn($crate::dns::types::parts::Record) -> Option<$query_type>>>
+    };
+}
+
+pub enum QueryError {
+    AddrParseError(),
+    DomainParseError(),
+    ServerQueryError(),
+    ResultParseError(),
+}
+
 //我真不想写了，用宏生成算了
 macro_rules! define_get_record {
     ($fn_name:ident, $dns_type:expr) => {
         paste! {
             impl QueryResult {
                 #[inline]
-                pub fn [<get_ $fn_name _record>](&self) -> Option<query_result_map!($dns_type)> {
-                    let response = self.0.get_result().as_ref()?;
+                pub fn [<get_ $fn_name _record>](&self) -> query_result_map!(single,query_type_map!($dns_type)) {
+                    let response = self.0.get_result()?;
                     response.answer.iter().find_map(|rec| {
                         if let RecordDataType::$dns_type(v) = &rec.data {
                             Some(v.get_general_output()?)
@@ -168,7 +233,8 @@ macro_rules! define_get_record {
                 }
 
                 #[inline]
-                pub fn [<get_ $fn_name _record_iter>](&self) -> Option<FilterMap<Iter<crate::dns::types::parts::Record>, fn(&crate::dns::types::parts::Record) -> Option<query_result_map!($dns_type)>>>  {
+                pub fn [<get_ $fn_name _record_iter>](&self) ->
+                        query_result_map!(iter,query_type_map!($dns_type))  {
                     if let Some(res) = self.0.get_result() {
                         Some(res.answer.iter().filter_map(|rec| {
                             if let RecordDataType::$dns_type(v) = &rec.data {
@@ -193,8 +259,6 @@ macro_rules! define_get_record {
     };
 }
 
-
-
 // the last attribute is func output type
 define_get_record!(a, A);
 define_get_record!(ns, NS);
@@ -204,13 +268,10 @@ define_get_record!(txt, TXT);
 define_get_record!(aaaa, AAAA);
 // todo
 
-
-
-
 #[macro_export]
 macro_rules! query {
     ($record_type:ident,$(@$config:ident $server:expr),*) => {
-        || -> Option<query_result_map!($record_type)> {
+        || -> query_result_map!(single,query_type_map!($record_type)) {
             let config = $crate::dns::resolver::ResolveConfig {
                 $(
                     $config: $server,
@@ -229,7 +290,7 @@ macro_rules! query {
         }()
     };
     ($record_type:ident,all,$(@$config:ident $server:expr),*) => {
-        || -> Vec<query_result_map!($record_type)> {
+        || -> query_result_map!(all,query_type_map!($record_type)) {
             let config = $crate::dns::resolver::ResolveConfig {
                 $(
                     $config: $server,
@@ -238,7 +299,7 @@ macro_rules! query {
             if let Ok(resolver) = $crate::dns::resolver::Resolver::new(config.server) {
                 let result = resolver.query(config.target,$crate::dns::types::base::DnsTypeNum::$record_type);
                 if let Some(res) = result.into_result() {
-                    res.answer.into_iter().filter_map(|rec| { 
+                    res.answer.into_iter().filter_map(|rec| {
                         if let $crate::dns::types::parts::RecordDataType::$record_type(v) = rec.data {
                             Some(v.get_general_output()?)
                         } else {
@@ -255,7 +316,7 @@ macro_rules! query {
         }()
     };
     ($record_type:ident,into_iter,$(@$config:ident $server:expr),*) => {
-        || -> Option<std::iter::FilterMap<std::vec::IntoIter<$crate::dns::types::parts::Record>, fn($crate::dns::types::parts::Record) -> Option<query_result_map!($record_type)>>> {
+        || -> query_result_map!(into_iter,query_type_map!($record_type)) {
             let config = $crate::dns::resolver::ResolveConfig {
                 $(
                     $config: $server,
@@ -292,16 +353,17 @@ impl std::fmt::Display for QueryResult {
 
 impl From<Option<Response>> for QueryResult {
     fn from(value: Option<Response>) -> QueryResult {
-        QueryResult(ErrorAndOption::from_result(value))
+        QueryResult(ResultAndError::from_result(value))
     }
 }
 
 #[cfg(feature = "result_error")]
-impl From<ErrorVec> for QueryResult {
-    fn from(value: ErrorVec) -> Self {
-        QueryResult(ErrorAndOption::from_error(value))
+impl From<ResolverQueryError> for QueryResult {
+    fn from(value: ResolverQueryError) -> Self {
+        QueryResult(ResultAndError::from_error(value))
     }
 }
+
 
 #[cfg(test)]
 mod tests {

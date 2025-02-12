@@ -1,41 +1,44 @@
-use crate::dns::net::NetQueryError;
 use std::fmt::{Debug, Display, Formatter};
-use std::net::AddrParseError;
 
-pub enum Error {
-    AddrParseError(AddrParseError),
-    StringParseError(String),
-    QueryError(NetQueryError),
+#[derive(Debug)]
+pub enum NetError {
+    ConnectTcpAddrError(String),
+    UdpNotConnected(String),
+    SendUdpPacketError(String),
+    RecvUdpPacketError(String),
+    RecvTcpPacketError(String),
+    WriteTcpConnectError(String),
+    ConnectUdpAddrError(String),
+    BindUdpAddrError(String)
 }
 
-impl From<AddrParseError> for Error {
-    fn from(error: AddrParseError) -> Self {
-        Error::AddrParseError(error)
-    }
-}
-
-impl From<NetQueryError> for Error {
-    fn from(error: NetQueryError) -> Self {
-        Error::QueryError(error)
-    }
-}
-
-impl Display for Error {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+impl Display for NetError {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         match self {
-            Error::AddrParseError(e) => Display::fmt(&e, f),
-            Error::QueryError(e) => Display::fmt(&e, f),
-            Error::StringParseError(e) => Display::fmt(&e, f),
-        }
-    }
-}
-
-impl Debug for Error {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Error::AddrParseError(e) => Debug::fmt(&e, f),
-            Error::QueryError(e) => Debug::fmt(&e, f),
-            Error::StringParseError(e) => Debug::fmt(&e, f),
+            NetError::ConnectTcpAddrError(str) => {
+                write!(f, "ConnectTcpAddrError({})", str)
+            }
+            NetError::UdpNotConnected(str) => {
+                write!(f, "UdpNotConnected({})", str)
+            }
+            NetError::SendUdpPacketError(str) => {
+                write!(f, "SendUdpPacketError({})", str)
+            }
+            NetError::RecvUdpPacketError(str) => {
+                write!(f, "RecvUdpPacketError({})", str)
+            }
+            NetError::RecvTcpPacketError(str) => {
+                write!(f, "RecvTcpPacketError({})", str)
+            }
+            NetError::WriteTcpConnectError(str) => {
+                write!(f, "WriteTcpConnectError({})", str)
+            }
+            NetError::ConnectUdpAddrError(str) => {
+                write!(f, "ConnectUdpAddrError({})", str)
+            }
+            NetError::BindUdpAddrError(str) => {
+                write!(f, "BindUdpAddrError({})", str)
+            }
         }
     }
 }
