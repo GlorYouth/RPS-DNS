@@ -1,4 +1,5 @@
-use crate::{DnsTypeNum, RawDomain, Request, Response};
+use crate::dns::types::base::{DnsTypeNum, RawDomain};
+use crate::dns::types::parts::{Request, Response};
 use std::rc::Rc;
 
 pub fn test_encode_into() {

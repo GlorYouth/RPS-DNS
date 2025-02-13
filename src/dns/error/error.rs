@@ -1,41 +1,147 @@
-use crate::dns::net::NetQueryError;
 use std::fmt::{Debug, Display, Formatter};
-use std::net::AddrParseError;
 
-pub enum Error {
-    AddrParseError(AddrParseError),
-    StringParseError(String),
-    QueryError(NetQueryError),
+#[inline]
+pub fn debug_fmt<T: Debug>(v: T) -> String {
+    format!("{:?}", v)
 }
 
-impl From<AddrParseError> for Error {
-    fn from(error: AddrParseError) -> Self {
-        Error::AddrParseError(error)
+pub struct TraceErrorFormat {
+    pub(crate) info: String,
+    pub(crate) trace: String,
+}
+
+impl TraceErrorFormat {
+    pub fn get_info(&self) -> String {
+        self.info.clone()
+    }
+
+    pub fn get_trace(&self) -> String {
+        self.trace.clone()
+    }
+
+    pub fn add_trace(&mut self, s: &str) {
+        self.trace = format!("{}\n{}", s, self.trace);
     }
 }
 
-impl From<NetQueryError> for Error {
-    fn from(error: NetQueryError) -> Self {
-        Error::QueryError(error)
-    }
-}
-
-impl Display for Error {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Error::AddrParseError(e) => Display::fmt(&e, f),
-            Error::QueryError(e) => Display::fmt(&e, f),
-            Error::StringParseError(e) => Display::fmt(&e, f),
+impl From<Vec<TraceErrorFormat>> for TraceErrorFormat {
+    fn from(vec: Vec<TraceErrorFormat>) -> Self {
+        let mut info = String::with_capacity(40);
+        for e in vec {
+            info.push_str(format!("{}\ntrace:{}\n\n", e.info, e.trace).as_str());
+        }
+        info.push('\n');
+        TraceErrorFormat {
+            info,
+            trace: String::new(),
         }
     }
 }
 
-impl Debug for Error {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+#[cfg(feature = "result_error")]
+pub enum NetError {
+    ConnectTcpAddrError(TraceErrorFormat),
+    UdpNotConnected(TraceErrorFormat),
+    SendUdpPacketError(TraceErrorFormat),
+    RecvUdpPacketError(TraceErrorFormat),
+    RecvTcpPacketError(TraceErrorFormat),
+    WriteTcpConnectError(TraceErrorFormat),
+    ConnectUdpAddrError(TraceErrorFormat),
+    BindUdpAddrError(TraceErrorFormat),
+}
+
+#[cfg(feature = "result_error")]
+impl Display for NetError {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         match self {
-            Error::AddrParseError(e) => Debug::fmt(&e, f),
-            Error::QueryError(e) => Debug::fmt(&e, f),
-            Error::StringParseError(e) => Debug::fmt(&e, f),
+            NetError::ConnectTcpAddrError(err) => {
+                write!(f, "ConnectTcpAddrError {}", err.info)
+            }
+            NetError::UdpNotConnected(err) => {
+                write!(f, "UdpNotConnected {}", err.info)
+            }
+            NetError::SendUdpPacketError(err) => {
+                write!(f, "SendUdpPacketError {}", err.info)
+            }
+            NetError::RecvUdpPacketError(err) => {
+                write!(f, "RecvUdpPacketError {}", err.info)
+            }
+            NetError::RecvTcpPacketError(err) => {
+                write!(f, "RecvTcpPacketError {}", err.info)
+            }
+            NetError::WriteTcpConnectError(err) => {
+                write!(f, "WriteTcpConnectError {}", err.info)
+            }
+            NetError::ConnectUdpAddrError(err) => {
+                write!(f, "ConnectUdpAddrError {}", err.info)
+            }
+            NetError::BindUdpAddrError(err) => {
+                write!(f, "BindUdpAddrError {}", err.info)
+            }
+        }
+    }
+}
+
+#[cfg(feature = "result_error")]
+impl Debug for NetError {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        match self {
+            NetError::ConnectTcpAddrError(err) => {
+                write!(
+                    f,
+                    "NetError::ConnectTcpAddrError {}\ntrace:\n{}",
+                    err.info, err.trace
+                )
+            }
+            NetError::UdpNotConnected(err) => {
+                write!(
+                    f,
+                    "NetError::UdpNotConnected {}\ntrace:\n{}",
+                    err.info, err.trace
+                )
+            }
+            NetError::SendUdpPacketError(err) => {
+                write!(
+                    f,
+                    "NetError::SendUdpPacketError {}\ntrace:\n{}",
+                    err.info, err.trace
+                )
+            }
+            NetError::RecvUdpPacketError(err) => {
+                write!(
+                    f,
+                    "NetError::RecvUdpPacketError {}\ntrace:\n{}",
+                    err.info, err.trace
+                )
+            }
+            NetError::RecvTcpPacketError(err) => {
+                write!(
+                    f,
+                    "NetError::RecvTcpPacketError {}\ntrace:\n{}",
+                    err.info, err.trace
+                )
+            }
+            NetError::WriteTcpConnectError(err) => {
+                write!(
+                    f,
+                    "NetError::WriteTcpConnectError {}\ntrace:\n{}",
+                    err.info, err.trace
+                )
+            }
+            NetError::ConnectUdpAddrError(err) => {
+                write!(
+                    f,
+                    "NetError::ConnectUdpAddrError {}\ntrace:\n{}",
+                    err.info, err.trace
+                )
+            }
+            NetError::BindUdpAddrError(err) => {
+                write!(
+                    f,
+                    "NetError::BindUdpAddrError {}\ntrace:\n{}",
+                    err.info, err.trace
+                )
+            }
         }
     }
 }

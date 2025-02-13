@@ -3,9 +3,9 @@
 #[cfg(feature = "fmt")]
 use crate::dns::types::base::DnsType;
 
-use crate::dns::RawDomain;
 #[cfg(feature = "fmt")]
-use crate::dns::types::parts::DnsClass;
+use crate::dns::types::base::DnsClass;
+use crate::dns::types::base::RawDomain;
 use crate::dns::utils::SliceReader;
 use log::trace;
 #[cfg(feature = "fmt")]
@@ -21,7 +21,7 @@ pub struct Question {
 
 impl Question {
     pub const FIX_SIZE: usize = 4;
-    pub const LEAST_SIZE: usize = Self::FIX_SIZE + 2;
+    pub const LEAST_SIZE: usize = Self::FIX_SIZE + 1;
     #[inline]
     pub fn new(reader: &mut SliceReader) -> Option<Question> {
         #[cfg(debug_assertions)]
@@ -48,11 +48,7 @@ impl Question {
 #[cfg(feature = "fmt")]
 impl Display for Question {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-        write!(
-            fmt,
-            "\t{}: type ",
-            self.qname.to_string().unwrap_or_else(|| "???".to_owned())
-        )?;
+        write!(fmt, "\t{}: type ", self.qname)?;
         if let Some(qtype) = DnsType::from_u16(self.qtype) {
             Display::fmt(&qtype, fmt)?;
         } else {
@@ -60,11 +56,7 @@ impl Display for Question {
         }
         let qclass = DnsClass::get_str(self.qclass);
         writeln!(fmt, ", class {}", qclass)?;
-        writeln!(
-            fmt,
-            "\t\tName: {}",
-            self.qname.to_string().unwrap_or_else(|| "???".to_owned())
-        )?;
+        writeln!(fmt, "\t\tName: {}", self.qname)?;
         write!(fmt, "\t\tType: ")?;
         if let Some(qtype) = DnsType::from_u16(self.qtype) {
             Display::fmt(&qtype, fmt)?;

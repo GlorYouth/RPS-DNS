@@ -1,5 +1,4 @@
 #[cfg_attr(debug_assertions, allow(dead_code))]
-#[cfg(feature = "logger")]
 pub mod debug {
     use ahash::RandomState;
     use chrono::Local;
@@ -113,6 +112,12 @@ pub mod debug {
         log::set_max_level(log::LevelFilter::Trace);
     }
 
+    pub fn set_println_enabled(value: bool) {
+        THREAD_LOGGER.with(|logger| {
+            logger.borrow_mut().set_println_enabled(value);
+        });
+    }
+
     pub fn logger_flush() {
         log::logger().flush();
     }
@@ -138,7 +143,6 @@ pub mod debug {
 }
 
 #[cfg(test)]
-#[cfg(feature = "logger")]
 mod test {
     use super::debug::*;
     use log::debug;

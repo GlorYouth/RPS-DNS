@@ -1,13 +1,15 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
 #[cfg(feature = "fmt")]
-use crate::dns::RecordFmtType;
-use crate::dns::Request;
+use crate::dns::types::parts::RecordFmtType;
+use crate::dns::types::parts::Request;
 use crate::dns::types::parts::header::{HEADER_SIZE, ResponseHeader};
 use crate::dns::types::parts::question::Question;
-use crate::dns::types::parts::record::{Record, RecordDataType};
+use crate::dns::types::parts::record::Record;
 use crate::dns::utils::SliceReader;
 
+#[cfg(feature = "result_error")]
+use crate::dns::error::error_trait;
 #[cfg(feature = "logger")]
 use log::{debug, trace};
 use smallvec::SmallVec;
@@ -20,6 +22,9 @@ pub struct Response {
     pub question: SmallVec<[Question; 1]>,
     pub answer: Vec<Record>,
 }
+
+#[cfg(feature = "result_error")]
+impl error_trait::A for Response {}
 
 impl Response {
     #[inline]
@@ -155,20 +160,6 @@ impl Response {
             Some(())
         })
     }
-
-    pub fn get_record(&self, rtype: u16) -> Option<RecordDataType> {
-        let predicate: fn(&RecordDataType) -> bool = match rtype {
-            1 => |data| matches!(data, RecordDataType::A(_)),
-            5 => |data| matches!(data, RecordDataType::CNAME(_)),
-            28 => |data| matches!(data, RecordDataType::AAAA(_)),
-            _ => return None,
-        };
-
-        self.answer
-            .iter()
-            .find(|answer| predicate(&answer.data))
-            .map(|answer| answer.data.clone())
-    }
 }
 
 #[cfg(feature = "fmt")]
@@ -180,15 +171,25 @@ impl Display for Response {
             Display::fmt(&q, fmt)?;
         }
         let iter = self.answer.iter();
-        let mut iter = iter
+        let mut iter_new = iter
+            .clone()
             .filter(|r| matches!(r.get_fmt_type(), RecordFmtType::Answers))
             .peekable();
 
-        if iter.peek().is_some() {
+        if iter_new.peek().is_some() {
             writeln!(fmt, "Answers:")?;
         }
+        iter_new.try_for_each(|x| Display::fmt(&x, fmt))?;
 
-        iter.try_for_each(|x| Display::fmt(&x, fmt))?;
+        let mut iter_new = iter
+            .filter(|r| matches!(r.get_fmt_type(), RecordFmtType::Authoritative))
+            .peekable();
+
+        if iter_new.peek().is_some() {
+            writeln!(fmt, "Authoritative nameservers:")?;
+        }
+
+        iter_new.try_for_each(|x| Display::fmt(&x, fmt))?;
         Ok(())
     }
 }

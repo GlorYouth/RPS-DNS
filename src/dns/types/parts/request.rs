@@ -83,10 +83,6 @@ impl Request {
 impl Display for Request {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         Display::fmt(&self.header, f)?;
-        writeln!(f, "\tQuestions: {}", self.question.len())?;
-        writeln!(f, "\tAnswer RRs: 0")?;
-        writeln!(f, "\tAuthority RRs: 0")?;
-        writeln!(f, "\tAdditional RRs: 0")?;
         writeln!(f, "Queries:")?;
         for q in &self.question {
             Display::fmt(&q, f)?;
@@ -97,23 +93,27 @@ impl Display for Request {
 
 #[cfg(test)]
 mod tests {
-    #[cfg(feature = "fmt")]
-    use crate::dns::Request;
-    #[cfg(feature = "fmt")]
-    use crate::dns::{DnsTypeNum, RawDomain};
-    #[cfg(feature = "fmt")]
+    use crate::dns::types::base::{DnsTypeNum, RawDomain};
+    use crate::dns::types::parts::Request;
     use std::rc::Rc;
 
     #[test]
     #[cfg(feature = "fmt")]
     fn test_fmt() {
-        let request = Request::new(
-            Rc::new(RawDomain::from_str("www.baidu.com").unwrap()),
-            DnsTypeNum::A,
-        );
+        let request = Request::new(Rc::new(RawDomain::from_str(".").unwrap()), DnsTypeNum::NS);
         #[cfg(feature = "fmt")]
         println!("{}", request);
         #[cfg(not(feature = "fmt"))]
         println!("{:?}", request);
+    }
+
+    #[test]
+    fn special_test() {
+        let request = Request::new(Rc::new(RawDomain::from_str(".").unwrap()), DnsTypeNum::NS);
+        let buff = &mut [0; 512];
+        assert_eq!(
+            request.encode_to_udp(buff)[2..],
+            [1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 1]
+        )
     }
 }

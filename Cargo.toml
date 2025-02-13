@@ -11,6 +11,8 @@ log = "0.4.25"
 chrono = "0.4.39"
 ahash = "0.8.11"
 stringzilla = "3.11.3"
+paste = "1.0.15"
+snafu = "0.8.5"
 
 [dev-dependencies]
 criterion = "0.5.1"
@@ -28,3 +30,4 @@ opt-level = 3
 [features]
 logger = []
 fmt = []
+result_error = []
