@@ -2,8 +2,8 @@
 use std::marker::PhantomData;
 
 pub mod error_trait {
-    pub trait A{}
-    pub trait B{}
+    pub trait A {}
+    pub trait B {}
 }
 
 #[derive(Debug)]
@@ -29,9 +29,7 @@ impl<T, E> ResultAndError<T, E> {
     }
     #[cfg(feature = "result_error")]
     pub fn from_error(error: E) -> Self {
-        Self {
-            result: Err(error),
-        }
+        Self { result: Err(error) }
     }
 
     pub fn get_result(&self) -> Option<&T> {
@@ -69,7 +67,7 @@ impl<T, E> ResultAndError<T, E> {
     pub fn get_index(&self) -> &Result<Option<T>, E> {
         &self.result
     }
-    
+
     #[cfg(not(feature = "result_error"))]
     pub fn get_index(&self) -> Option<&T> {
         self.result.as_ref()

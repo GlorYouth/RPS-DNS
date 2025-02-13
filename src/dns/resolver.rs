@@ -1,8 +1,8 @@
 #![cfg_attr(debug_assertions, allow(unused_variables, dead_code))]
 
-#[cfg(feature = "result_error")]
-use crate::dns::error::{NetError,error_trait};
 use crate::dns::error::ResultAndError;
+#[cfg(feature = "result_error")]
+use crate::dns::error::{NetError, error_trait};
 use crate::dns::net::NetQuery;
 #[cfg(feature = "result_error")]
 use crate::dns::net::NetQueryError;
@@ -26,11 +26,9 @@ pub struct ResolveConfig {
     pub target: String,
 }
 
-
-#[derive(Debug)]
 #[cfg(feature = "result_error")]
 pub enum ResolverQueryError {
-    TargetParseError(String),
+    TargetParseError { target: String, path: String },
     NetError(Vec<NetError>),
 }
 
@@ -38,12 +36,31 @@ pub enum ResolverQueryError {
 impl std::fmt::Display for ResolverQueryError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ResolverQueryError::TargetParseError(str) => {
-                write!(f, "{}", str)
+            ResolverQueryError::TargetParseError { target, path: _ } => {
+                writeln!(f, "TargetParseError, Target: {}", target)
+            }
+            ResolverQueryError::NetError(vec) => {
+                writeln!(f, "NetError:")?;
+                for e in vec {
+                    write!(f, "\t")?;
+                    std::fmt::Display::fmt(e, f)?;
+                }
+                Ok(())
+            }
+        }
+    }
+}
+
+#[cfg(feature = "result_error")]
+impl std::fmt::Debug for ResolverQueryError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ResolverQueryError::TargetParseError { target, path } => {
+                write!(f, "TargetParseError, target: {}\n\tpath:{}", target, path)
             }
             ResolverQueryError::NetError(vec) => {
                 for e in vec {
-                    std::fmt::Display::fmt(e, f)?;
+                    std::fmt::Debug::fmt(e, f)?;
                 }
                 Ok(())
             }
@@ -53,31 +70,48 @@ impl std::fmt::Display for ResolverQueryError {
 
 // 没什么营养的东西
 #[cfg(feature = "result_error")]
-fn convert_err(value: NetQueryError, suffix: &str) -> NetError{
+fn convert_err(value: NetQueryError, path: &str) -> NetError {
     match value {
-        NetQueryError::ConnectTcpAddrError(str) => {
-            NetError::ConnectTcpAddrError(format!("{} {}", suffix, &str))
+        NetQueryError::ConnectTcpAddrError { target, source } => {
+            NetError::ConnectTcpAddrError{
+                info: format!("target: {}, info: {}", target, source),
+                path: path.to_string(),
+            }
         }
-        NetQueryError::UdpNotConnected(str) => {
-            NetError::UdpNotConnected(format!("{} {}", suffix, &str))
+        NetQueryError::UdpNotConnected{ target, source } => {
+            NetError::UdpNotConnected {
+                info: format!("target: {}, info: {}", target, source),
+                path: path.to_string(),
+            }
         }
-        NetQueryError::UdpPacketSendError(str) => {
-            NetError::SendUdpPacketError(format!("{} {}", suffix, &str))
+        NetQueryError::UdpPacketSendError{ target, source } => {
+            NetError::SendUdpPacketError {
+                info: format!("target: {}, info: {}", target, source),
+                path: path.to_string(),
+            }
         }
-        NetQueryError::RecvUdpPacketError(str) => {
-            NetError::RecvUdpPacketError(format!("{} {}", suffix, &str))
+        NetQueryError::RecvUdpPacketError{ target, source } => {
+            NetError::RecvUdpPacketError {
+                info: format!("target: {}, info: {}", target, source),
+                path: path.to_string(),
+            }
         }
-        NetQueryError::RecvTcpPacketError(str) => {
-            NetError::RecvTcpPacketError(format!("{} {}", suffix, &str))
+        NetQueryError::RecvTcpPacketError{ target, source } => {
+            NetError::RecvTcpPacketError {
+                info: format!("target: {}, info: {}", target, source),
+                path: path.to_string(),
+            }
         }
-        NetQueryError::WriteTcpConnectError(str) => {
-            NetError::WriteTcpConnectError(format!("{} {}", suffix, &str))
+        NetQueryError::WriteTcpConnectError{ target, source } => {
+            NetError::WriteTcpConnectError {
+                info: format!("target: {}, info: {}", target, source),
+                path: path.to_string(),
+            }
         }
     }
 }
 #[cfg(feature = "result_error")]
 impl error_trait::B for ResolverQueryError {}
-
 
 impl Resolver {
     pub fn new(mut server: Vec<String>) -> Result<Resolver, std::net::AddrParseError> {
@@ -116,7 +150,10 @@ impl Resolver {
                             #[cfg(feature = "logger")]
                             debug!("连接到对应的tcp server失败");
                             #[cfg(feature = "result_error")]
-                            error_vec.push(NetError::ConnectTcpAddrError(format!("Resolver::query => ServerType::Tcp -> ConnectTcpAddrError 连接到对应的tcp server失败 {}", addr)));
+                            error_vec.push(NetError::ConnectTcpAddrError {
+                                info: addr.to_string(),
+                                path: "Resolver::query => ServerType::Tcp".to_string(),
+                            });
                             continue; //连接到server失败, 则尝试备用server
                         }
                     }
@@ -138,14 +175,20 @@ impl Resolver {
                                 #[cfg(feature = "logger")]
                                 debug!("连接到对应的udp server失败");
                                 #[cfg(feature = "result_error")]
-                                error_vec.push(NetError::ConnectUdpAddrError(format!("Resolver::query => ServerType::Udp -> 连接到对应的udp server失败{}", addr)));
+                                error_vec.push(NetError::ConnectUdpAddrError{
+                                    info: addr.to_string(),
+                                    path: "Resolver::query => ServerType::Udp".to_string(),
+                                });
                                 continue;
                             }
                         } else {
                             #[cfg(feature = "logger")]
                             debug!("监听udp端口失败");
                             #[cfg(feature = "result_error")]
-                            error_vec.push(NetError::BindUdpAddrError("Resolver::query => ServerType::Udp -> 监听udp端口失败".to_string()));
+                            error_vec.push(NetError::BindUdpAddrError {
+                                info: "".to_string(),
+                                path: "Resolver::query => ServerType::Udp".to_string(),
+                            });
                             continue; //监听udp失败，尝试备用
                         }
                     }
@@ -157,7 +200,11 @@ impl Resolver {
             QueryResult::from(None)
         } else {
             #[cfg(feature = "result_error")]
-            return ResolverQueryError::TargetParseError(format!("Resolver::query TargetParseError 查询目标String转换失败:{}",domain)).into();
+            return ResolverQueryError::TargetParseError {
+                target: domain,
+                path: "Resolver::query".to_string(),
+            }
+            .into();
             #[cfg(not(feature = "result_error"))]
             QueryResult::from(None)
         }
@@ -166,7 +213,7 @@ impl Resolver {
 
 #[cfg(feature = "result_error")]
 #[derive(Debug)]
-pub struct QueryResult(ResultAndError<Response,ResolverQueryError>);
+pub struct QueryResult(ResultAndError<Response, ResolverQueryError>);
 
 impl QueryResult {
     #[inline]
@@ -206,13 +253,6 @@ macro_rules! query_result_map {
         Option<std::iter::FilterMap<std::vec::IntoIter<$crate::dns::types::parts::Record>,
             fn($crate::dns::types::parts::Record) -> Option<$query_type>>>
     };
-}
-
-pub enum QueryError {
-    AddrParseError(),
-    DomainParseError(),
-    ServerQueryError(),
-    ResultParseError(),
 }
 
 //我真不想写了，用宏生成算了
@@ -363,7 +403,6 @@ impl From<ResolverQueryError> for QueryResult {
         QueryResult(ResultAndError::from_error(value))
     }
 }
-
 
 #[cfg(test)]
 mod tests {

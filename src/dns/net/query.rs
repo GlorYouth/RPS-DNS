@@ -1,10 +1,12 @@
 #[cfg(feature = "result_error")]
-use crate::dns::error::error_trait;
-#[cfg(feature = "result_error")]
 use crate::dns::error::ResultAndError;
-use crate::dns::types::parts::{Request, Response};
+use crate::dns::error::debug_fmt;
 #[cfg(feature = "result_error")]
-use std::fmt::{Debug};
+use crate::dns::error::error_trait;
+use crate::dns::types::parts::{Request, Response};
+use snafu::{ResultExt, Snafu};
+#[cfg(feature = "result_error")]
+use std::fmt::Debug;
 use std::io::{Read, Write};
 use std::net::{TcpStream, UdpSocket};
 
@@ -12,7 +14,6 @@ pub struct NetQuery {}
 
 #[cfg(feature = "result_error")]
 type Result = ResultAndError<Response, NetQueryError>;
-
 
 #[cfg(feature = "result_error")]
 impl error_trait::B for NetQueryError {}
@@ -24,11 +25,19 @@ impl NetQuery {
     pub fn query_tcp(mut stream: TcpStream, request: Request, buf: &mut [u8; 1500]) -> Result {
         #[cfg(feature = "result_error")]
         {
-            if stream.write_all(request.encode_to_tcp(buf)).is_err() {
-                return NetQueryError::WriteTcpConnectError("WriteTcpConnectError 写入TcpConnect失败".to_string()).into();
+            if let Err(err) =
+                stream
+                    .write_all(request.encode_to_tcp(buf))
+                    .context(WriteTcpConnectSnafu {
+                        target: debug_fmt(stream.peer_addr()),
+                    })
+            {
+                return err.into();
             }
-            if stream.read(buf).is_err() {
-                return NetQueryError::RecvTcpPacketError(format!("RecvUdpPacketError Udp包接受失败,目标地址: {:?}", stream.peer_addr())).into()
+            if let Err(err) = stream.read(buf).context(RecvTcpPacketSnafu {
+                target: debug_fmt(stream.peer_addr()),
+            }) {
+                return err.into();
             }
         }
         #[cfg(not(feature = "result_error"))]
@@ -50,15 +59,22 @@ impl NetQuery {
         let arr = request.encode_to_udp(buf);
         if arr.len() > 512 {
             #[cfg(feature = "result_error")]
-            return if let Ok(addr) = socket.peer_addr() {
-                if let Ok(stream) = TcpStream::connect(addr) {
-                    Self::query_tcp(stream, request, buf)
-                } else {
-                    return NetQueryError::ConnectTcpAddrError(format!("ConnectTcpAddrError 连接到对应的tcp server失败 {}", addr)).into();
+            return match socket.peer_addr().context(UdpNotConnectedSnafu {
+                target: debug_fmt(socket.peer_addr()),
+            }) {
+                Ok(addr) => match TcpStream::connect(addr) {
+                    Ok(stream) => Self::query_tcp(stream, request, buf),
+                    Err(err) => NetQueryError::ConnectTcpAddrError {
+                        target: addr.to_string(),
+                        source: err,
+                    }
+                    .into(),
+                },
+                Err(err) => {
+                    return err.into();
                 }
-            } else {
-                return NetQueryError::UdpNotConnected("UdpNotConnected udp server未连接".to_string()).into();
             };
+
             #[cfg(not(feature = "result_error"))]
             {
                 let stream = TcpStream::connect(socket.peer_addr().ok()?).ok()?;
@@ -67,15 +83,21 @@ impl NetQuery {
         }
         #[cfg(feature = "result_error")]
         {
-            if socket.send(arr).is_err() {
-                return NetQueryError::UdpPacketSendError(format!("UdpPacketSendError Udp包发送失败,目标地址: {:?}", socket.peer_addr())).into();
+            if let Err(err) = socket.send(arr).context(UdpPacketSendSnafu {
+                target: format!("{:?}", socket.peer_addr()),
+            }) {
+                return err.into();
             }
-            if let Ok(number_of_bytes) = socket.recv(buf) {
-                let response = Response::from_slice(&buf.as_slice()[..number_of_bytes], &request);
-                return response.into()
-            };
-            NetQueryError::RecvUdpPacketError(format!("RecvUdpPacketError Udp包接受失败,目标地址: {:?}", socket.peer_addr())).into()
-            
+            match socket.recv(buf).context(RecvUdpPacketSnafu {
+                target: format!("{:?}", socket.peer_addr()),
+            }) {
+                Ok(number_of_bytes) => {
+                    let response =
+                        Response::from_slice(&buf.as_slice()[..number_of_bytes], &request);
+                    return response.into();
+                }
+                Err(err) => err.into(),
+            }
         }
         #[cfg(not(feature = "result_error"))]
         {
@@ -86,12 +108,36 @@ impl NetQuery {
     }
 }
 #[cfg(feature = "result_error")]
-#[derive(Debug)]
+#[derive(Snafu, Debug)]
 pub enum NetQueryError {
-    ConnectTcpAddrError(String),
-    UdpNotConnected(String),
-    UdpPacketSendError(String),
-    RecvUdpPacketError(String),
-    RecvTcpPacketError(String),
-    WriteTcpConnectError(String)
+    #[snafu(display("ConnectTcpAddrError, target: {}, info: {}", target, source.to_string()))]
+    ConnectTcpAddrError {
+        target: String,
+        source: std::io::Error,
+    },
+    #[snafu(display("UdpNotConnected, target: {}, info: {}", target, source.to_string()))]
+    UdpNotConnected {
+        target: String,
+        source: std::io::Error,
+    },
+    #[snafu(display("UdpPacketSendError, target: {}, info: {}", target, source.to_string()))]
+    UdpPacketSendError {
+        target: String,
+        source: std::io::Error,
+    },
+    #[snafu(display("RecvUdpPacketError, target: {}, info: {}", target, source.to_string()))]
+    RecvUdpPacketError {
+        target: String,
+        source: std::io::Error,
+    },
+    #[snafu(display("RecvTcpPacketError, target: {}, info: {}", target, source.to_string()))]
+    RecvTcpPacketError {
+        target: String,
+        source: std::io::Error,
+    },
+    #[snafu(display("WriteTcpConnectError, target: {}, info: {}", target, source.to_string()))]
+    WriteTcpConnectError {
+        target: String,
+        source: std::io::Error,
+    },
 }

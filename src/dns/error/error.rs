@@ -1,43 +1,81 @@
 use std::fmt::{Debug, Display, Formatter};
 
-#[derive(Debug)]
-pub enum NetError {
-    ConnectTcpAddrError(String),
-    UdpNotConnected(String),
-    SendUdpPacketError(String),
-    RecvUdpPacketError(String),
-    RecvTcpPacketError(String),
-    WriteTcpConnectError(String),
-    ConnectUdpAddrError(String),
-    BindUdpAddrError(String)
+#[inline]
+pub fn debug_fmt<T: Debug>(v: T) -> String {
+    format!("{:?}", v)
 }
 
+#[cfg(feature = "result_error")]
+pub enum NetError {
+    ConnectTcpAddrError { info: String, path: String },
+    UdpNotConnected { info: String, path: String },
+    SendUdpPacketError { info: String, path: String },
+    RecvUdpPacketError { info: String, path: String },
+    RecvTcpPacketError { info: String, path: String },
+    WriteTcpConnectError { info: String, path: String },
+    ConnectUdpAddrError { info: String, path: String },
+    BindUdpAddrError { info: String, path: String },
+}
+
+#[cfg(feature = "result_error")]
 impl Display for NetError {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         match self {
-            NetError::ConnectTcpAddrError(str) => {
-                write!(f, "ConnectTcpAddrError({})", str)
+            NetError::ConnectTcpAddrError { info, path:_ } => {
+                write!(f, "ConnectTcpAddrError {}", info)
             }
-            NetError::UdpNotConnected(str) => {
-                write!(f, "UdpNotConnected({})", str)
+            NetError::UdpNotConnected{ info, path:_ } => {
+                write!(f, "UdpNotConnected {}", info)
             }
-            NetError::SendUdpPacketError(str) => {
-                write!(f, "SendUdpPacketError({})", str)
+            NetError::SendUdpPacketError{ info, path:_ } => {
+                write!(f, "SendUdpPacketError {}", info)
             }
-            NetError::RecvUdpPacketError(str) => {
-                write!(f, "RecvUdpPacketError({})", str)
+            NetError::RecvUdpPacketError{ info, path:_ } => {
+                write!(f, "RecvUdpPacketError {}", info)
             }
-            NetError::RecvTcpPacketError(str) => {
-                write!(f, "RecvTcpPacketError({})", str)
+            NetError::RecvTcpPacketError{ info, path:_ } => {
+                write!(f, "RecvTcpPacketError {}", info)
             }
-            NetError::WriteTcpConnectError(str) => {
-                write!(f, "WriteTcpConnectError({})", str)
+            NetError::WriteTcpConnectError{ info, path:_ } => {
+                write!(f, "WriteTcpConnectError {}", info)
             }
-            NetError::ConnectUdpAddrError(str) => {
-                write!(f, "ConnectUdpAddrError({})", str)
+            NetError::ConnectUdpAddrError{ info, path:_ } => {
+                write!(f, "ConnectUdpAddrError {}", info)
             }
-            NetError::BindUdpAddrError(str) => {
-                write!(f, "BindUdpAddrError({})", str)
+            NetError::BindUdpAddrError{ info, path:_ } => {
+                write!(f, "BindUdpAddrError {}", info)
+            }
+        }
+    }
+}
+
+#[cfg(feature = "result_error")]
+impl Debug for NetError {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        match self {
+            NetError::ConnectTcpAddrError { info, path } => {
+                write!(f, "NetError::ConnectTcpAddrError {}\npath: {}", info, path)
+            }
+            NetError::UdpNotConnected{ info, path } => {
+                write!(f, "NetError::UdpNotConnected {}\n\tpath: {}", info, path)
+            }
+            NetError::SendUdpPacketError{ info, path } => {
+                write!(f, "NetError::SendUdpPacketError {}\n\tpath: {}", info, path)
+            }
+            NetError::RecvUdpPacketError{ info, path } => {
+                write!(f, "NetError::RecvUdpPacketError {}\n\tpath: {}", info, path)
+            }
+            NetError::RecvTcpPacketError{ info, path } => {
+                write!(f, "NetError::RecvTcpPacketError {}\n\tpath: {}", info, path)
+            }
+            NetError::WriteTcpConnectError{ info, path } => {
+                write!(f, "NetError::WriteTcpConnectError {}\n\tpath: {}", info, path)
+            }
+            NetError::ConnectUdpAddrError{ info, path } => {
+                write!(f, "NetError::ConnectUdpAddrError {}\n\tpath: {}", info, path)
+            }
+            NetError::BindUdpAddrError{ info, path } => {
+                write!(f, "NetError::BindUdpAddrError {}\n\tpath: {}", info, path)
             }
         }
     }

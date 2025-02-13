@@ -8,13 +8,13 @@ use crate::dns::types::parts::question::Question;
 use crate::dns::types::parts::record::Record;
 use crate::dns::utils::SliceReader;
 
+#[cfg(feature = "result_error")]
+use crate::dns::error::error_trait;
 #[cfg(feature = "logger")]
 use log::{debug, trace};
 use smallvec::SmallVec;
 #[cfg(feature = "fmt")]
 use std::fmt::Display;
-#[cfg(feature = "result_error")]
-use crate::dns::error::error_trait;
 
 #[derive(Debug)]
 pub struct Response {
