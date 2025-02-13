@@ -1,9 +1,11 @@
 #[cfg(feature = "result_error")]
 use crate::dns::error::ResultAndError;
+#[cfg(feature = "result_error")]
 use crate::dns::error::debug_fmt;
 #[cfg(feature = "result_error")]
 use crate::dns::error::error_trait;
 use crate::dns::types::parts::{Request, Response};
+#[cfg(feature = "result_error")]
 use snafu::{ResultExt, Snafu};
 #[cfg(feature = "result_error")]
 use std::fmt::Debug;

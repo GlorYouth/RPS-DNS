@@ -13,4 +13,5 @@ pub use result_and_error::ResultAndError;
 #[cfg(feature = "result_error")]
 pub use result_and_error::error_trait;
 
+#[cfg(feature = "result_error")]
 pub use error::debug_fmt;
