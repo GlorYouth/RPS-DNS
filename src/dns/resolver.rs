@@ -72,42 +72,30 @@ impl std::fmt::Debug for ResolverQueryError {
 #[cfg(feature = "result_error")]
 fn convert_err(value: NetQueryError, path: &str) -> NetError {
     match value {
-        NetQueryError::ConnectTcpAddrError { target, source } => {
-            NetError::ConnectTcpAddrError{
-                info: format!("target: {}, info: {}", target, source),
-                path: path.to_string(),
-            }
-        }
-        NetQueryError::UdpNotConnected{ target, source } => {
-            NetError::UdpNotConnected {
-                info: format!("target: {}, info: {}", target, source),
-                path: path.to_string(),
-            }
-        }
-        NetQueryError::UdpPacketSendError{ target, source } => {
-            NetError::SendUdpPacketError {
-                info: format!("target: {}, info: {}", target, source),
-                path: path.to_string(),
-            }
-        }
-        NetQueryError::RecvUdpPacketError{ target, source } => {
-            NetError::RecvUdpPacketError {
-                info: format!("target: {}, info: {}", target, source),
-                path: path.to_string(),
-            }
-        }
-        NetQueryError::RecvTcpPacketError{ target, source } => {
-            NetError::RecvTcpPacketError {
-                info: format!("target: {}, info: {}", target, source),
-                path: path.to_string(),
-            }
-        }
-        NetQueryError::WriteTcpConnectError{ target, source } => {
-            NetError::WriteTcpConnectError {
-                info: format!("target: {}, info: {}", target, source),
-                path: path.to_string(),
-            }
-        }
+        NetQueryError::ConnectTcpAddrError { target, source } => NetError::ConnectTcpAddrError {
+            info: format!("target: {}, info: {}", target, source),
+            path: path.to_string(),
+        },
+        NetQueryError::UdpNotConnected { target, source } => NetError::UdpNotConnected {
+            info: format!("target: {}, info: {}", target, source),
+            path: path.to_string(),
+        },
+        NetQueryError::UdpPacketSendError { target, source } => NetError::SendUdpPacketError {
+            info: format!("target: {}, info: {}", target, source),
+            path: path.to_string(),
+        },
+        NetQueryError::RecvUdpPacketError { target, source } => NetError::RecvUdpPacketError {
+            info: format!("target: {}, info: {}", target, source),
+            path: path.to_string(),
+        },
+        NetQueryError::RecvTcpPacketError { target, source } => NetError::RecvTcpPacketError {
+            info: format!("target: {}, info: {}", target, source),
+            path: path.to_string(),
+        },
+        NetQueryError::WriteTcpConnectError { target, source } => NetError::WriteTcpConnectError {
+            info: format!("target: {}, info: {}", target, source),
+            path: path.to_string(),
+        },
     }
 }
 #[cfg(feature = "result_error")]
@@ -175,7 +163,7 @@ impl Resolver {
                                 #[cfg(feature = "logger")]
                                 debug!("连接到对应的udp server失败");
                                 #[cfg(feature = "result_error")]
-                                error_vec.push(NetError::ConnectUdpAddrError{
+                                error_vec.push(NetError::ConnectUdpAddrError {
                                     info: addr.to_string(),
                                     path: "Resolver::query => ServerType::Udp".to_string(),
                                 });
