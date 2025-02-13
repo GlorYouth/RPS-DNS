@@ -37,6 +37,7 @@ Client/Server还遥遥无期(还没准备dev呢)
 ## 目录树
 ```
 core
+core
 ├─ .gitignore
 ├─ Cargo.toml
 ├─ LICENSE
@@ -61,22 +62,34 @@ core
 │     │  ├─ parts.rs
 │     │  ├─ parts
 │     │  │  ├─ header.rs
-│     │  │  ├─ others.rs
 │     │  │  ├─ question.rs
 │     │  │  ├─ record.rs
 │     │  │  ├─ request.rs
 │     │  │  └─ response.rs
 │     │  └─ base
 │     │     ├─ dns_type.rs
-│     │     └─ domain.rs
+│     │     ├─ domain.rs
+│     │     ├─ fmt.rs
+│     │     ├─ record.rs
+│     │     ├─ string.rs
+│     │     └─ record
+│     │        ├─ domain.rs
+│     │        ├─ ip_addr.rs
+│     │        ├─ soa.rs
+│     │        └─ txt.rs
 │     ├─ net
 │     │  └─ query.rs
 │     └─ error
 │        ├─ error.rs
-│        └─ logger.rs
+│        ├─ logger.rs
+│        └─ result_and_error.rs
 ├─ benches
 │  └─ benchmark.rs
-└─ .run
-   ├─ Run dns-core.run.xml
-   └─ Test dns-core.run.xml
+├─ .run
+│  ├─ Run dns-core.run.xml
+│  └─ Test dns-core.run.xml
+└─ .github
+   ├─ dependabot.yml
+   └─ workflows
+      └─ rust.yml
 ```
