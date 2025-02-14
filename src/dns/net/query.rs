@@ -1,16 +1,12 @@
+use std::fmt::{Debug, Display, Formatter};
 #[cfg(feature = "result_error")]
 use crate::dns::error::ResultAndError;
 #[cfg(feature = "result_error")]
-use crate::dns::error::debug_fmt;
-#[cfg(feature = "result_error")]
 use crate::dns::error::error_trait;
 use crate::dns::types::parts::{Request, Response};
-#[cfg(feature = "result_error")]
-use snafu::{ResultExt, Snafu};
-#[cfg(feature = "result_error")]
-use std::fmt::Debug;
 use std::io::{Read, Write};
 use std::net::{TcpStream, UdpSocket};
+use crate::dns::error::ErrorFormat;
 
 pub struct NetQuery {}
 
@@ -27,19 +23,19 @@ impl NetQuery {
     pub fn query_tcp(mut stream: TcpStream, request: Request, buf: &mut [u8; 1500]) -> Result {
         #[cfg(feature = "result_error")]
         {
-            if let Err(err) =
-                stream
-                    .write_all(request.encode_to_tcp(buf))
-                    .context(WriteTcpConnectSnafu {
-                        target: debug_fmt(stream.peer_addr()),
-                    })
-            {
-                return err.into();
+            if let Err(err) = stream.write_all(request.encode_to_tcp(buf)) {
+                return NetQueryError::WriteTcpConnectError(ErrorFormat::new(
+                    format!("WriteTcpConnectError, target {:?}, {}", stream.peer_addr(), err),
+                    "NetQuery::query_tcp()"
+                ))
+                    .into();
             }
-            if let Err(err) = stream.read(buf).context(RecvTcpPacketSnafu {
-                target: debug_fmt(stream.peer_addr()),
-            }) {
-                return err.into();
+            if let Err(err) = stream.read(buf) {
+                return NetQueryError::RecvTcpPacketError(ErrorFormat::new(
+                    format!("RecvTcpPacketError, target {:?}, {}", stream.peer_addr(), err),
+                    "NetQuery::query_tcp()"
+                ))
+                    .into();
             }
         }
         #[cfg(not(feature = "result_error"))]
@@ -61,19 +57,21 @@ impl NetQuery {
         let arr = request.encode_to_udp(buf);
         if arr.len() > 512 {
             #[cfg(feature = "result_error")]
-            return match socket.peer_addr().context(UdpNotConnectedSnafu {
-                target: debug_fmt(socket.peer_addr()),
-            }) {
+            return match socket.peer_addr() {
                 Ok(addr) => match TcpStream::connect(addr) {
                     Ok(stream) => Self::query_tcp(stream, request, buf),
-                    Err(err) => NetQueryError::ConnectTcpAddrError {
-                        target: addr.to_string(),
-                        source: err,
-                    }
+                    Err(err) => NetQueryError::ConnectTcpAddrError(ErrorFormat::new(
+                        format!("ConnectTcpAddrError, target {}, {}", addr, err),
+                        "NetQuery::query_udp() arr.len() > 512"
+                    ))
                     .into(),
                 },
                 Err(err) => {
-                    return err.into();
+                    return NetQueryError::UdpNotConnected(ErrorFormat::new(
+                        format!("UdpNotConnected, {}", err),
+                        "NetQuery::query_udp() arr.len() > 512"
+                    ))
+                        .into();
                 }
             };
 
@@ -85,20 +83,24 @@ impl NetQuery {
         }
         #[cfg(feature = "result_error")]
         {
-            if let Err(err) = socket.send(arr).context(UdpPacketSendSnafu {
-                target: format!("{:?}", socket.peer_addr()),
-            }) {
-                return err.into();
+            if let Err(err) = socket.send(arr) {
+                return NetQueryError::SendUdpPacketError(ErrorFormat::new(
+                    format!("UdpPacketSendError, target: {:?}, {}", socket.peer_addr(), err),
+                    "NetQuery::query_udp()"
+                ))
+                    .into();
             }
-            match socket.recv(buf).context(RecvUdpPacketSnafu {
-                target: format!("{:?}", socket.peer_addr()),
-            }) {
+            match socket.recv(buf) {
                 Ok(number_of_bytes) => {
                     let response =
                         Response::from_slice(&buf.as_slice()[..number_of_bytes], &request);
                     return response.into();
                 }
-                Err(err) => err.into(),
+                Err(err) => NetQueryError::RecvUdpPacketError(ErrorFormat::new(
+                    format!("RecvUdpPacketError, target: {:?}, {}", socket.peer_addr(), err),
+                    "NetQuery::query_udp()"
+                ))
+                    .into(),
             }
         }
         #[cfg(not(feature = "result_error"))]
@@ -110,36 +112,41 @@ impl NetQuery {
     }
 }
 #[cfg(feature = "result_error")]
-#[derive(Snafu, Debug)]
 pub enum NetQueryError {
-    #[snafu(display("ConnectTcpAddrError, target: {}, info: {}", target, source.to_string()))]
-    ConnectTcpAddrError {
-        target: String,
-        source: std::io::Error,
-    },
-    #[snafu(display("UdpNotConnected, target: {}, info: {}", target, source.to_string()))]
-    UdpNotConnected {
-        target: String,
-        source: std::io::Error,
-    },
-    #[snafu(display("UdpPacketSendError, target: {}, info: {}", target, source.to_string()))]
-    UdpPacketSendError {
-        target: String,
-        source: std::io::Error,
-    },
-    #[snafu(display("RecvUdpPacketError, target: {}, info: {}", target, source.to_string()))]
-    RecvUdpPacketError {
-        target: String,
-        source: std::io::Error,
-    },
-    #[snafu(display("RecvTcpPacketError, target: {}, info: {}", target, source.to_string()))]
-    RecvTcpPacketError {
-        target: String,
-        source: std::io::Error,
-    },
-    #[snafu(display("WriteTcpConnectError, target: {}, info: {}", target, source.to_string()))]
-    WriteTcpConnectError {
-        target: String,
-        source: std::io::Error,
-    },
+    ConnectTcpAddrError(ErrorFormat),
+    UdpNotConnected(ErrorFormat),
+    SendUdpPacketError(ErrorFormat),
+    RecvUdpPacketError(ErrorFormat),
+    RecvTcpPacketError(ErrorFormat),
+    WriteTcpConnectError(ErrorFormat),
+}
+
+impl Display for NetQueryError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::ConnectTcpAddrError(e) |
+            Self::UdpNotConnected(e) |
+            Self::SendUdpPacketError(e) |
+            Self::RecvTcpPacketError(e) |
+            Self::RecvUdpPacketError(e) |
+            Self::WriteTcpConnectError(e) => {
+                Display::fmt(e, f)
+            }
+        }
+    }
+}
+
+impl Debug for NetQueryError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::ConnectTcpAddrError(e) |
+            Self::UdpNotConnected(e) |
+            Self::SendUdpPacketError(e) |
+            Self::RecvTcpPacketError(e) |
+            Self::RecvUdpPacketError(e) |
+            Self::WriteTcpConnectError(e) => {
+                Debug::fmt(e, f)
+            }
+        }
+    }
 }
