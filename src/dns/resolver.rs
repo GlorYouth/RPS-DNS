@@ -1,7 +1,5 @@
 #![cfg_attr(debug_assertions, allow(unused_variables, dead_code))]
 
-#[cfg(feature = "result_error")]
-use std::fmt::{Debug, Display};
 use crate::dns::error::ResultAndError;
 #[cfg(feature = "result_error")]
 use crate::dns::error::{ErrorFormat, NetError, error_trait};
@@ -15,6 +13,8 @@ use crate::dns::utils::ServerType;
 use log::debug;
 use paste::paste;
 use smallvec::SmallVec;
+#[cfg(feature = "result_error")]
+use std::fmt::{Debug, Display};
 use std::iter::FilterMap;
 
 use std::slice::Iter;
@@ -35,7 +35,7 @@ pub enum ResolverQueryError {
 }
 
 #[cfg(feature = "result_error")]
-impl std::fmt::Display for ResolverQueryError {
+impl Display for ResolverQueryError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ResolverQueryError::TargetParseError(err) => std::fmt::Display::fmt(err, f),
@@ -48,7 +48,7 @@ impl std::fmt::Display for ResolverQueryError {
 }
 
 #[cfg(feature = "result_error")]
-impl std::fmt::Debug for ResolverQueryError {
+impl Debug for ResolverQueryError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ResolverQueryError::TargetParseError(err) => std::fmt::Debug::fmt(err, f),
@@ -270,6 +270,19 @@ macro_rules! query_result_map_err {
     };
 }
 
+#[macro_export]
+macro_rules! record_filter {
+    ($record_type:ident) => {
+        |rec| {
+            if let $crate::dns::types::parts::RecordDataType::$record_type(v) = rec.data {
+                Some(v.get_general_output()?)
+            } else {
+                None
+            }
+        }
+    };
+}
+
 //我真不想写了，用宏生成算了
 macro_rules! define_get_record {
     ($fn_name:ident, $dns_type:expr) => {
@@ -335,12 +348,7 @@ macro_rules! query {
             let resolver = $crate::dns::resolver::Resolver::new(&mut config.server).ok()?;
             let result = resolver.query(config.target,$crate::dns::types::base::DnsTypeNum::$record_type);
             let response = result.into_result()?;
-            response.answer.into_iter().find_map(|rec| {
-            if let $crate::dns::types::parts::RecordDataType::$record_type(v) = &rec.data {
-                Some(v.get_general_output()?)
-            } else {
-                None
-            }})
+            response.answer.into_iter().find_map(record_filter!($record_type))
         }()
     };
     ($record_type:ident,all,$(@$config:ident $server:expr),*) => {
@@ -353,13 +361,7 @@ macro_rules! query {
             if let Ok(resolver) = $crate::dns::resolver::Resolver::new(&mut config.server) {
                 let result = resolver.query(config.target,$crate::dns::types::base::DnsTypeNum::$record_type);
                 if let Some(res) = result.into_result() {
-                    res.answer.into_iter().filter_map(|rec| {
-                        if let $crate::dns::types::parts::RecordDataType::$record_type(v) = rec.data {
-                            Some(v.get_general_output()?)
-                        } else {
-                            None
-                        }
-                    }).collect()
+                    res.answer.into_iter().filter_map(record_filter!($record_type)).collect()
                 } else {
                     Vec::new()
                 }
@@ -379,13 +381,7 @@ macro_rules! query {
             let resolver = $crate::dns::resolver::Resolver::new(&mut config.server).ok()?;
             let result = resolver.query(config.target,$crate::dns::types::base::DnsTypeNum::$record_type);
             let res = result.into_result()?;
-            Some(res.answer.into_iter().filter_map(|rec| {
-                if let $crate::dns::types::parts::RecordDataType::$record_type(v) = rec.data {
-                    Some(v.get_general_output()?)
-                } else {
-                    None
-                }
-            }))
+            Some(res.answer.into_iter().filter_map(record_filter!($record_type)))
         }()
     };
 
@@ -403,13 +399,7 @@ macro_rules! query {
                     let result = resolver.query(config.target,$crate::dns::types::base::DnsTypeNum::$record_type).0.into_index();
                     match result {
                         Ok(response) => match response {
-                            Some(res) => $crate::dns::resolver::QueryResult::from_result(res.answer.iter().find_map(|rec| {
-                                if let $crate::dns::types::parts::RecordDataType::$record_type(v) = &rec.data {
-                                    Some(v.get_general_output()?)
-                                } else {
-                                    None
-                                }
-                            })),
+                            Some(res) => $crate::dns::resolver::QueryResult::from_result(res.answer.into_iter().find_map(record_filter!($record_type))),
                             None => $crate::dns::resolver::QueryResult::from_result(None),
                         },
                         Err(e) => $crate::dns::resolver::QueryError::from(e).into(),
@@ -435,13 +425,7 @@ macro_rules! query {
                     match result {
                         Ok(response) => match response {
                             Some(res) => $crate::dns::resolver::QueryResult::from_result(Some(
-                                res.answer.iter().filter_map(|rec| {
-                                    if let $crate::dns::types::parts::RecordDataType::$record_type(v) = &rec.data {
-                                        Some(v.get_general_output()?)
-                                    } else {
-                                        None
-                                    }
-                                }).collect()
+                                res.answer.into_iter().filter_map(record_filter!($record_type)).collect()
                             )),
                             None => $crate::dns::resolver::QueryResult::from_result(None),
                         },
@@ -468,13 +452,7 @@ macro_rules! query {
                     match result {
                         Ok(response) => match response {
                             Some(res) => $crate::dns::resolver::QueryResult::from_result(Some(
-                                res.answer.into_iter().filter_map(|rec| {
-                                    if let $crate::dns::types::parts::RecordDataType::$record_type(v) = rec.data {
-                                        Some(v.get_general_output()?)
-                                    } else {
-                                        None
-                                    }
-                                })
+                                res.answer.into_iter().filter_map(record_filter!($record_type))
                             )),
                             None => $crate::dns::resolver::QueryResult::from_result(None),
                         },
@@ -505,30 +483,25 @@ pub enum QueryError {
 
 #[cfg(feature = "result_error")]
 impl Display for QueryError {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
-            QueryError::ServerParseError(e) |
-            QueryError::TargetParseError(e) |
-            QueryError::ResolverQueryError(e) => {
-                std::fmt::Display::fmt(&e, f)
-            }
+            QueryError::ServerParseError(e)
+            | QueryError::TargetParseError(e)
+            | QueryError::ResolverQueryError(e) => std::fmt::Display::fmt(&e, f),
         }
     }
 }
 
 #[cfg(feature = "result_error")]
 impl Debug for QueryError {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
-            QueryError::ServerParseError(e) |
-            QueryError::TargetParseError(e) |
-            QueryError::ResolverQueryError(e) => {
-                std::fmt::Debug::fmt(&e, f)
-            }
+            QueryError::ServerParseError(e)
+            | QueryError::TargetParseError(e)
+            | QueryError::ResolverQueryError(e) => std::fmt::Debug::fmt(&e, f),
         }
     }
 }
-
 
 #[cfg(feature = "result_error")]
 impl error_trait::B for QueryError {}
@@ -546,7 +519,7 @@ impl From<ResolverQueryError> for QueryError {
 }
 
 #[cfg(feature = "fmt")]
-impl std::fmt::Display for ResolverQueryResult {
+impl Display for ResolverQueryResult {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if let Some(res) = &self.0.get_result() {
             std::fmt::Display::fmt(&res, f)?;
