@@ -5,6 +5,7 @@ use crate::dns::error::ResultAndError;
 #[cfg(feature = "result_error")]
 use crate::dns::error::error_trait;
 use crate::dns::types::parts::{Request, Response};
+#[cfg(feature = "result_error")]
 use std::fmt::{Debug, Display, Formatter};
 use std::io::{Read, Write};
 use std::net::{TcpStream, UdpSocket};
