@@ -1,3 +1,4 @@
+#[cfg(feature = "result_error")]
 use crate::dns::error::ErrorFormat;
 #[cfg(feature = "result_error")]
 use crate::dns::error::ResultAndError;
@@ -136,7 +137,7 @@ pub enum NetQueryError {
     RecvTcpPacketError(ErrorFormat),
     WriteTcpConnectError(ErrorFormat),
 }
-
+#[cfg(feature = "result_error")]
 impl Display for NetQueryError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -149,7 +150,7 @@ impl Display for NetQueryError {
         }
     }
 }
-
+#[cfg(feature = "result_error")]
 impl Debug for NetQueryError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {

@@ -1,8 +1,8 @@
 #![cfg_attr(debug_assertions, allow(unused_variables, dead_code))]
 
-use crate::dns::error::{ErrorFormat, ResultAndError};
+use crate::dns::error::ResultAndError;
 #[cfg(feature = "result_error")]
-use crate::dns::error::{NetError, error_trait};
+use crate::dns::error::{ErrorFormat, NetError, error_trait};
 use crate::dns::net::NetQuery;
 #[cfg(feature = "result_error")]
 use crate::dns::net::NetQueryError;
@@ -673,6 +673,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "result_error")]
     fn test_query() {
         let server = vec!["9.9.9.9".to_string()];
         let result = query! {
