@@ -10,37 +10,37 @@ impl ErrorFormat {
         info.push('\n');
         let info_new = info.clone();
         info.push_str(format!("trace:\n{}\n", trace).as_str());
-        Self { 
+        Self {
             info: info_new,
             debug: info,
         }
     }
-    
+
     pub fn from_vec<T: AsRef<ErrorFormat>>(errs: Vec<T>) -> Self {
         let len = errs.len();
-        let mut info = String::with_capacity(len*10);
+        let mut info = String::with_capacity(len * 10);
         info.push_str("Errors:\n");
-        let mut debug = String::with_capacity(len*40);
+        let mut debug = String::with_capacity(len * 40);
         debug.push_str("Errors:\n[\n\t");
-        let vec = errs.into_iter().fold((info,debug,0), |mut b, t| {
+        let vec = errs.into_iter().fold((info, debug, 0), |mut b, t| {
             let t = t.as_ref();
-            b.0.push_str(format!("{}: {}", b.2 ,t.info).as_str());
-            b.1.push_str(t.debug.replace("\n","\n\t").as_str());
+            b.0.push_str(format!("{}: {}", b.2, t.info).as_str());
+            b.1.push_str(t.debug.replace("\n", "\n\t").as_str());
             b.2 += 1;
             if b.2 < len {
                 b.1.push_str("\n\t");
-            } else { 
+            } else {
                 b.1.push_str("]");
             }
             b
         });
-        
+
         Self {
             info: vec.0,
             debug: vec.1,
         }
     }
-    
+
     pub fn add_trace(&mut self, t: &str) {
         self.debug.push_str(t);
         self.debug.push_str("\n");
@@ -55,13 +55,13 @@ impl ErrorFormat {
 
 impl Display for ErrorFormat {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f,"{}",self.info)
+        write!(f, "{}", self.info)
     }
 }
 
 impl Debug for ErrorFormat {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f,"{}",self.debug)
+        write!(f, "{}", self.debug)
     }
 }
 
@@ -70,7 +70,6 @@ impl AsRef<ErrorFormat> for ErrorFormat {
         self
     }
 }
-
 
 #[cfg(feature = "result_error")]
 pub enum NetError {
@@ -88,16 +87,14 @@ pub enum NetError {
 impl Display for NetError {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         match self {
-            NetError::ConnectTcpAddrError(err) |
-            NetError::UdpNotConnected(err) |
-            NetError::SendUdpPacketError(err) |
-            NetError::RecvUdpPacketError(err) |
-            NetError::RecvTcpPacketError(err) |
-            NetError::WriteTcpConnectError(err) |
-            NetError::ConnectUdpAddrError(err) |
-            NetError::BindUdpAddrError(err) => {
-                Display::fmt(err, f)
-            }
+            NetError::ConnectTcpAddrError(err)
+            | NetError::UdpNotConnected(err)
+            | NetError::SendUdpPacketError(err)
+            | NetError::RecvUdpPacketError(err)
+            | NetError::RecvTcpPacketError(err)
+            | NetError::WriteTcpConnectError(err)
+            | NetError::ConnectUdpAddrError(err)
+            | NetError::BindUdpAddrError(err) => Display::fmt(err, f),
         }
     }
 }
@@ -106,16 +103,14 @@ impl Display for NetError {
 impl Debug for NetError {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         match self {
-            NetError::ConnectTcpAddrError(err) |
-            NetError::UdpNotConnected(err) |
-            NetError::SendUdpPacketError(err) |
-            NetError::RecvUdpPacketError(err) |
-            NetError::RecvTcpPacketError(err) |
-            NetError::WriteTcpConnectError(err) |
-            NetError::ConnectUdpAddrError(err) |
-            NetError::BindUdpAddrError(err) => {
-                Debug::fmt(err, f)
-            }
+            NetError::ConnectTcpAddrError(err)
+            | NetError::UdpNotConnected(err)
+            | NetError::SendUdpPacketError(err)
+            | NetError::RecvUdpPacketError(err)
+            | NetError::RecvTcpPacketError(err)
+            | NetError::WriteTcpConnectError(err)
+            | NetError::ConnectUdpAddrError(err)
+            | NetError::BindUdpAddrError(err) => Debug::fmt(err, f),
         }
     }
 }
@@ -123,16 +118,14 @@ impl Debug for NetError {
 impl Into<ErrorFormat> for NetError {
     fn into(self) -> ErrorFormat {
         match self {
-            NetError::ConnectTcpAddrError(err) |
-            NetError::UdpNotConnected(err) |
-            NetError::SendUdpPacketError(err) |
-            NetError::RecvUdpPacketError(err) |
-            NetError::RecvTcpPacketError(err) |
-            NetError::WriteTcpConnectError(err) |
-            NetError::ConnectUdpAddrError(err) |
-            NetError::BindUdpAddrError(err) => {
-                err
-            }
+            NetError::ConnectTcpAddrError(err)
+            | NetError::UdpNotConnected(err)
+            | NetError::SendUdpPacketError(err)
+            | NetError::RecvUdpPacketError(err)
+            | NetError::RecvTcpPacketError(err)
+            | NetError::WriteTcpConnectError(err)
+            | NetError::ConnectUdpAddrError(err)
+            | NetError::BindUdpAddrError(err) => err,
         }
     }
 }
@@ -140,16 +133,14 @@ impl Into<ErrorFormat> for NetError {
 impl NetError {
     pub fn get_index(&self) -> &ErrorFormat {
         match self {
-            NetError::ConnectTcpAddrError(err) |
-            NetError::UdpNotConnected(err) |
-            NetError::SendUdpPacketError(err) |
-            NetError::RecvUdpPacketError(err) |
-            NetError::RecvTcpPacketError(err) |
-            NetError::WriteTcpConnectError(err) |
-            NetError::ConnectUdpAddrError(err) |
-            NetError::BindUdpAddrError(err) => {
-                err
-            }
+            NetError::ConnectTcpAddrError(err)
+            | NetError::UdpNotConnected(err)
+            | NetError::SendUdpPacketError(err)
+            | NetError::RecvUdpPacketError(err)
+            | NetError::RecvTcpPacketError(err)
+            | NetError::WriteTcpConnectError(err)
+            | NetError::ConnectUdpAddrError(err)
+            | NetError::BindUdpAddrError(err) => err,
         }
     }
 }
