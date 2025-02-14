@@ -1,5 +1,7 @@
 #![cfg_attr(debug_assertions, allow(unused_variables, dead_code))]
 
+#[cfg(feature = "result_error")]
+use std::fmt::{Debug, Display};
 use crate::dns::error::ResultAndError;
 #[cfg(feature = "result_error")]
 use crate::dns::error::{ErrorFormat, NetError, error_trait};
@@ -102,7 +104,7 @@ impl Resolver {
         Ok(Resolver { server: vec })
     }
 
-    fn query(&self, domain: String, qtype: u16) -> ResolverQueryResult {
+    pub fn query(&self, domain: String, qtype: u16) -> ResolverQueryResult {
         #[cfg(feature = "result_error")]
         let mut error_vec = Vec::new();
         if let Some(domain) = RawDomain::from_str(domain.as_str()) {
@@ -215,7 +217,7 @@ impl Resolver {
 
 #[cfg(feature = "result_error")]
 #[derive(Debug)]
-pub struct ResolverQueryResult(ResultAndError<Response, ResolverQueryError>);
+pub struct ResolverQueryResult(pub ResultAndError<Response, ResolverQueryError>);
 
 impl ResolverQueryResult {
     #[inline]
@@ -231,8 +233,9 @@ impl ResolverQueryResult {
 
 #[cfg(not(feature = "result_error"))]
 #[derive(Debug)]
-pub struct ResolverQueryResult(ResultAndError<Response>);
+pub struct ResolverQueryResult(pub ResultAndError<Response>);
 
+#[macro_export]
 macro_rules! query_type_map {
     (A) => { std::net::Ipv4Addr };
     (NS) => { std::string::String };
@@ -243,7 +246,7 @@ macro_rules! query_type_map {
 }
 
 // todo
-
+#[macro_export]
 macro_rules! query_result_map {
     (single,$query_type:ty) => {Option<$query_type>};
     (all,$query_type:ty) => {Vec<$query_type>};
@@ -257,26 +260,13 @@ macro_rules! query_result_map {
     };
 }
 
-#[allow(unused_macros)]
+#[macro_export]
 macro_rules! query_result_map_err {
     (single,$query_type:ty) => {$crate::dns::resolver::QueryResult<$query_type>};
     (all,$query_type:ty) => {$crate::dns::resolver::QueryResult<Vec<$query_type>>};
     (into_iter,$query_type:ty) => {
         $crate::dns::resolver::QueryResult<std::iter::FilterMap<std::vec::IntoIter<$crate::dns::types::parts::Record>,
             fn($crate::dns::types::parts::Record) -> Option<$query_type>>>
-    };
-}
-
-#[allow(unused_macros)]
-macro_rules! record_filter {
-    ($record_type:ident) => {
-        |rec| {
-            if let $crate::dns::types::parts::RecordDataType::$record_type(v) = rec.data {
-                Some(v.get_general_output()?)
-            } else {
-                None
-            }
-        }
     };
 }
 
@@ -337,25 +327,30 @@ define_get_record!(aaaa, AAAA);
 macro_rules! query {
     ($record_type:ident,$(@$config:ident $server:expr),*) => {
         || -> query_result_map!(single,query_type_map!($record_type)) {
-            let config = $crate::dns::resolver::ResolveConfig {
+            let mut config = $crate::dns::resolver::ResolveConfig {
                 $(
                     $config: $server,
                 )*
             };
-            let resolver = $crate::dns::resolver::Resolver::new(config.server).ok()?;
+            let resolver = $crate::dns::resolver::Resolver::new(&mut config.server).ok()?;
             let result = resolver.query(config.target,$crate::dns::types::base::DnsTypeNum::$record_type);
-            let response = result.get_result().as_ref()?;
-            response.answer.iter().find_map(record_filter!($record_type))
+            let response = result.into_result()?;
+            response.answer.into_iter().find_map(|rec| {
+            if let $crate::dns::types::parts::RecordDataType::$record_type(v) = &rec.data {
+                Some(v.get_general_output()?)
+            } else {
+                None
+            }})
         }()
     };
     ($record_type:ident,all,$(@$config:ident $server:expr),*) => {
         || -> query_result_map!(all,query_type_map!($record_type)) {
-            let config = $crate::dns::resolver::ResolveConfig {
+            let mut config = $crate::dns::resolver::ResolveConfig {
                 $(
                     $config: $server,
                 )*
             };
-            if let Ok(resolver) = $crate::dns::resolver::Resolver::new(config.server) {
+            if let Ok(resolver) = $crate::dns::resolver::Resolver::new(&mut config.server) {
                 let result = resolver.query(config.target,$crate::dns::types::base::DnsTypeNum::$record_type);
                 if let Some(res) = result.into_result() {
                     res.answer.into_iter().filter_map(|rec| {
@@ -376,12 +371,12 @@ macro_rules! query {
     };
     ($record_type:ident,into_iter,$(@$config:ident $server:expr),*) => {
         || -> query_result_map!(into_iter,query_type_map!($record_type)) {
-            let config = $crate::dns::resolver::ResolveConfig {
+            let mut config = $crate::dns::resolver::ResolveConfig {
                 $(
                     $config: $server,
                 )*
             };
-            let resolver = $crate::dns::resolver::Resolver::new(config.server).ok()?;
+            let resolver = $crate::dns::resolver::Resolver::new(&mut config.server).ok()?;
             let result = resolver.query(config.target,$crate::dns::types::base::DnsTypeNum::$record_type);
             let res = result.into_result()?;
             Some(res.answer.into_iter().filter_map(|rec| {
@@ -498,12 +493,42 @@ macro_rules! query {
 #[cfg(feature = "result_error")]
 pub type QueryResult<T> = ResultAndError<T, QueryError>;
 
+#[cfg(not(feature = "result_error"))]
+pub type QueryResult<T> = ResultAndError<T>;
+
 #[cfg(feature = "result_error")]
 pub enum QueryError {
     ServerParseError(ErrorFormat),
     TargetParseError(ErrorFormat),
     ResolverQueryError(ErrorFormat),
 }
+
+#[cfg(feature = "result_error")]
+impl Display for QueryError {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        match self {
+            QueryError::ServerParseError(e) |
+            QueryError::TargetParseError(e) |
+            QueryError::ResolverQueryError(e) => {
+                std::fmt::Display::fmt(&e, f)
+            }
+        }
+    }
+}
+
+#[cfg(feature = "result_error")]
+impl Debug for QueryError {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        match self {
+            QueryError::ServerParseError(e) |
+            QueryError::TargetParseError(e) |
+            QueryError::ResolverQueryError(e) => {
+                std::fmt::Debug::fmt(&e, f)
+            }
+        }
+    }
+}
+
 
 #[cfg(feature = "result_error")]
 impl error_trait::B for QueryError {}

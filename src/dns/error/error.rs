@@ -30,7 +30,8 @@ impl ErrorFormat {
             if b.2 < len {
                 b.1.push_str("\n\t");
             } else {
-                b.1.push_str("]");
+                b.1.pop();
+                b.1.push_str("]\ntrace:\n");
             }
             b
         });
