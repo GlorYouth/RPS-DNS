@@ -373,27 +373,27 @@ define_get_record!(aaaa, AAAA);
 #[macro_export]
 macro_rules! query {
     ($record_type:ident,$(@$config:ident $server:expr),*) => {
-        || -> query_result_map!(single,query_type_map!($record_type)) {
+        || -> $crate::query_result_map!(single,$crate::query_type_map!($record_type)) {
             let mut config = rps_dns::resolver::ResolveConfig {
                 $(
                     $config: $server,
                 )*
             };
             let resolver = rps_dns::resolver::Resolver::new(&mut config.server).ok()?;
-            let result = resolver.query(config.target,dns_type_num!($record_type));
+            let result = resolver.query(config.target,$crate::dns_type_num!($record_type));
             result.$record_type()
         }()
     };
     ($record_type:ident,all,$(@$config:ident $server:expr),*) => {
-        paste!{
-            || -> query_result_map!(all,query_type_map!($record_type)) {
+        $crate::paste!{
+            || -> $crate::query_result_map!(all,$crate::query_type_map!($record_type)) {
                 let mut config = rps_dns::resolver::ResolveConfig {
                     $(
                         $config: $server,
                     )*
                 };
                 if let Ok(resolver) = rps_dns::resolver::Resolver::new(&mut config.server) {
-                    let result = resolver.query(config.target,dns_type_num!($record_type));
+                    let result = resolver.query(config.target,$crate::dns_type_num!($record_type));
                     if let Some(iter) = result.[<$record_type _into_iter>]() {
                         iter.collect()
                     } else {
@@ -406,15 +406,15 @@ macro_rules! query {
         }
     };
     ($record_type:ident,into_iter,$(@$config:ident $server:expr),*) => {
-        paste!{
-            || -> query_result_map!(into_iter,query_type_map!($record_type)) {
+        $crate::paste!{
+            || -> $crate::query_result_map!(into_iter,$crate::query_type_map!($record_type)) {
                 let mut config = rps_dns::resolver::ResolveConfig {
                     $(
                         $config: $server,
                     )*
                 };
                 let resolver = rps_dns::resolver::Resolver::new(&mut config.server).ok()?;
-                let result = resolver.query(config.target,dns_type_num!($record_type));
+                let result = resolver.query(config.target,$crate::dns_type_num!($record_type));
                 result.[<$record_type _into_iter>]()
             }()
         }
@@ -423,7 +423,7 @@ macro_rules! query {
 
 
     ($record_type:ident,$(@$config:ident $server:expr),*,-error) => {
-        || -> query_result_map_err!(single,query_type_map!($record_type)) {
+        || -> $crate::query_result_map_err!(single,$crate::query_type_map!($record_type)) {
             let mut config = rps_dns::resolver::ResolveConfig {
                 $(
                     $config: $server,
@@ -431,7 +431,7 @@ macro_rules! query {
             };
             match rps_dns::resolver::Resolver::new(&mut config.server) {
                 Ok(resolver) => {
-                    let result = resolver.query(config.target,dns_type_num!($record_type));
+                    let result = resolver.query(config.target,$crate::dns_type_num!($record_type));
                     match result.error() {
                         Some(_) => rps_dns::resolver::QueryError::from(result.into_error().unwrap()).into(),
                         None => rps_dns::resolver::QueryResult::from_result(result.$record_type()),
@@ -445,8 +445,8 @@ macro_rules! query {
         }()
     };
     ($record_type:ident,all,$(@$config:ident $server:expr),*,-error) => {
-        paste!{
-            || -> query_result_map_err!(all,query_type_map!($record_type)) {
+        $crate::paste!{
+            || -> $crate::query_result_map_err!(all,$crate::query_type_map!($record_type)) {
                 let mut config = rps_dns::resolver::ResolveConfig {
                     $(
                         $config: $server,
@@ -454,7 +454,7 @@ macro_rules! query {
                 };
                 match rps_dns::resolver::Resolver::new(&mut config.server) {
                     Ok(resolver) => {
-                        let result = resolver.query(config.target,dns_type_num!($record_type));
+                        let result = resolver.query(config.target,$crate::dns_type_num!($record_type));
                         match result.error() {
                             Some(_) => rps_dns::resolver::QueryError::from(result.into_error().unwrap()).into(),
                             None => match result.[<$record_type _into_iter>]() {
@@ -474,8 +474,8 @@ macro_rules! query {
         }
     };
     ($record_type:ident,into_iter,$(@$config:ident $server:expr),*,-error) => {
-        paste!{
-            || -> query_result_map_err!(into_iter,query_type_map!($record_type)) {
+        $crate::paste!{
+            || -> $crate::query_result_map_err!(into_iter,$crate::query_type_map!($record_type)) {
                 let mut config = rps_dns::resolver::ResolveConfig {
                     $(
                         $config: $server,
@@ -483,7 +483,7 @@ macro_rules! query {
                 };
                 match rps_dns::resolver::Resolver::new(&mut config.server) {
                     Ok(resolver) => {
-                        let result = resolver.query(config.target,dns_type_num!($record_type));
+                        let result = resolver.query(config.target,$crate::dns_type_num!($record_type));
                             match result.error() {
                                 Some(_) => rps_dns::resolver::QueryError::from(result.into_error().unwrap()).into(),
                                 None => rps_dns::resolver::QueryResult::from_result(result.[<$record_type _into_iter>]())

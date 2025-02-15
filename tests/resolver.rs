@@ -1,5 +1,4 @@
-use rps_dns::dns_type_num;
-use rps_dns::*;
+use rps_dns::query;
 use rps_dns::resolver::*;
 use rps_dns::error::*;
 
