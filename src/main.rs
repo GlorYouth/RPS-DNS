@@ -1,6 +1,6 @@
 extern crate core;
 
-use paste::paste;
+use rps_dns::paste;
 use rps_dns::query;
 use rps_dns::dns_type_num;
 use rps_dns::query_result_map;
