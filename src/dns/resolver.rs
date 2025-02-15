@@ -271,26 +271,6 @@ macro_rules! query_type_map {
 }
 
 #[macro_export]
-macro_rules! to_lowercase {
-    (A) => { a };
-    (NS) => { ns };
-    (CNAME) => { cname };
-    (SOA) => { soa };
-    (TXT) => { txt };
-    (AAAA) => { aaaa }
-}
-
-#[macro_export]
-macro_rules! to_uppercase {
-    (a) => { A };
-    (ns) => { NS };
-    (cname) => { CNAME };
-    (soa) => { SOA };
-    (txt) => { TXT };
-    (aaaa) => { AAAA }
-}
-
-#[macro_export]
 macro_rules! dns_type_num {
     (a) => { 1 };
     (ns) => { 2 };
