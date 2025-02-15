@@ -18,9 +18,9 @@ use std::fmt::Display;
 
 #[derive(Debug)]
 pub struct Response {
-    pub header: ResponseHeader,
-    pub question: SmallVec<[Question; 1]>,
-    pub answer: Vec<Record>,
+    header: ResponseHeader,
+    question: SmallVec<[Question; 1]>,
+    answer: Vec<Record>,
 }
 
 #[cfg(feature = "result_error")]
@@ -159,6 +159,16 @@ impl Response {
             }
             Some(())
         })
+    }
+    
+    #[inline]
+    pub fn answers(&self) -> &Vec<Record> {
+        self.answer.as_ref()
+    }
+
+    #[inline]
+    pub fn into_answers(self) -> Vec<Record> {
+        self.answer
     }
 }
 

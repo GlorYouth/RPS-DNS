@@ -26,6 +26,6 @@ pub fn test_decode_from() {
     ][..];
     for _ in 0..20000 {
         let response = Response::from_slice_uncheck(arr).unwrap();
-        assert_eq!(response.header.id, 0xb9de);
+        response.into_answers().iter().for_each(|_a| {})
     }
 }

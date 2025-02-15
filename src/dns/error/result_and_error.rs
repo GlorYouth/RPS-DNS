@@ -32,7 +32,7 @@ impl<T, E> ResultAndError<T, E> {
         Self { result: Err(error) }
     }
 
-    pub fn get_result(&self) -> Option<&T> {
+    pub fn result(&self) -> Option<&T> {
         #[cfg(feature = "result_error")]
         if let Ok(result) = &self.result {
             Option::from(result)
@@ -55,8 +55,17 @@ impl<T, E> ResultAndError<T, E> {
     }
 
     #[cfg(feature = "result_error")]
-    pub fn get_error(&self) -> Option<&E> {
+    pub fn error(&self) -> Option<&E> {
         if let Err(error) = &self.result {
+            Some(error)
+        } else {
+            None
+        }
+    }
+
+    #[cfg(feature = "result_error")]
+    pub fn into_error(self) -> Option<E> {
+        if let Err(error) = self.result {
             Some(error)
         } else {
             None
