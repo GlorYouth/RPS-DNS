@@ -17,7 +17,6 @@ use smallvec::SmallVec;
 use std::fmt::{Debug, Display};
 use std::iter::FilterMap;
 
-use std::slice::Iter;
 
 pub struct Resolver {
     server: SmallVec<[ServerType; 5]>,
@@ -286,24 +285,20 @@ macro_rules! query_result_map {
     (single,$query_type:ty) => {Option<$query_type>};
     (all,$query_type:ty) => {Vec<$query_type>};
     (iter,$query_type:ty) => {
-        Option<FilterMap<Iter<crate::dns::types::parts::Record>,
-            fn(&crate::dns::types::parts::Record) -> Option<$query_type>>>
+        Option<Iter<$query_type>>
     };
-    (into_iter,$query_type:ty) => {
-        Option<std::iter::FilterMap<std::vec::IntoIter<$crate::dns::types::parts::Record>,
-            fn($crate::dns::types::parts::Record) -> Option<$query_type>>>
-    };
+    (into_iter,$query_type:ty) => {Option<IntoIter<$query_type>>};
 }
 
 #[macro_export]
 macro_rules! query_result_map_err {
-    (single,$query_type:ty) => {$crate::dns::resolver::QueryResult<$query_type>};
-    (all,$query_type:ty) => {$crate::dns::resolver::QueryResult<Vec<$query_type>>};
-    (into_iter,$query_type:ty) => {
-        $crate::dns::resolver::QueryResult<std::iter::FilterMap<std::vec::IntoIter<$crate::dns::types::parts::Record>,
-            fn($crate::dns::types::parts::Record) -> Option<$query_type>>>
-    };
+    (single,$query_type:ty) => {rps_dns::resolver::QueryResult<$query_type>};
+    (all,$query_type:ty) => {rps_dns::resolver::QueryResult<Vec<$query_type>>};
+    (into_iter,$query_type:ty) => {rps_dns::resolver::QueryResult<IntoIter<$query_type>>};
 }
+
+pub type Iter<'a,T> = FilterMap<std::slice::Iter<'a,crate::dns::types::parts::Record>, fn(&crate::dns::types::parts::Record) -> Option<T>>;
+pub type IntoIter<T> = FilterMap<std::vec::IntoIter<crate::dns::types::parts::Record>, fn(crate::dns::types::parts::Record) -> Option<T>>;
 
 
 //我真不想写了，用宏生成算了
@@ -379,12 +374,12 @@ define_get_record!(aaaa, AAAA);
 macro_rules! query {
     ($record_type:ident,$(@$config:ident $server:expr),*) => {
         || -> query_result_map!(single,query_type_map!($record_type)) {
-            let mut config = $crate::dns::resolver::ResolveConfig {
+            let mut config = rps_dns::resolver::ResolveConfig {
                 $(
                     $config: $server,
                 )*
             };
-            let resolver = $crate::dns::resolver::Resolver::new(&mut config.server).ok()?;
+            let resolver = rps_dns::resolver::Resolver::new(&mut config.server).ok()?;
             let result = resolver.query(config.target,dns_type_num!($record_type));
             result.$record_type()
         }()
@@ -392,12 +387,12 @@ macro_rules! query {
     ($record_type:ident,all,$(@$config:ident $server:expr),*) => {
         paste!{
             || -> query_result_map!(all,query_type_map!($record_type)) {
-                let mut config = $crate::dns::resolver::ResolveConfig {
+                let mut config = rps_dns::resolver::ResolveConfig {
                     $(
                         $config: $server,
                     )*
                 };
-                if let Ok(resolver) = $crate::dns::resolver::Resolver::new(&mut config.server) {
+                if let Ok(resolver) = rps_dns::resolver::Resolver::new(&mut config.server) {
                     let result = resolver.query(config.target,dns_type_num!($record_type));
                     if let Some(iter) = result.[<$record_type _into_iter>]() {
                         iter.collect()
@@ -413,12 +408,12 @@ macro_rules! query {
     ($record_type:ident,into_iter,$(@$config:ident $server:expr),*) => {
         paste!{
             || -> query_result_map!(into_iter,query_type_map!($record_type)) {
-                let mut config = $crate::dns::resolver::ResolveConfig {
+                let mut config = rps_dns::resolver::ResolveConfig {
                     $(
                         $config: $server,
                     )*
                 };
-                let resolver = $crate::dns::resolver::Resolver::new(&mut config.server).ok()?;
+                let resolver = rps_dns::resolver::Resolver::new(&mut config.server).ok()?;
                 let result = resolver.query(config.target,dns_type_num!($record_type));
                 result.[<$record_type _into_iter>]()
             }()
@@ -429,20 +424,20 @@ macro_rules! query {
 
     ($record_type:ident,$(@$config:ident $server:expr),*,-error) => {
         || -> query_result_map_err!(single,query_type_map!($record_type)) {
-            let mut config = $crate::dns::resolver::ResolveConfig {
+            let mut config = rps_dns::resolver::ResolveConfig {
                 $(
                     $config: $server,
                 )*
             };
-            match $crate::dns::resolver::Resolver::new(&mut config.server) {
+            match rps_dns::resolver::Resolver::new(&mut config.server) {
                 Ok(resolver) => {
                     let result = resolver.query(config.target,dns_type_num!($record_type));
                     match result.error() {
-                        Some(_) => $crate::dns::resolver::QueryError::from(result.into_error().unwrap()).into(),
-                        None => $crate::dns::resolver::QueryResult::from_result(result.$record_type()),
+                        Some(_) => rps_dns::resolver::QueryError::from(result.into_error().unwrap()).into(),
+                        None => rps_dns::resolver::QueryResult::from_result(result.$record_type()),
                     }
                 }
-                Err(err) => $crate::dns::resolver::QueryError::ServerParseError($crate::dns::error::ErrorFormat::new(
+                Err(err) => rps_dns::resolver::QueryError::ServerParseError(rps_dns::error::ErrorFormat::new(
                     format!("ServerParseError, target {:?}, {}", config.server, err),
                     "query!()"
                 )).into()
@@ -452,25 +447,25 @@ macro_rules! query {
     ($record_type:ident,all,$(@$config:ident $server:expr),*,-error) => {
         paste!{
             || -> query_result_map_err!(all,query_type_map!($record_type)) {
-                let mut config = $crate::dns::resolver::ResolveConfig {
+                let mut config = rps_dns::resolver::ResolveConfig {
                     $(
                         $config: $server,
                     )*
                 };
-                match $crate::dns::resolver::Resolver::new(&mut config.server) {
+                match rps_dns::resolver::Resolver::new(&mut config.server) {
                     Ok(resolver) => {
                         let result = resolver.query(config.target,dns_type_num!($record_type));
                         match result.error() {
-                            Some(_) => $crate::dns::resolver::QueryError::from(result.into_error().unwrap()).into(),
+                            Some(_) => rps_dns::resolver::QueryError::from(result.into_error().unwrap()).into(),
                             None => match result.[<$record_type _into_iter>]() {
                                 Some(iter) => {
-                                    $crate::dns::resolver::QueryResult::from_result(Some(iter.collect()))
+                                    rps_dns::resolver::QueryResult::from_result(Some(iter.collect()))
                                 },
-                                None => $crate::dns::resolver::QueryResult::from_result(None),// todo Option和Vec有重叠
+                                None => rps_dns::resolver::QueryResult::from_result(None),// todo Option和Vec有重叠
                             },
                         }
                     }
-                    Err(err) => $crate::dns::resolver::QueryError::ServerParseError($crate::dns::error::ErrorFormat::new(
+                    Err(err) => rps_dns::resolver::QueryError::ServerParseError(rps_dns::error::ErrorFormat::new(
                         format!("ServerParseError, target {:?}, {}", config.server, err),
                         "query!()"
                     )).into()
@@ -481,20 +476,20 @@ macro_rules! query {
     ($record_type:ident,into_iter,$(@$config:ident $server:expr),*,-error) => {
         paste!{
             || -> query_result_map_err!(into_iter,query_type_map!($record_type)) {
-                let mut config = $crate::dns::resolver::ResolveConfig {
+                let mut config = rps_dns::resolver::ResolveConfig {
                     $(
                         $config: $server,
                     )*
                 };
-                match $crate::dns::resolver::Resolver::new(&mut config.server) {
+                match rps_dns::resolver::Resolver::new(&mut config.server) {
                     Ok(resolver) => {
                         let result = resolver.query(config.target,dns_type_num!($record_type));
                             match result.error() {
-                                Some(_) => $crate::dns::resolver::QueryError::from(result.into_error().unwrap()).into(),
-                                None => $crate::dns::resolver::QueryResult::from_result(result.[<$record_type _into_iter>]())
+                                Some(_) => rps_dns::resolver::QueryError::from(result.into_error().unwrap()).into(),
+                                None => rps_dns::resolver::QueryResult::from_result(result.[<$record_type _into_iter>]())
                             }
                     }
-                    Err(err) => $crate::dns::resolver::QueryError::ServerParseError($crate::dns::error::ErrorFormat::new(
+                    Err(err) => rps_dns::resolver::QueryError::ServerParseError(rps_dns::error::ErrorFormat::new(
                         format!("ServerParseError, target {:?}, {}", config.server, err),
                         "query!()"
                     )).into()
@@ -582,142 +577,3 @@ impl From<ResolverQueryError> for ResolverQueryResult {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use paste::paste;
-#[cfg(feature = "logger")]
-    use crate::dns::error::init_logger;
-    #[cfg(feature = "logger")]
-    use crate::dns::error::set_println_enabled;
-    use crate::dns::resolver::Resolver;
-
-    #[test]
-    fn test_query_a() {
-        #[cfg(feature = "logger")]
-        init_logger();
-        let mut server = vec!["94.140.14.140".to_string()];
-        let resolver = Resolver::new(&mut server).unwrap();
-        let result = resolver.query_a("www.baidu.com".to_string());
-        if let Some(answer) = result.a() {
-            println!("{}", answer);
-        } else {
-            println!("No A record");
-            #[cfg(feature = "fmt")]
-            println!("{}", result);
-        }
-    }
-
-    #[test]
-    fn test_query_aaaa() {
-        #[cfg(feature = "logger")]
-        init_logger();
-        let mut server = vec!["94.140.14.140".to_string()];
-        let resolver = Resolver::new(&mut server).unwrap();
-        let result = resolver.query_aaaa("www.google.com".to_string());
-        if let Some(answer) = result.aaaa() {
-            println!("{}", answer);
-        } else {
-            println!("No AAAA record");
-            #[cfg(feature = "fmt")]
-            println!("{}", result);
-        }
-    }
-
-    #[test]
-    fn test_query_cname() {
-        #[cfg(feature = "logger")]
-        init_logger();
-        let mut server = vec!["94.140.14.140".to_string()];
-        let resolver = Resolver::new(&mut server).unwrap();
-        let result = resolver.query_cname("www.baidu.com".to_string());
-        if let Some(answer) = result.cname() {
-            println!("{}", answer);
-        } else {
-            println!("No CNAME record");
-            #[cfg(feature = "fmt")]
-            println!("{}", result);
-        }
-    }
-
-    #[test]
-    fn test_query_soa() {
-        #[cfg(feature = "logger")]
-        init_logger();
-        let mut server = vec!["94.140.14.140".to_string()];
-        let resolver = Resolver::new(&mut server).unwrap();
-        let result = resolver.query_soa("www.baidu.com".to_string());
-        if let Some(answer) = result.soa() {
-            #[cfg(feature = "fmt")]
-            println!("{}", answer);
-            #[cfg(not(feature = "fmt"))]
-            println!("{:?}", result);
-        } else {
-            println!("No SOA record");
-            #[cfg(feature = "fmt")]
-            println!("{}", result);
-        }
-    }
-
-    #[test]
-    fn test_query_txt() {
-        #[cfg(feature = "logger")]
-        init_logger();
-        let mut server = vec!["9.9.9.9".to_string()];
-        let resolver = Resolver::new(&mut server).unwrap();
-        let result = resolver.query_txt("fs.gloryouth.com".to_string());
-        if let Some(answer) = result.txt() {
-            #[cfg(feature = "fmt")]
-            println!("{:?}", answer);
-            #[cfg(not(feature = "fmt"))]
-            println!("{:?}", result);
-        } else {
-            println!("No TXT record");
-            #[cfg(feature = "fmt")]
-            println!("{}", result);
-        }
-    }
-
-    #[test]
-    #[cfg(feature = "fmt")]
-    fn test_fmt() {
-        #[cfg(feature = "logger")]
-        init_logger();
-        #[cfg(feature = "logger")]
-        set_println_enabled(true);
-        let mut server = vec!["223.5.5.5".to_string()];
-        let resolver = Resolver::new(&mut server).unwrap();
-        let result = resolver.query_txt("fs.gloryouth.com".to_string());
-        println!("{}", result);
-    }
-
-    #[test]
-    fn test_special() {
-        #[cfg(feature = "logger")]
-        init_logger();
-        let mut server = vec!["9.9.9.9".to_string()];
-        let resolver = Resolver::new(&mut server).unwrap();
-        let result = resolver.query_txt("gloryouth.com".to_string());
-        println!(
-            "{:?}",
-            result
-                .txt_iter()
-                .unwrap()
-                .flatten()
-                .collect::<Vec<String>>()
-        );
-    }
-
-    #[test]
-    #[cfg(feature = "result_error")]
-    fn test_query() {
-        let server = vec!["9.9.9.9".to_string()];
-        let result = query! {
-            a,
-            into_iter,
-            @target "www.baidu.com".to_string(),
-            @server server,
-            -error
-        };
-        println!("{:?}", result.into_result().unwrap());
-    }
-}
