@@ -1,7 +1,11 @@
 [package]
-name = "dns-core"
+name = "rps_dns"
 version = "0.1.0"
 edition = "2024"
+include = [
+    "lib.rs",
+    "Cargo.toml",
+]
 
 [dependencies]
 punycode = "0.4.1"
@@ -30,3 +34,4 @@ opt-level = 3
 logger = []
 fmt = []
 result_error = []
+

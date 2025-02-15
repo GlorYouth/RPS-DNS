@@ -1,11 +1,11 @@
 extern crate core;
 
 use paste::paste;
-use dns_core::query;
-use dns_core::dns_type_num;
-use dns_core::query_result_map;
-use dns_core::query_type_map;
-use dns_core::test_decode_from;
+use rps_dns::query;
+use rps_dns::dns_type_num;
+use rps_dns::query_result_map;
+use rps_dns::query_type_map;
+use rps_dns::test_decode_from;
 
 fn main() {
     let result = query! {
