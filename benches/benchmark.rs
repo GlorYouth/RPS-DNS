@@ -8,7 +8,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("fib 20", |b| {
         #[cfg(feature = "logger")]
         init_logger();
-        b.iter(|| test_decode_from())
+        b.iter(|| test_query())
     });
 }
 

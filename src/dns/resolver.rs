@@ -374,12 +374,12 @@ define_get_record!(aaaa, AAAA);
 macro_rules! query {
     ($record_type:ident,$(@$config:ident $server:expr),*) => {
         || -> $crate::query_result_map!(single,$crate::query_type_map!($record_type)) {
-            let mut config = rps_dns::resolver::ResolveConfig {
+            let mut config = $crate::resolver::ResolveConfig {
                 $(
                     $config: $server,
                 )*
             };
-            let resolver = rps_dns::resolver::Resolver::new(&mut config.server).ok()?;
+            let resolver = $crate::resolver::Resolver::new(&mut config.server).ok()?;
             let result = resolver.query(config.target,$crate::dns_type_num!($record_type));
             result.$record_type()
         }()
@@ -387,12 +387,12 @@ macro_rules! query {
     ($record_type:ident,all,$(@$config:ident $server:expr),*) => {
         $crate::paste!{
             || -> $crate::query_result_map!(all,$crate::query_type_map!($record_type)) {
-                let mut config = rps_dns::resolver::ResolveConfig {
+                let mut config = $crate::resolver::ResolveConfig {
                     $(
                         $config: $server,
                     )*
                 };
-                if let Ok(resolver) = rps_dns::resolver::Resolver::new(&mut config.server) {
+                if let Ok(resolver) = $crate::resolver::Resolver::new(&mut config.server) {
                     let result = resolver.query(config.target,$crate::dns_type_num!($record_type));
                     if let Some(iter) = result.[<$record_type _into_iter>]() {
                         iter.collect()
@@ -408,12 +408,12 @@ macro_rules! query {
     ($record_type:ident,into_iter,$(@$config:ident $server:expr),*) => {
         $crate::paste!{
             || -> $crate::query_result_map!(into_iter,$crate::query_type_map!($record_type)) {
-                let mut config = rps_dns::resolver::ResolveConfig {
+                let mut config = $crate::resolver::ResolveConfig {
                     $(
                         $config: $server,
                     )*
                 };
-                let resolver = rps_dns::resolver::Resolver::new(&mut config.server).ok()?;
+                let resolver = $crate::resolver::Resolver::new(&mut config.server).ok()?;
                 let result = resolver.query(config.target,$crate::dns_type_num!($record_type));
                 result.[<$record_type _into_iter>]()
             }()
@@ -424,20 +424,20 @@ macro_rules! query {
 
     ($record_type:ident,$(@$config:ident $server:expr),*,-error) => {
         || -> $crate::query_result_map_err!(single,$crate::query_type_map!($record_type)) {
-            let mut config = rps_dns::resolver::ResolveConfig {
+            let mut config = $crate::resolver::ResolveConfig {
                 $(
                     $config: $server,
                 )*
             };
-            match rps_dns::resolver::Resolver::new(&mut config.server) {
+            match $crate::resolver::Resolver::new(&mut config.server) {
                 Ok(resolver) => {
                     let result = resolver.query(config.target,$crate::dns_type_num!($record_type));
                     match result.error() {
-                        Some(_) => rps_dns::resolver::QueryError::from(result.into_error().unwrap()).into(),
-                        None => rps_dns::resolver::QueryResult::from_result(result.$record_type()),
+                        Some(_) => $crate::resolver::QueryError::from(result.into_error().unwrap()).into(),
+                        None => $crate::resolver::QueryResult::from_result(result.$record_type()),
                     }
                 }
-                Err(err) => rps_dns::resolver::QueryError::ServerParseError(rps_dns::error::ErrorFormat::new(
+                Err(err) => $crate::resolver::QueryError::ServerParseError($crate::error::ErrorFormat::new(
                     format!("ServerParseError, target {:?}, {}", config.server, err),
                     "query!()"
                 )).into()
@@ -447,25 +447,25 @@ macro_rules! query {
     ($record_type:ident,all,$(@$config:ident $server:expr),*,-error) => {
         $crate::paste!{
             || -> $crate::query_result_map_err!(all,$crate::query_type_map!($record_type)) {
-                let mut config = rps_dns::resolver::ResolveConfig {
+                let mut config = $crate::resolver::ResolveConfig {
                     $(
                         $config: $server,
                     )*
                 };
-                match rps_dns::resolver::Resolver::new(&mut config.server) {
+                match $crate::resolver::Resolver::new(&mut config.server) {
                     Ok(resolver) => {
                         let result = resolver.query(config.target,$crate::dns_type_num!($record_type));
                         match result.error() {
-                            Some(_) => rps_dns::resolver::QueryError::from(result.into_error().unwrap()).into(),
+                            Some(_) => $crate::resolver::QueryError::from(result.into_error().unwrap()).into(),
                             None => match result.[<$record_type _into_iter>]() {
                                 Some(iter) => {
-                                    rps_dns::resolver::QueryResult::from_result(Some(iter.collect()))
+                                    $crate::resolver::QueryResult::from_result(Some(iter.collect()))
                                 },
-                                None => rps_dns::resolver::QueryResult::from_result(None),// todo Option和Vec有重叠
+                                None => $crate::resolver::QueryResult::from_result(None),// todo Option和Vec有重叠
                             },
                         }
                     }
-                    Err(err) => rps_dns::resolver::QueryError::ServerParseError(rps_dns::error::ErrorFormat::new(
+                    Err(err) => $crate::resolver::QueryError::ServerParseError($crate::error::ErrorFormat::new(
                         format!("ServerParseError, target {:?}, {}", config.server, err),
                         "query!()"
                     )).into()
@@ -476,20 +476,20 @@ macro_rules! query {
     ($record_type:ident,into_iter,$(@$config:ident $server:expr),*,-error) => {
         $crate::paste!{
             || -> $crate::query_result_map_err!(into_iter,$crate::query_type_map!($record_type)) {
-                let mut config = rps_dns::resolver::ResolveConfig {
+                let mut config = $crate::resolver::ResolveConfig {
                     $(
                         $config: $server,
                     )*
                 };
-                match rps_dns::resolver::Resolver::new(&mut config.server) {
+                match $crate::resolver::Resolver::new(&mut config.server) {
                     Ok(resolver) => {
                         let result = resolver.query(config.target,$crate::dns_type_num!($record_type));
                             match result.error() {
-                                Some(_) => rps_dns::resolver::QueryError::from(result.into_error().unwrap()).into(),
-                                None => rps_dns::resolver::QueryResult::from_result(result.[<$record_type _into_iter>]())
+                                Some(_) => $crate::resolver::QueryError::from(result.into_error().unwrap()).into(),
+                                None => $crate::resolver::QueryResult::from_result(result.[<$record_type _into_iter>]())
                             }
                     }
-                    Err(err) => rps_dns::resolver::QueryError::ServerParseError(rps_dns::error::ErrorFormat::new(
+                    Err(err) => $crate::resolver::QueryError::ServerParseError($crate::error::ErrorFormat::new(
                         format!("ServerParseError, target {:?}, {}", config.server, err),
                         "query!()"
                     )).into()

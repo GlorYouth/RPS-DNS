@@ -1,6 +1,7 @@
 use crate::dns::types::base::{DnsTypeNum, RawDomain};
 use crate::dns::types::parts::{Request, Response};
 use std::rc::Rc;
+use crate::query;
 
 pub fn test_encode_into() {
     let mut buf = [0_u8; 1500];
@@ -28,4 +29,13 @@ pub fn test_decode_from() {
         let response = Response::from_slice_uncheck(arr).unwrap();
         response.into_answers().iter().for_each(|_a| {})
     }
+}
+
+pub fn test_query() {
+    let t = query! {
+        a,
+        all,
+        @target "www.baidu.com".to_string(),
+        @server vec!["9.9.9.9".to_string()]
+    };
 }
