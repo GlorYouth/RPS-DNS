@@ -293,7 +293,7 @@ macro_rules! query_result_map {
 #[macro_export]
 macro_rules! query_result_map_err {
     (single,$query_type:ty) => {rps_dns::resolver::QueryResult<$query_type>};
-    (all,$query_type:ty) => {rps_dns::resolver::QueryResult<Vec<$query_type>>};
+    (all,$query_type:ty) => {Result<Vec<$query_type>,QueryError>};
     (into_iter,$query_type:ty) => {rps_dns::resolver::QueryResult<IntoIter<$query_type>>};
 }
 
@@ -456,19 +456,19 @@ macro_rules! query {
                     Ok(resolver) => {
                         let result = resolver.query(config.target,$crate::dns_type_num!($record_type));
                         match result.error() {
-                            Some(_) => $crate::resolver::QueryError::from(result.into_error().unwrap()).into(),
+                            Some(_) => Err($crate::resolver::QueryError::from(result.into_error().unwrap())),
                             None => match result.[<$record_type _into_iter>]() {
                                 Some(iter) => {
-                                    $crate::resolver::QueryResult::from_result(Some(iter.collect()))
+                                    Ok(iter.collect())
                                 },
-                                None => $crate::resolver::QueryResult::from_result(None),// todo Option和Vec有重叠
+                                None => Ok(Vec::new()) // todo Option和Vec有重叠
                             },
                         }
                     }
-                    Err(err) => $crate::resolver::QueryError::ServerParseError($crate::error::ErrorFormat::new(
+                    Err(err) => Err($crate::resolver::QueryError::ServerParseError($crate::error::ErrorFormat::new(
                         format!("ServerParseError, target {:?}, {}", config.server, err),
                         "query!()"
-                    )).into()
+                    )))
                 }
             }()
         }

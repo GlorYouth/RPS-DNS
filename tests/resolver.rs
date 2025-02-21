@@ -124,10 +124,10 @@ fn test_query() {
     let server = vec!["9.9.9.9".to_string()];
     let result = query! {
             a,
-            into_iter,
+            all,
             @target "www.baidu.com".to_string(),
             @server server,
             -error
         };
-    println!("{:?}", result.into_result().unwrap());
+    println!("{:?}", result.unwrap());
 }
