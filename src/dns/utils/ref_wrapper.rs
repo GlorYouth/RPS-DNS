@@ -6,14 +6,17 @@ pub enum RefWrapper<'a,T> {
 }
 
 impl<'a,T> RefWrapper<'a, T> {
+    #[inline]
     pub fn from_ref(_ref: &'a T) -> Self {
         Self::_Ref(_ref)
     }
     
+    #[inline]
     pub fn from_val(_val: T) -> Self {
          Self::_Val(_val)
     }
     
+    #[inline]
     pub fn as_ref(&self) -> &T {
         match self {
             RefWrapper::_Val(v) => v,
