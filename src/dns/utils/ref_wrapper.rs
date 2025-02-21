@@ -1,35 +1,29 @@
-use std::mem::MaybeUninit;
-use std::pin::Pin;
-use std::ptr::NonNull;
 
-pub struct RefWrapper<T> {
-    _val: Pin<T>,
-    _ref: NonNull<T>,
+
+pub enum RefWrapper<'a,T> {
+    _Val(T),
+    _Ref(&'a T),
 }
 
-impl<T> RefWrapper<T> {
-    pub fn from_ref(_ref: &T) -> Self {
-        unsafe {
-            Self {
-                _val: Pin::new(MaybeUninit::uninit().assume_init()),
-                _ref: NonNull::from(_ref),
-            }
-        }
+impl<'a,T> RefWrapper<'a, T> {
+    pub fn from_ref(_ref: &'a T) -> Self {
+        Self::_Ref(_ref)
     }
     
     pub fn from_val(_val: T) -> Self {
-        let mut result = Self {
-            _val: Pin::new(_val),
-            _ref: NonNull::dangling(),
-        };
-        result._ref = NonNull::from(&mut result._val);
-        result
+         Self::_Val(_val)
     }
     
     pub fn as_ref(&self) -> &T {
-        unsafe { self._ref.as_ref() }
+        match self {
+            RefWrapper::_Val(v) => v,
+            RefWrapper::_Ref(r) => r,
+        }
     }
 }
+
+
+
 
 #[cfg(test)]
 mod tests {
