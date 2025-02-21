@@ -1,6 +1,5 @@
 #[cfg(not(feature = "result_error"))]
 use std::marker::PhantomData;
-use std::ops::Index;
 use crate::dns::utils::RefWrapper;
 
 pub mod error_trait {
@@ -117,7 +116,43 @@ pub trait Wrapper {
     
     fn from_index(index: Self::Index) -> Self;
     
-    
+}
+
+impl<T> Wrapper for Option<T> {
+    type Index = Option<T>;
+    #[inline(always)]
+    fn get_index(&self) -> &Self::Index {
+        self
+    }
+
+    #[inline(always)]
+    fn into_index(self) -> Self::Index {
+        self
+    }
+
+    #[inline(always)]
+    fn from_index(index: Self::Index) -> Self {
+        index
+    }
+}
+
+impl<T> Wrapper for Vec<T> {
+    type Index = Vec<T>;
+
+    #[inline(always)]
+    fn get_index(&self) -> &Self::Index {
+        &self
+    }
+
+    #[inline(always)]
+    fn into_index(self) -> Self::Index {
+        self
+    }
+
+    #[inline(always)]
+    fn from_index(index: Self::Index) -> Self {
+        index
+    }
 }
 
 #[derive(Debug)]
