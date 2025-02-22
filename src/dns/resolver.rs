@@ -109,85 +109,76 @@ impl Resolver {
                 return match server {
                     ServerType::Tcp(addr) => {
                         //后面可以考虑复用连接
-                        match std::net::TcpStream::connect(addr) {
-                            Ok(stream) => {
-                                let request = Request::new(domain.clone(), qtype);
-                                #[cfg(feature = "result_error")]
-                                match NetQuery::query_tcp(stream, request, &mut buf).into_index() {
-                                    Ok(response) => response.into(),
-                                    Err(e) => {
-                                        error_vec.push(convert_err(
-                                            e,
-                                            "Resolver::query => ServerType::Tcp",
-                                        ));
-                                        continue;
-                                    }
-                                }
-                                #[cfg(not(feature = "result_error"))]
-                                ResolverQueryResult::from(NetQuery::query_tcp(
-                                    stream, request, &mut buf,
-                                ))
-                            }
-                            Err(err) => {
+                        match std::net::TcpStream::connect(addr)
+                            .map_err(|err| {
                                 #[cfg(feature = "logger")]
                                 debug!("连接到对应的tcp server失败");
                                 #[cfg(feature = "result_error")]
-                                error_vec.push(NetError::ConnectTcpAddrError(ErrorFormat::new(
+                                NetError::ConnectTcpAddrError(ErrorFormat::new(
                                     format!("ConnectTcpAddrError, target {}, {}", addr, err),
                                     "Resolver::query => ServerType::Tcp",
-                                )));
-                                continue; //连接到server失败, 则尝试备用server
+                                ))
+                            })
+                            .and_then(|stream| {
+                                let request = Request::new(domain.clone(), qtype);
+                                #[cfg(feature = "result_error")]
+                                match NetQuery::query_tcp(stream, request, &mut buf).into_index() {
+                                    Ok(response) => Ok(response.into()),
+                                    Err(e) => {
+                                        Err(convert_err(e, "Resolver::query => ServerType::Tcp"))
+                                    }
+                                }
+                                #[cfg(not(feature = "result_error"))]
+                                Ok(NetQuery::query_tcp(stream, request, &mut buf).into())
+                            }) {
+                            Ok(response) => response,
+                            Err(e) => {
+                                #[cfg(feature = "result_error")]
+                                error_vec.push(e);
+                                continue;
                             }
                         }
                     }
                     ServerType::Udp(addr) => {
-                        match std::net::UdpSocket::bind("0.0.0.0:0") {
-                            Ok(socket) => match socket.connect(addr) {
-                                Ok(stream) => {
-                                    let request = Request::new(domain.clone(), qtype);
-                                    #[cfg(feature = "result_error")]
-                                    match NetQuery::query_udp(socket, request, &mut buf)
-                                        .into_index()
-                                    {
-                                        Ok(response) => response.into(),
-                                        Err(e) => {
-                                            error_vec.push(convert_err(
-                                                e,
-                                                "Resolver::query => ServerType::Udp",
-                                            ));
-                                            continue;
-                                        }
-                                    }
-                                    #[cfg(not(feature = "result_error"))]
-                                    ResolverQueryResult::from(NetQuery::query_udp(
-                                        socket, request, &mut buf,
-                                    ))
-                                }
+                        match std::net::UdpSocket::bind("0.0.0.0:0")
+                            .map_err(|err| {
+                                #[cfg(feature = "logger")]
+                                debug!("监听udp端口失败");
+                                #[cfg(feature = "result_error")]
+                                NetError::BindUdpAddrError(ErrorFormat::new(
+                                    format!("BindUdpAddrError, target {}, {}", addr, err),
+                                    "Resolver::query => ServerType::Udp",
+                                ))
+                            })
+                            .and_then(|socket| match socket.connect(addr) {
+                                Ok(_) => Ok(socket),
                                 Err(err) => {
                                     #[cfg(feature = "logger")]
                                     debug!("连接到对应的udp server失败");
                                     #[cfg(feature = "result_error")]
-                                    error_vec.push(NetError::ConnectUdpAddrError(
-                                        ErrorFormat::new(
-                                            format!(
-                                                "ConnectTcpAddrError, target {}, {}",
-                                                addr, err
-                                            ),
-                                            "Resolver::query => ServerType::Udp",
-                                        ),
-                                    ));
-                                    continue;
+                                    Err(NetError::ConnectUdpAddrError(ErrorFormat::new(
+                                        format!("ConnectTcpAddrError, target {}, {}", addr, err),
+                                        "Resolver::query => ServerType::Udp",
+                                    )))
                                 }
-                            },
-                            Err(err) => {
-                                #[cfg(feature = "logger")]
-                                debug!("监听udp端口失败");
+                            })
+                            .and_then(|socket| {
+                                let request = Request::new(domain.clone(), qtype);
                                 #[cfg(feature = "result_error")]
-                                error_vec.push(NetError::BindUdpAddrError(ErrorFormat::new(
-                                    format!("BindUdpAddrError, target {}, {}", addr, err),
-                                    "Resolver::query => ServerType::Udp",
-                                )));
-                                continue; //监听udp失败，尝试备用
+                                match NetQuery::query_udp(socket, request, &mut buf).into_index() {
+                                    Ok(response) => Ok(response.into()),
+                                    Err(e) => {
+                                        Err(convert_err(e, "Resolver::query => ServerType::Udp"))
+                                    }
+                                }
+                                #[cfg(not(feature = "result_error"))]
+                                Ok(NetQuery::query_udp(socket, request, &mut buf).into())
+                            }) {
+                            Ok(response) => response,
+                            Err(e) => {
+                                #[cfg(feature = "result_error")]
+                                error_vec.push(e);
+                                continue;
                             }
                         }
                     }
