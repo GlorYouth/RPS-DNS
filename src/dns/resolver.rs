@@ -353,19 +353,6 @@ macro_rules! define_get_record {
     };
 }
 
-impl ResolverQueryResult {
-    pub fn v(&self) -> query_result_map!(iter,query_type_map!(a)) {
-        Some(self.0.result().into_ref()?.as_ref()?.answers().iter().filter_map(|rec| {
-            if let RecordDataType::A(v) = &rec.data {
-                Some(v.get_general_output()?)
-            } else {
-                None
-            }
-        })
-        )
-    }
-}
-
 // the last attribute is func output type
 define_get_record!(a, A);
 define_get_record!(ns, NS);
@@ -505,7 +492,7 @@ macro_rules! query {
 }
 
 #[cfg(feature = "result_error")]
-pub type QueryResult<W: Wrapper> = ResultAndError<W, QueryError>;
+pub type QueryResult<W> = ResultAndError<W, QueryError>;
 
 #[cfg(not(feature = "result_error"))]
 pub type QueryResult<T> = ResultAndError<T>;
