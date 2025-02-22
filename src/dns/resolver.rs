@@ -173,12 +173,11 @@ impl Resolver {
                         Ok(NetQuery::query_udp(socket, request, &mut buf).into())
                     }),
             };
-            return match res {
-                Ok(response) => response.into(),
+            match res {
+                Ok(response) => return response.into(),
                 Err(e) => {
                     #[cfg(feature = "result_error")]
                     error_vec.push(e);
-                    continue;
                 }
             };
         }
