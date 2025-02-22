@@ -301,9 +301,9 @@ macro_rules! query_result_map {
 
 #[macro_export]
 macro_rules! query_result_map_err {
-    (single,$query_type:ty) => {rps_dns::resolver::QueryResult<$query_type>};
-    (all,$query_type:ty) => {Result<Vec<$query_type>,QueryError>};
-    (into_iter,$query_type:ty) => {rps_dns::resolver::QueryResult<IntoIter<$query_type>>};
+    (single,$query_type:ty) => {rps_dns::resolver::QueryResult<Option<$query_type>>};
+    (all,$query_type:ty) => {rps_dns::resolver::QueryResult<Vec<$query_type>>};
+    (into_iter,$query_type:ty) => {rps_dns::resolver::QueryResult<Option<IntoIter<$query_type>>>};
 }
 
 pub type Iter<'a, T> = FilterMap<
@@ -442,14 +442,14 @@ macro_rules! query {
                 Ok(resolver) => {
                     let result = resolver.query(config.target,$crate::dns_type_num!($record_type));
                     match result.error() {
-                        Some(_) => $crate::resolver::QueryError::from(result.into_error().unwrap()).into(),
+                        Some(_) => $crate::resolver::QueryResult::from_error($crate::resolver::QueryError::from(result.into_error().unwrap())),
                         None => $crate::resolver::QueryResult::from_result(result.$record_type()),
                     }
                 }
-                Err(err) => $crate::resolver::QueryError::ServerParseError($crate::error::ErrorFormat::new(
+                Err(err) => $crate::resolver::QueryResult::from_error($crate::resolver::QueryError::ServerParseError($crate::error::ErrorFormat::new(
                     format!("ServerParseError, target {:?}, {}", config.server, err),
                     "query!()"
-                )).into()
+                )))
             }
         }()
     };
@@ -465,16 +465,16 @@ macro_rules! query {
                     Ok(resolver) => {
                         let result = resolver.query(config.target,$crate::dns_type_num!($record_type));
                         match result.error() {
-                            Some(_) => Err($crate::resolver::QueryError::from(result.into_error().unwrap())),
+                            Some(_) => $crate::resolver::QueryResult::from_error($crate::resolver::QueryError::from(result.into_error().unwrap())),
                             None => match result.[<$record_type _into_iter>]() {
                                 Some(iter) => {
-                                    Ok(iter.collect())
+                                    $crate::resolver::QueryResult::from_result(iter.collect())
                                 },
-                                None => Ok(Vec::new()) // todo Option和Vec有重叠
+                                None => $crate::resolver::QueryResult::from_result(Vec::new())
                             },
                         }
                     }
-                    Err(err) => Err($crate::resolver::QueryError::ServerParseError($crate::error::ErrorFormat::new(
+                    Err(err) => $crate::resolver::QueryResult::from_error($crate::resolver::QueryError::ServerParseError($crate::error::ErrorFormat::new(
                         format!("ServerParseError, target {:?}, {}", config.server, err),
                         "query!()"
                     )))
@@ -494,14 +494,14 @@ macro_rules! query {
                     Ok(resolver) => {
                         let result = resolver.query(config.target,$crate::dns_type_num!($record_type));
                             match result.error() {
-                                Some(_) => $crate::resolver::QueryError::from(result.into_error().unwrap()).into(),
+                                Some(_) => $crate::resolver::QueryResult::from_error($crate::resolver::QueryError::from(result.into_error().unwrap())),
                                 None => $crate::resolver::QueryResult::from_result(result.[<$record_type _into_iter>]())
                             }
                     }
-                    Err(err) => $crate::resolver::QueryError::ServerParseError($crate::error::ErrorFormat::new(
+                    Err(err) => $crate::resolver::QueryResult::from_error($crate::resolver::QueryError::ServerParseError($crate::error::ErrorFormat::new(
                         format!("ServerParseError, target {:?}, {}", config.server, err),
                         "query!()"
-                    )).into()
+                    )))
                 }
             }()
         }

@@ -129,5 +129,5 @@ fn test_query() {
         @server server,
         -error
     };
-    println!("{:?}", result.unwrap());
+    println!("{:?}", result.result().into_ref().unwrap());
 }
