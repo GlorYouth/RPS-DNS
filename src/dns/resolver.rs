@@ -15,7 +15,6 @@ use paste::paste;
 use smallvec::SmallVec;
 #[cfg(feature = "fmt")]
 use std::fmt::{Debug, Display};
-use std::iter::FilterMap;
 
 pub struct Resolver {
     server: SmallVec<[ServerType; 5]>,
@@ -294,9 +293,9 @@ macro_rules! query_result_map {
     (single,$query_type:ty) => {Option<$query_type>};
     (all,$query_type:ty) => {Vec<$query_type>};
     (iter,$query_type:ty) => {
-        Option<Iter<$query_type>>
+        Option<$crate::resolver::Iter<$query_type>>
     };
-    (into_iter,$query_type:ty) => {Option<IntoIter<$query_type>>};
+    (into_iter,$query_type:ty) => {Option<$crate::resolver::IntoIter<$query_type>>};
 }
 
 #[macro_export]
@@ -306,11 +305,11 @@ macro_rules! query_result_map_err {
     (into_iter,$query_type:ty) => {rps_dns::resolver::QueryResult<Option<IntoIter<$query_type>>>};
 }
 
-pub type Iter<'a, T> = FilterMap<
+pub type Iter<'a, T> = std::iter::FilterMap<
     std::slice::Iter<'a, crate::dns::types::parts::Record>,
     fn(&crate::dns::types::parts::Record) -> Option<T>,
 >;
-pub type IntoIter<T> = FilterMap<
+pub type IntoIter<T> = std::iter::FilterMap<
     std::vec::IntoIter<crate::dns::types::parts::Record>,
     fn(crate::dns::types::parts::Record) -> Option<T>,
 >;
@@ -346,17 +345,16 @@ macro_rules! define_get_record {
                 #[inline]
                 pub fn [<$fn_name _into_iter>](self) ->
                         query_result_map!(into_iter,query_type_map!($fn_name))  {
-                    if let Some(res) = self.0.into_result() {
-                        Some(res.into_answers().into_iter().filter_map(|rec| {
+                    self.0.into_result().map(|res| {
+                        res.into_answers().into_iter().filter_map(
+                        (|rec: $crate::dns::types::parts::Record| { // 闭包套闭包需要显式转换闭包类型和声明闭包参数的类型
                             if let RecordDataType::$dns_type(v) = rec.data {
                                 Some(v.get_general_output()?)
                             } else {
                                 None
-                            }})
-                        )
-                    } else {
-                        None
-                    }
+                            }
+                        }) as _)
+                    })
                 }
             }
 
@@ -615,16 +613,4 @@ impl From<ResolverQueryError> for ResolverQueryResult {
     fn from(value: ResolverQueryError) -> Self {
         ResolverQueryResult(ResultAndError::from_error(value))
     }
-}
-
-fn ne() {
-    || -> Vec<std::net::Ipv4Addr> {
-        let server = vec!["9.9.9.9".to_string()];
-        query! {
-            a,
-            into_iter,
-            @target "www.baidu.com".to_string(),
-            @server server
-        }.map_or(Vec::new(), |iter| iter.collect())
-    }();
 }
