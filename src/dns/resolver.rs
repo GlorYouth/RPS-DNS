@@ -109,7 +109,7 @@ impl Resolver {
                 ))
                 .into();
                 #[cfg(not(feature = "result_error"))]
-                ResolverQueryResult::from(None)
+                return ResolverQueryResult::from(None)
             }
             Some(domain) => domain,
         };
@@ -138,7 +138,7 @@ impl Resolver {
                             Err(e) => Err(convert_err(e, "Resolver::query => ServerType::Tcp")),
                         }
                         #[cfg(not(feature = "result_error"))]
-                        Ok(NetQuery::query_tcp(stream, request, &mut buf).into())
+                        Ok(NetQuery::query_tcp(stream, request, &mut buf))
                     }),
                 ServerType::Udp(addr) => std::net::UdpSocket::bind("0.0.0.0:0")
                     .map_err(|err| {
@@ -156,10 +156,12 @@ impl Resolver {
                             #[cfg(feature = "logger")]
                             debug!("连接到对应的udp server失败");
                             #[cfg(feature = "result_error")]
-                            Err(NetError::ConnectUdpAddrError(ErrorFormat::new(
+                            return Err(NetError::ConnectUdpAddrError(ErrorFormat::new(
                                 format!("ConnectTcpAddrError, target {}, {}", addr, err),
                                 "Resolver::query => ServerType::Udp",
-                            )))
+                            )));
+                            #[cfg(not(feature = "result_error"))]
+                            Err(())
                         }
                     })
                     .and_then(|socket| {
@@ -170,7 +172,7 @@ impl Resolver {
                             Err(e) => Err(convert_err(e, "Resolver::query => ServerType::Udp")),
                         }
                         #[cfg(not(feature = "result_error"))]
-                        Ok(NetQuery::query_udp(socket, request, &mut buf).into())
+                        Ok(NetQuery::query_udp(socket, request, &mut buf))
                     }),
             };
             match res {
