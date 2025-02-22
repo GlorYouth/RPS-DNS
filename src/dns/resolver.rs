@@ -13,10 +13,9 @@ use crate::dns::utils::{RefWrapper, ServerType};
 use log::debug;
 use paste::paste;
 use smallvec::SmallVec;
-#[cfg(feature = "result_error")]
+#[cfg(feature = "fmt")]
 use std::fmt::{Debug, Display};
 use std::iter::FilterMap;
-use crate::error::Wrapper;
 
 pub struct Resolver {
     server: SmallVec<[ServerType; 5]>,
@@ -255,7 +254,7 @@ impl ResolverQueryResult {
 
 #[cfg(not(feature = "result_error"))]
 #[derive(Debug)]
-pub struct ResolverQueryResult(ResultAndError<Response>);
+pub struct ResolverQueryResult(ResultAndError<Option<Response>>);
 
 #[macro_export]
 macro_rules! query_type_map {
