@@ -370,7 +370,6 @@ macro_rules! define_get_record {
     };
 }
 
-// the last attribute is func output type
 define_get_record!(a, A);
 define_get_record!(ns, NS);
 define_get_record!(cname, CNAME);
@@ -438,50 +437,80 @@ macro_rules! query {
                     $config: $server,
                 )*
             };
-            match $crate::resolver::Resolver::new(&mut config.server) {
-                Ok(resolver) => {
-                    let result = resolver.query(config.target,$crate::dns_type_num!($record_type));
-                    match result.error() {
-                        Some(_) => $crate::resolver::QueryResult::from_error($crate::resolver::QueryError::from(result.into_error().unwrap())),
-                        None => $crate::resolver::QueryResult::from_result(result.$record_type()),
-                    }
-                }
-                Err(err) => $crate::resolver::QueryResult::from_error($crate::resolver::QueryError::ServerParseError($crate::error::ErrorFormat::new(
+            $crate::resolver::Resolver::new(&mut config.server).map_err(|err| {  // 先将错误类型提前转过来
+                $crate::resolver::QueryError::ServerParseError($crate::error::ErrorFormat::new(
                     format!("ServerParseError, target {:?}, {}", config.server, err),
                     "query!()"
-                )))
-            }
+                ))
+            }).map(|resolver| { // 获取的值进一步处理，这里是query后获得结果
+                resolver.query(config.target,$crate::dns_type_num!($record_type))
+            }).and_then(|result| {
+                match result.error() { // 判断是否有err, 有则转换err类型, 无则获取第一个结果
+                    Some(_) => Err($crate::resolver::QueryError::from(result.into_error().unwrap())),
+                    None => Ok(result.$record_type()),
+                }
+            }).into() // Result<W,E>转换成QueryResult，以后进一步实现的话只需要修改Into就行了
         }()
     };
-    ($record_type:ident,all,$(@$config:ident $server:expr),*,-error) => {
+    /*
+    is equal to:
+    || -> QueryResult<Option<std::net::Ipv4Addr>> {
+        Resolver::new(&mut vec![]).map_err(|err| {
+            QueryError::ServerParseError(ErrorFormat::new(
+                format!("ServerParseError, target {:?}, {}", "", err),
+                "query!()"
+            ))
+        }).map(|resolver| {
+            resolver.query("".into(),0)
+        }).and_then(|result| {
+            match result.error() {
+                None => Ok(result.a()),
+                Some(_) => Err(QueryError::from(result.into_error().unwrap()))
+            }
+        }).into()
+    }();
+     */
+    
+    ($record_type:ident,all,$(@$config:ident $server:expr),*,-error) => { //合并同类项，方便代码维护
         $crate::paste!{
             || -> $crate::query_result_map_err!(all,$crate::query_type_map!($record_type)) {
-                let mut config = $crate::resolver::ResolveConfig {
-                    $(
-                        $config: $server,
-                    )*
-                };
-                match $crate::resolver::Resolver::new(&mut config.server) {
-                    Ok(resolver) => {
-                        let result = resolver.query(config.target,$crate::dns_type_num!($record_type));
-                        match result.error() {
-                            Some(_) => $crate::resolver::QueryResult::from_error($crate::resolver::QueryError::from(result.into_error().unwrap())),
-                            None => match result.[<$record_type _into_iter>]() {
-                                Some(iter) => {
-                                    $crate::resolver::QueryResult::from_result(iter.collect())
-                                },
-                                None => $crate::resolver::QueryResult::from_result(Vec::new())
-                            },
-                        }
+                $crate::query!{
+                    $record_type,
+                    into_iter,
+                    $(@$config $server),*,
+                    -error
+                }.into_index().map(|result| { // Result<W,E>的E部分不变，只动W就行了
+                    match result { // 若有结果则直接collect，若无则返回空数组
+                        None => Vec::new(),
+                        Some(iter) => iter.collect()
                     }
-                    Err(err) => $crate::resolver::QueryResult::from_error($crate::resolver::QueryError::ServerParseError($crate::error::ErrorFormat::new(
-                        format!("ServerParseError, target {:?}, {}", config.server, err),
-                        "query!()"
-                    )))
-                }
+                }).into()
             }()
         }
     };
+    /*
+    is equal to:
+    || -> QueryResult<Vec<std::net::Ipv4Addr>> {
+        Resolver::new(&mut vec![]).map_err(|err| {
+            QueryError::ServerParseError(ErrorFormat::new(
+                format!("ServerParseError, target {:?}, {}", "", err),
+                "query!()"
+            ))
+        }).map(|resolver| {
+            resolver.query("".into(),0)
+        }).and_then(|result| {
+            match result.error() {
+                Some(_) => Err(QueryError::from(result.into_error().unwrap())),
+                None => Ok(result.a_into_iter())
+            }
+        }).map(|result| {
+            match result {
+                None => Vec::new(),
+                Some(iter) => iter.collect()
+            }
+        }).into()
+    }();
+     */
     ($record_type:ident,into_iter,$(@$config:ident $server:expr),*,-error) => {
         $crate::paste!{
             || -> $crate::query_result_map_err!(into_iter,$crate::query_type_map!($record_type)) {
@@ -490,22 +519,40 @@ macro_rules! query {
                         $config: $server,
                     )*
                 };
-                match $crate::resolver::Resolver::new(&mut config.server) {
-                    Ok(resolver) => {
-                        let result = resolver.query(config.target,$crate::dns_type_num!($record_type));
-                            match result.error() {
-                                Some(_) => $crate::resolver::QueryResult::from_error($crate::resolver::QueryError::from(result.into_error().unwrap())),
-                                None => $crate::resolver::QueryResult::from_result(result.[<$record_type _into_iter>]())
-                            }
-                    }
-                    Err(err) => $crate::resolver::QueryResult::from_error($crate::resolver::QueryError::ServerParseError($crate::error::ErrorFormat::new(
+                $crate::resolver::Resolver::new(&mut config.server).map_err(|err| { // 也是先将错误类型提前转过来
+                    $crate::resolver::QueryError::ServerParseError($crate::error::ErrorFormat::new(
                         format!("ServerParseError, target {:?}, {}", config.server, err),
                         "query!()"
-                    )))
-                }
+                    ))
+                }).map(|resolver| { // 获取的值进一步处理，这里是query后获得结果
+                    resolver.query(config.target,$crate::dns_type_num!($record_type))
+                }).and_then(|result| {
+                    match result.error() { // 判断是否有err, 有则转换err类型, 无则获取结果的指针
+                        Some(_) => Err($crate::resolver::QueryError::from(result.into_error().unwrap())),
+                        None => Ok(result.[<$record_type _into_iter>]())
+                    }
+                }).into() // Result<W,E>转换成QueryResult，以后进一步实现的话只需要修改Into就行了
             }()
         }
     }
+    /*
+    is equal to:
+    || -> QueryResult<Option<IntoIter<std::net::Ipv4Addr>>> {
+        Resolver::new(&mut vec![]).map_err(|err| {
+            QueryError::ServerParseError(ErrorFormat::new(
+                format!("ServerParseError, target {:?}, {}", "", err),
+                "query!()"
+            ))
+        }).map(|resolver| {
+            resolver.query("".into(), 1)
+        }).and_then(|result| {
+            match result.error()  {
+                Some(_) => Err(QueryError::TargetParseError(ErrorFormat::new("".to_string(), ""))),
+                None => Ok(result.a_into_iter())
+            }
+        }).into()
+    }();
+     */
 }
 
 #[cfg(feature = "result_error")]
@@ -582,4 +629,22 @@ impl From<ResolverQueryError> for ResolverQueryResult {
     fn from(value: ResolverQueryError) -> Self {
         ResolverQueryResult(ResultAndError::from_error(value))
     }
+}
+
+fn ne() {
+    || -> QueryResult<Option<std::net::Ipv4Addr>> {
+        Resolver::new(&mut vec![]).map_err(|err| {
+            QueryError::ServerParseError(ErrorFormat::new(
+                format!("ServerParseError, target {:?}, {}", "", err),
+                "query!()"
+            ))
+        }).map(|resolver| {
+            resolver.query("".into(),0)
+        }).and_then(|result| {
+            match result.error() {
+                None => Ok(result.a()),
+                Some(_) => Err(QueryError::from(result.into_error().unwrap()))
+            }
+        }).into()
+    }();
 }

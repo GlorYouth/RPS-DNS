@@ -133,3 +133,12 @@ impl<W: Wrapper, E> ResultAndError<W, E> {
         self.result.into_index()
     }
 }
+
+#[cfg(feature = "result_error")]
+impl<W: Wrapper, E> From<Result<W, E>> for ResultAndError<W, E> {
+    fn from(result: Result<W, E>) -> Self {
+        Self {
+            result,
+        }
+    }
+}
