@@ -81,7 +81,7 @@ impl<W: Wrapper, E> ResultAndError<W, E> {
         if let Ok(result) = &self.result {
             RefWrapper::from_ref(result.get_index())
         } else {
-            RefWrapper::from_val(Default::default())
+            Default::default()
         }
         #[cfg(not(feature = "result_error"))]
         RefWrapper::from_ref(self.result.get_index())
