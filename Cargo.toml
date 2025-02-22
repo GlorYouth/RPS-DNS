@@ -9,9 +9,9 @@ include = [
 
 [dependencies]
 punycode = "0.4.1"
-smallvec = "1.13.2"
+smallvec = "1.14.0"
 rand = "0.9.0"
-log = "0.4.25"
+log = "0.4.26"
 chrono = "0.4.39"
 ahash = "0.8.11"
 stringzilla = "3.11.3"
