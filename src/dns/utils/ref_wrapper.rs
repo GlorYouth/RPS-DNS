@@ -1,5 +1,4 @@
 
-
 pub enum RefWrapper<'a,T> {
     _Val(T),
     _Ref(&'a T),
@@ -23,9 +22,22 @@ impl<'a,T> RefWrapper<'a, T> {
             RefWrapper::_Ref(r) => r,
         }
     }
+    
+    #[inline]
+    pub fn into_ref(self) -> Option<&'a T> {
+        match self {
+            RefWrapper::_Val(_) => None,
+            RefWrapper::_Ref(r) => Some(r),
+        }
+    }
 }
 
-
+impl<'a,T:Default> Default for RefWrapper<'a,T> {
+    #[inline(always)]
+    fn default() -> Self {
+        Self::_Val(Default::default())
+    }
+}
 
 
 #[cfg(test)]

@@ -12,5 +12,4 @@ pub use logger::debug::{get_current_thread_logs, init_logger, logger_flush, set_
 #[cfg(feature = "result_error")]
 pub use error::ErrorFormat;
 pub use result_and_error::ResultAndError;
-#[cfg(feature = "result_error")]
-pub use result_and_error::error_trait;
+pub use result_and_error::Wrapper;

@@ -1,22 +1,17 @@
 #[cfg(feature = "result_error")]
 use crate::dns::error::ErrorFormat;
-#[cfg(feature = "result_error")]
-use crate::dns::error::ResultAndError;
-#[cfg(feature = "result_error")]
-use crate::dns::error::error_trait;
 use crate::dns::types::parts::{Request, Response};
 #[cfg(feature = "result_error")]
 use std::fmt::{Debug, Display, Formatter};
 use std::io::{Read, Write};
 use std::net::{TcpStream, UdpSocket};
+use crate::error::ResultAndError;
 
 pub struct NetQuery {}
 
 #[cfg(feature = "result_error")]
-type Result = ResultAndError<Response, NetQueryError>;
+type Result = ResultAndError<Option<Response>, NetQueryError>;
 
-#[cfg(feature = "result_error")]
-impl error_trait::B for NetQueryError {}
 
 #[cfg(not(feature = "result_error"))]
 type Result = Option<Response>;
@@ -26,26 +21,24 @@ impl NetQuery {
         #[cfg(feature = "result_error")]
         {
             if let Err(err) = stream.write_all(request.encode_to_tcp(buf)) {
-                return NetQueryError::WriteTcpConnectError(ErrorFormat::new(
+                return ResultAndError::from_error(NetQueryError::WriteTcpConnectError(ErrorFormat::new(
                     format!(
                         "WriteTcpConnectError, target {:?}, {}",
                         stream.peer_addr(),
                         err
                     ),
                     "NetQuery::query_tcp()",
-                ))
-                .into();
+                )));
             }
             if let Err(err) = stream.read(buf) {
-                return NetQueryError::RecvTcpPacketError(ErrorFormat::new(
+                return ResultAndError::from_error(NetQueryError::RecvTcpPacketError(ErrorFormat::new(
                     format!(
                         "RecvTcpPacketError, target {:?}, {}",
                         stream.peer_addr(),
                         err
                     ),
                     "NetQuery::query_tcp()",
-                ))
-                .into();
+                )));
             }
         }
         #[cfg(not(feature = "result_error"))]
@@ -57,7 +50,7 @@ impl NetQuery {
         let response = Response::from_slice(&buf.as_slice()[2..(len + 2) as usize], &request);
         #[cfg(feature = "result_error")]
         {
-            return response.into();
+            return ResultAndError::from_result(response);
         }
         #[cfg(not(feature = "result_error"))]
         response
@@ -70,18 +63,16 @@ impl NetQuery {
             return match socket.peer_addr() {
                 Ok(addr) => match TcpStream::connect(addr) {
                     Ok(stream) => Self::query_tcp(stream, request, buf),
-                    Err(err) => NetQueryError::ConnectTcpAddrError(ErrorFormat::new(
+                    Err(err) => ResultAndError::from_error(NetQueryError::ConnectTcpAddrError(ErrorFormat::new(
                         format!("ConnectTcpAddrError, target {}, {}", addr, err),
                         "NetQuery::query_udp() arr.len() > 512",
-                    ))
-                    .into(),
+                    ))),
                 },
                 Err(err) => {
-                    return NetQueryError::UdpNotConnected(ErrorFormat::new(
+                    return ResultAndError::from_error(NetQueryError::UdpNotConnected(ErrorFormat::new(
                         format!("UdpNotConnected, {}", err),
                         "NetQuery::query_udp() arr.len() > 512",
-                    ))
-                    .into();
+                    )));
                 }
             };
 
@@ -94,31 +85,29 @@ impl NetQuery {
         #[cfg(feature = "result_error")]
         {
             if let Err(err) = socket.send(arr) {
-                return NetQueryError::SendUdpPacketError(ErrorFormat::new(
+                return ResultAndError::from_error(NetQueryError::SendUdpPacketError(ErrorFormat::new(
                     format!(
                         "UdpPacketSendError, target: {:?}, {}",
                         socket.peer_addr(),
                         err
                     ),
                     "NetQuery::query_udp()",
-                ))
-                .into();
+                )));
             }
             match socket.recv(buf) {
                 Ok(number_of_bytes) => {
                     let response =
                         Response::from_slice(&buf.as_slice()[..number_of_bytes], &request);
-                    return response.into();
+                    return ResultAndError::from_result(response);
                 }
-                Err(err) => NetQueryError::RecvUdpPacketError(ErrorFormat::new(
+                Err(err) => ResultAndError::from_error(NetQueryError::RecvUdpPacketError(ErrorFormat::new(
                     format!(
                         "RecvUdpPacketError, target: {:?}, {}",
                         socket.peer_addr(),
                         err
                     ),
                     "NetQuery::query_udp()",
-                ))
-                .into(),
+                ))),
             }
         }
         #[cfg(not(feature = "result_error"))]

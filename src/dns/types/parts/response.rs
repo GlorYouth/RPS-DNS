@@ -8,8 +8,6 @@ use crate::dns::types::parts::question::Question;
 use crate::dns::types::parts::record::Record;
 use crate::dns::utils::SliceReader;
 
-#[cfg(feature = "result_error")]
-use crate::dns::error::error_trait;
 #[cfg(feature = "logger")]
 use log::{debug, trace};
 use smallvec::SmallVec;
@@ -23,8 +21,6 @@ pub struct Response {
     answer: Vec<Record>,
 }
 
-#[cfg(feature = "result_error")]
-impl error_trait::A for Response {}
 
 impl Response {
     #[inline]

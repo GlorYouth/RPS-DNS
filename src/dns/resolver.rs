@@ -2,13 +2,13 @@
 
 use crate::dns::error::ResultAndError;
 #[cfg(feature = "result_error")]
-use crate::dns::error::{ErrorFormat, NetError, error_trait};
+use crate::dns::error::{ErrorFormat, NetError};
 use crate::dns::net::NetQuery;
 #[cfg(feature = "result_error")]
 use crate::dns::net::NetQueryError;
 use crate::dns::types::base::{DnsTypeNum, RawDomain};
 use crate::dns::types::parts::{RecordDataType, Request, Response};
-use crate::dns::utils::ServerType;
+use crate::dns::utils::{RefWrapper, ServerType};
 #[cfg(feature = "logger")]
 use log::debug;
 use paste::paste;
@@ -16,7 +16,7 @@ use smallvec::SmallVec;
 #[cfg(feature = "result_error")]
 use std::fmt::{Debug, Display};
 use std::iter::FilterMap;
-
+use crate::error::Wrapper;
 
 pub struct Resolver {
     server: SmallVec<[ServerType; 5]>,
@@ -89,8 +89,6 @@ fn convert_err(value: NetQueryError, trace: &str) -> NetError {
         }
     }
 }
-#[cfg(feature = "result_error")]
-impl error_trait::B for ResolverQueryError {}
 
 impl Resolver {
     pub fn new(server: &mut Vec<String>) -> Result<Resolver, std::net::AddrParseError> {
@@ -216,12 +214,12 @@ impl Resolver {
 
 #[cfg(feature = "result_error")]
 #[derive(Debug)]
-pub struct ResolverQueryResult(ResultAndError<Response, ResolverQueryError>);
+pub struct ResolverQueryResult(ResultAndError<Option<Response>, ResolverQueryError>);
 
 //todo 二次封装
 impl ResolverQueryResult {
     #[inline]
-    pub fn get_result(&self) -> Option<&Response> {
+    pub fn result(&self) -> RefWrapper<Option<Response>> {
         self.0.result()
     }
 
@@ -308,8 +306,7 @@ macro_rules! define_get_record {
             impl ResolverQueryResult {
                 #[inline]
                 pub fn $fn_name(&self) -> query_result_map!(single,query_type_map!($fn_name)) {
-                    let response = self.0.result()?;
-                    response.answers().iter().find_map(|rec| {
+                    self.0.result().as_ref().as_ref()?.answers().iter().find_map(|rec| {
                         if let RecordDataType::$dns_type(v) = &rec.data {
                             Some(v.get_general_output()?)
                         } else {
@@ -321,17 +318,13 @@ macro_rules! define_get_record {
                 #[inline]
                 pub fn [<$fn_name _iter>](&self) ->
                         query_result_map!(iter,query_type_map!($fn_name))  {
-                    if let Some(res) = self.0.result() {
-                        Some(res.answers().iter().filter_map(|rec| {
-                            if let RecordDataType::$dns_type(v) = &rec.data {
-                                Some(v.get_general_output()?)
-                            } else {
-                                None
-                            }})
-                        )
-                    } else {
-                        None
-                    }
+                    Some(self.0.result().into_ref()?.as_ref()?.answers().iter().filter_map(|rec| {
+                        if let RecordDataType::$dns_type(v) = &rec.data {
+                            Some(v.get_general_output()?)
+                        } else {
+                            None
+                        }})
+                    )
                 }
 
                 #[inline]
@@ -359,6 +352,19 @@ macro_rules! define_get_record {
             }
         }
     };
+}
+
+impl ResolverQueryResult {
+    pub fn v(&self) -> query_result_map!(iter,query_type_map!(a)) {
+        Some(self.0.result().into_ref()?.as_ref()?.answers().iter().filter_map(|rec| {
+            if let RecordDataType::A(v) = &rec.data {
+                Some(v.get_general_output()?)
+            } else {
+                None
+            }
+        })
+        )
+    }
 }
 
 // the last attribute is func output type
@@ -500,7 +506,7 @@ macro_rules! query {
 }
 
 #[cfg(feature = "result_error")]
-pub type QueryResult<T> = ResultAndError<T, QueryError>;
+pub type QueryResult<W: Wrapper> = ResultAndError<W, QueryError>;
 
 #[cfg(not(feature = "result_error"))]
 pub type QueryResult<T> = ResultAndError<T>;
@@ -535,8 +541,6 @@ impl Debug for QueryError {
 }
 
 #[cfg(feature = "result_error")]
-impl error_trait::B for QueryError {}
-#[cfg(feature = "result_error")]
 impl From<ResolverQueryError> for QueryError {
     fn from(err: ResolverQueryError) -> Self {
         match err {
@@ -552,7 +556,7 @@ impl From<ResolverQueryError> for QueryError {
 #[cfg(feature = "fmt")]
 impl Display for ResolverQueryResult {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if let Some(res) = &self.0.result() {
+        if let Some(res) = &self.0.result().as_ref() {
             std::fmt::Display::fmt(&res, f)?;
         } else {
             #[cfg(feature = "result_error")]

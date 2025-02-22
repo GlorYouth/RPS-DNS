@@ -1,6 +1,6 @@
+use rps_dns::error::*;
 use rps_dns::query;
 use rps_dns::resolver::*;
-use rps_dns::error::*;
 
 #[test]
 fn test_query_a() {
@@ -123,11 +123,11 @@ fn test_special() {
 fn test_query() {
     let server = vec!["9.9.9.9".to_string()];
     let result = query! {
-            a,
-            all,
-            @target "www.baidu.com".to_string(),
-            @server server,
-            -error
-        };
+        a,
+        all,
+        @target "www.baidu.com".to_string(),
+        @server server,
+        -error
+    };
     println!("{:?}", result.unwrap());
 }
