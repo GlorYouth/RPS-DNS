@@ -100,104 +100,103 @@ impl Resolver {
     }
 
     pub fn query(&self, domain: String, qtype: u16) -> ResolverQueryResult {
+        let domain = match RawDomain::from_str(domain.as_str()) {
+            None => {
+                #[cfg(feature = "result_error")]
+                return ResolverQueryError::TargetParseError(ErrorFormat::new(
+                    format!("TargetParseError, domain: {}", domain),
+                    "Resolver::query",
+                ))
+                .into();
+                #[cfg(not(feature = "result_error"))]
+                ResolverQueryResult::from(None)
+            }
+            Some(domain) => domain,
+        };
         #[cfg(feature = "result_error")]
         let mut error_vec = Vec::new();
-        if let Some(domain) = RawDomain::from_str(domain.as_str()) {
-            let domain = std::rc::Rc::new(domain);
-            let mut buf = [0_u8; 1500];
-            for server in &self.server {
-                return match server {
-                    ServerType::Tcp(addr) => {
-                        //后面可以考虑复用连接
-                        match std::net::TcpStream::connect(addr)
-                            .map_err(|err| {
+        
+        let domain = std::rc::Rc::new(domain);
+        let mut buf = [0_u8; 1500];
+        for server in &self.server {
+            return match server {
+                ServerType::Tcp(addr) => {
+                    //后面可以考虑复用连接
+                    match std::net::TcpStream::connect(addr)
+                        .map_err(|err| {
+                            #[cfg(feature = "logger")]
+                            debug!("连接到对应的tcp server失败");
+                            #[cfg(feature = "result_error")]
+                            NetError::ConnectTcpAddrError(ErrorFormat::new(
+                                format!("ConnectTcpAddrError, target {}, {}", addr, err),
+                                "Resolver::query => ServerType::Tcp",
+                            ))
+                        })
+                        .and_then(|stream| {
+                            let request = Request::new(domain.clone(), qtype);
+                            #[cfg(feature = "result_error")]
+                            match NetQuery::query_tcp(stream, request, &mut buf).into_index() {
+                                Ok(response) => Ok(response.into()),
+                                Err(e) => Err(convert_err(e, "Resolver::query => ServerType::Tcp")),
+                            }
+                            #[cfg(not(feature = "result_error"))]
+                            Ok(NetQuery::query_tcp(stream, request, &mut buf).into())
+                        }) {
+                        Ok(response) => response,
+                        Err(e) => {
+                            #[cfg(feature = "result_error")]
+                            error_vec.push(e);
+                            continue;
+                        }
+                    }
+                }
+                ServerType::Udp(addr) => {
+                    match std::net::UdpSocket::bind("0.0.0.0:0")
+                        .map_err(|err| {
+                            #[cfg(feature = "logger")]
+                            debug!("监听udp端口失败");
+                            #[cfg(feature = "result_error")]
+                            NetError::BindUdpAddrError(ErrorFormat::new(
+                                format!("BindUdpAddrError, target {}, {}", addr, err),
+                                "Resolver::query => ServerType::Udp",
+                            ))
+                        })
+                        .and_then(|socket| match socket.connect(addr) {
+                            Ok(_) => Ok(socket),
+                            Err(err) => {
                                 #[cfg(feature = "logger")]
-                                debug!("连接到对应的tcp server失败");
+                                debug!("连接到对应的udp server失败");
                                 #[cfg(feature = "result_error")]
-                                NetError::ConnectTcpAddrError(ErrorFormat::new(
+                                Err(NetError::ConnectUdpAddrError(ErrorFormat::new(
                                     format!("ConnectTcpAddrError, target {}, {}", addr, err),
-                                    "Resolver::query => ServerType::Tcp",
-                                ))
-                            })
-                            .and_then(|stream| {
-                                let request = Request::new(domain.clone(), qtype);
-                                #[cfg(feature = "result_error")]
-                                match NetQuery::query_tcp(stream, request, &mut buf).into_index() {
-                                    Ok(response) => Ok(response.into()),
-                                    Err(e) => {
-                                        Err(convert_err(e, "Resolver::query => ServerType::Tcp"))
-                                    }
-                                }
-                                #[cfg(not(feature = "result_error"))]
-                                Ok(NetQuery::query_tcp(stream, request, &mut buf).into())
-                            }) {
-                            Ok(response) => response,
-                            Err(e) => {
-                                #[cfg(feature = "result_error")]
-                                error_vec.push(e);
-                                continue;
-                            }
-                        }
-                    }
-                    ServerType::Udp(addr) => {
-                        match std::net::UdpSocket::bind("0.0.0.0:0")
-                            .map_err(|err| {
-                                #[cfg(feature = "logger")]
-                                debug!("监听udp端口失败");
-                                #[cfg(feature = "result_error")]
-                                NetError::BindUdpAddrError(ErrorFormat::new(
-                                    format!("BindUdpAddrError, target {}, {}", addr, err),
                                     "Resolver::query => ServerType::Udp",
-                                ))
-                            })
-                            .and_then(|socket| match socket.connect(addr) {
-                                Ok(_) => Ok(socket),
-                                Err(err) => {
-                                    #[cfg(feature = "logger")]
-                                    debug!("连接到对应的udp server失败");
-                                    #[cfg(feature = "result_error")]
-                                    Err(NetError::ConnectUdpAddrError(ErrorFormat::new(
-                                        format!("ConnectTcpAddrError, target {}, {}", addr, err),
-                                        "Resolver::query => ServerType::Udp",
-                                    )))
-                                }
-                            })
-                            .and_then(|socket| {
-                                let request = Request::new(domain.clone(), qtype);
-                                #[cfg(feature = "result_error")]
-                                match NetQuery::query_udp(socket, request, &mut buf).into_index() {
-                                    Ok(response) => Ok(response.into()),
-                                    Err(e) => {
-                                        Err(convert_err(e, "Resolver::query => ServerType::Udp"))
-                                    }
-                                }
-                                #[cfg(not(feature = "result_error"))]
-                                Ok(NetQuery::query_udp(socket, request, &mut buf).into())
-                            }) {
-                            Ok(response) => response,
-                            Err(e) => {
-                                #[cfg(feature = "result_error")]
-                                error_vec.push(e);
-                                continue;
+                                )))
                             }
+                        })
+                        .and_then(|socket| {
+                            let request = Request::new(domain.clone(), qtype);
+                            #[cfg(feature = "result_error")]
+                            match NetQuery::query_udp(socket, request, &mut buf).into_index() {
+                                Ok(response) => Ok(response.into()),
+                                Err(e) => Err(convert_err(e, "Resolver::query => ServerType::Udp")),
+                            }
+                            #[cfg(not(feature = "result_error"))]
+                            Ok(NetQuery::query_udp(socket, request, &mut buf).into())
+                        }) {
+                        Ok(response) => response,
+                        Err(e) => {
+                            #[cfg(feature = "result_error")]
+                            error_vec.push(e);
+                            continue;
                         }
                     }
-                };
-            }
-            #[cfg(feature = "result_error")]
-            return ResolverQueryError::NetError(error_vec).into();
-            #[cfg(not(feature = "result_error"))]
-            ResolverQueryResult::from(None)
-        } else {
-            #[cfg(feature = "result_error")]
-            return ResolverQueryError::TargetParseError(ErrorFormat::new(
-                format!("TargetParseError, domain: {}", domain),
-                "Resolver::query",
-            ))
-            .into();
-            #[cfg(not(feature = "result_error"))]
-            ResolverQueryResult::from(None)
+                }
+            };
         }
+        #[cfg(feature = "result_error")]
+        return ResolverQueryError::NetError(error_vec).into();
+        #[cfg(not(feature = "result_error"))]
+        ResolverQueryResult::from(None)
     }
 }
 
