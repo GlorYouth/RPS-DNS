@@ -137,8 +137,6 @@ impl<W: Wrapper, E> ResultAndError<W, E> {
 #[cfg(feature = "result_error")]
 impl<W: Wrapper, E> From<Result<W, E>> for ResultAndError<W, E> {
     fn from(result: Result<W, E>) -> Self {
-        Self {
-            result,
-        }
+        Self { result }
     }
 }
