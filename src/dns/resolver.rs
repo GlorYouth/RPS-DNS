@@ -393,25 +393,13 @@ macro_rules! query {
         }()
     };
     ($record_type:ident,all,$(@$config:ident $server:expr),*) => {
-        $crate::paste!{
-            || -> $crate::query_result_map!(all,$crate::query_type_map!($record_type)) {
-                let mut config = $crate::resolver::ResolveConfig {
-                    $(
-                        $config: $server,
-                    )*
-                };
-                if let Ok(resolver) = $crate::resolver::Resolver::new(&mut config.server) {
-                    let result = resolver.query(config.target,$crate::dns_type_num!($record_type));
-                    if let Some(iter) = result.[<$record_type _into_iter>]() {
-                        iter.collect()
-                    } else {
-                        Vec::new()
-                    }
-                } else {
-                    Vec::new()
-                }
-            }()
-        }
+        || -> $crate::query_result_map!(all,$crate::query_type_map!($record_type)) {
+            query!{
+                $record_type,
+                into_iter,
+                $(@$config $server),*
+            }.map_or(Vec::new(), |iter| iter.collect())
+        }()
     };
     ($record_type:ident,into_iter,$(@$config:ident $server:expr),*) => {
         $crate::paste!{
@@ -472,21 +460,19 @@ macro_rules! query {
      */
 
     ($record_type:ident,all,$(@$config:ident $server:expr),*,-error) => { //合并同类项，方便代码维护
-        $crate::paste!{
-            || -> $crate::query_result_map_err!(all,$crate::query_type_map!($record_type)) {
-                $crate::query!{
-                    $record_type,
-                    into_iter,
-                    $(@$config $server),*,
-                    -error
-                }.into_index().map(|result| { // Result<W,E>的E部分不变，只动W就行了
-                    match result { // 若有结果则直接collect，若无则返回空数组
-                        None => Vec::new(),
-                        Some(iter) => iter.collect()
-                    }
-                }).into()
-            }()
-        }
+        || -> $crate::query_result_map_err!(all,$crate::query_type_map!($record_type)) {
+            $crate::query!{
+                $record_type,
+                into_iter,
+                $(@$config $server),*,
+                -error
+            }.into_index().map(|result| { // Result<W,E>的E部分不变，只动W就行了
+                match result { // 若有结果则直接collect，若无则返回空数组
+                    None => Vec::new(),
+                    Some(iter) => iter.collect()
+                }
+            }).into()
+        }()
     };
     /*
     is equal to:
@@ -632,19 +618,13 @@ impl From<ResolverQueryError> for ResolverQueryResult {
 }
 
 fn ne() {
-    || -> QueryResult<Option<std::net::Ipv4Addr>> {
-        Resolver::new(&mut vec![])
-            .map_err(|err| {
-                QueryError::ServerParseError(ErrorFormat::new(
-                    format!("ServerParseError, target {:?}, {}", "", err),
-                    "query!()",
-                ))
-            })
-            .map(|resolver| resolver.query("".into(), 0))
-            .and_then(|result| match result.error() {
-                None => Ok(result.a()),
-                Some(_) => Err(QueryError::from(result.into_error().unwrap())),
-            })
-            .into()
+    || -> Vec<std::net::Ipv4Addr> {
+        let server = vec!["9.9.9.9".to_string()];
+        query! {
+            a,
+            into_iter,
+            @target "www.baidu.com".to_string(),
+            @server server
+        }.map_or(Vec::new(), |iter| iter.collect())
     }();
 }
