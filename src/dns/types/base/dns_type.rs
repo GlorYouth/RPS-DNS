@@ -2,7 +2,6 @@
 #[cfg(feature = "fmt")]
 use std::fmt::{Display, Formatter};
 
-
 macro_rules! make_dns_type {
     ($($field:tt),*) => {
         // Define an enum. This expands to:

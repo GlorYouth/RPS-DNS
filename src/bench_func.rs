@@ -1,7 +1,7 @@
 use crate::dns::types::base::{DnsTypeNum, RawDomain};
 use crate::dns::types::parts::{Request, Response};
-use std::rc::Rc;
 use crate::query;
+use std::rc::Rc;
 
 pub fn test_encode_into() {
     let mut buf = [0_u8; 1500];

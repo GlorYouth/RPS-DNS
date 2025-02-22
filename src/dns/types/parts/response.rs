@@ -21,7 +21,6 @@ pub struct Response {
     answer: Vec<Record>,
 }
 
-
 impl Response {
     #[inline]
     pub fn from_slice_uncheck(slice: &[u8]) -> Option<Response> {
@@ -156,7 +155,7 @@ impl Response {
             Some(())
         })
     }
-    
+
     #[inline]
     pub fn answers(&self) -> &Vec<Record> {
         self.answer.as_ref()

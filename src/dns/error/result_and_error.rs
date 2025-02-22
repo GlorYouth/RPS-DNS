@@ -1,7 +1,6 @@
+use crate::dns::utils::RefWrapper;
 #[cfg(not(feature = "result_error"))]
 use std::marker::PhantomData;
-use crate::dns::utils::RefWrapper;
-
 
 pub trait Wrapper {
     type Index: Default;
@@ -10,7 +9,6 @@ pub trait Wrapper {
     fn into_index(self) -> Self::Index;
 
     fn from_index(index: Self::Index) -> Self;
-
 }
 
 impl<T> Wrapper for Option<T> {
@@ -49,7 +47,6 @@ impl<T> Wrapper for Vec<T> {
         index
     }
 }
-
 
 #[derive(Debug)]
 pub struct ResultAndError<W: Wrapper, E = ()> {
@@ -112,7 +109,7 @@ impl<W: Wrapper, E> ResultAndError<W, E> {
     pub fn into_error(self) -> Option<E> {
         self.result.err()
     }
-    
+
     #[cfg(feature = "result_error")]
     #[inline]
     pub fn index(&self) -> &Result<W, E> {

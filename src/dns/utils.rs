@@ -1,7 +1,7 @@
+mod ref_wrapper;
 mod server_type;
 mod slice_operator;
 mod slice_reader;
-mod ref_wrapper;
 
 pub use slice_reader::SliceReader;
 

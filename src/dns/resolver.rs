@@ -268,12 +268,24 @@ macro_rules! query_type_map {
 
 #[macro_export]
 macro_rules! dns_type_num {
-    (a) => { 1 };
-    (ns) => { 2 };
-    (cname) => { 5 };
-    (soa) => { 6 };
-    (txt) => { 16 };
-    (aaaa) => { 28 }
+    (a) => {
+        1
+    };
+    (ns) => {
+        2
+    };
+    (cname) => {
+        5
+    };
+    (soa) => {
+        6
+    };
+    (txt) => {
+        16
+    };
+    (aaaa) => {
+        28
+    };
 }
 
 // todo
@@ -294,9 +306,14 @@ macro_rules! query_result_map_err {
     (into_iter,$query_type:ty) => {rps_dns::resolver::QueryResult<IntoIter<$query_type>>};
 }
 
-pub type Iter<'a,T> = FilterMap<std::slice::Iter<'a,crate::dns::types::parts::Record>, fn(&crate::dns::types::parts::Record) -> Option<T>>;
-pub type IntoIter<T> = FilterMap<std::vec::IntoIter<crate::dns::types::parts::Record>, fn(crate::dns::types::parts::Record) -> Option<T>>;
-
+pub type Iter<'a, T> = FilterMap<
+    std::slice::Iter<'a, crate::dns::types::parts::Record>,
+    fn(&crate::dns::types::parts::Record) -> Option<T>,
+>;
+pub type IntoIter<T> = FilterMap<
+    std::vec::IntoIter<crate::dns::types::parts::Record>,
+    fn(crate::dns::types::parts::Record) -> Option<T>,
+>;
 
 //我真不想写了，用宏生成算了
 macro_rules! define_get_record {
@@ -566,4 +583,3 @@ impl From<ResolverQueryError> for ResolverQueryResult {
         ResolverQueryResult(ResultAndError::from_error(value))
     }
 }
-
